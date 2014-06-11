@@ -3593,9 +3593,10 @@ void sendLogFileName() {
 
     currentLogFilePath = getCurrentLogfilePath();
 
-    wrapperProtocolFunction(WRAPPER_MSG_LOGFILE, currentLogFilePath);
-
-    free(currentLogFilePath);
+    if (currentLogFilePath) {
+        wrapperProtocolFunction(WRAPPER_MSG_LOGFILE, currentLogFilePath);
+        free(currentLogFilePath);
+    }
 }
 
 /**
@@ -4145,7 +4146,7 @@ int wrapperRunCommonInner() {
         }
         
         if (isCygwin()) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("CYGWIN detected"));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Cygwin detected"));
         }
     }
 #endif
@@ -5447,12 +5448,12 @@ int wrapperBuildJavaCommandArrayLibraryPath(TCHAR **strings, int addQuotes, int 
             }
 
             /* Start with the property value. */
-            _sntprintf(&(strings[index][cpLen]), cpLenAlloc, TEXT("-Djava.library.path="));
+            _sntprintf(&(strings[index][cpLen]), cpLenAlloc - cpLen, TEXT("-Djava.library.path="));
             cpLen += 20;
 
             /* Add an open quote to the library path */
             if (addQuotes) {
-                _sntprintf(&(strings[index][cpLen]), cpLenAlloc, TEXT("\""));
+                _sntprintf(&(strings[index][cpLen]), cpLenAlloc - cpLen, TEXT("\""));
                 cpLen++;
             }
 
@@ -5497,7 +5498,7 @@ int wrapperBuildJavaCommandArrayLibraryPath(TCHAR **strings, int addQuotes, int 
                         if (j > 0) {
                             strings[index][cpLen++] = wrapperClasspathSeparator; /* separator */
                         }
-                        _sntprintf(&(strings[index][cpLen]), cpLenAlloc, TEXT("%s"), prop);
+                        _sntprintf(&(strings[index][cpLen]), cpLenAlloc - cpLen, TEXT("%s"), prop);
                         cpLen += len2;
                         j++;
                     }
@@ -5531,7 +5532,7 @@ int wrapperBuildJavaCommandArrayLibraryPath(TCHAR **strings, int addQuotes, int 
                     if (j > 0) {
                         strings[index][cpLen++] = wrapperClasspathSeparator; /* separator */
                     }
-                    _sntprintf(&(strings[index][cpLen]), cpLenAlloc, TEXT("%s"), systemPath);
+                    _sntprintf(&(strings[index][cpLen]), cpLenAlloc - cpLen, TEXT("%s"), systemPath);
                     cpLen += len2;
                     j++;
                 }
@@ -5539,7 +5540,8 @@ int wrapperBuildJavaCommandArrayLibraryPath(TCHAR **strings, int addQuotes, int 
 
             if (j == 0) {
                 /* No library path, use default. always room */
-                _sntprintf(&(strings[index][cpLen++]), cpLenAlloc, TEXT("./"));
+                _sntprintf(&(strings[index][cpLen]), cpLenAlloc - cpLen, TEXT("./"));
+                cpLen++;
             }
             /* Add ending quote.  If the previous character is a backslash then
              *  Windows will use it to escape the quote.  To make things work
@@ -5547,10 +5549,10 @@ int wrapperBuildJavaCommandArrayLibraryPath(TCHAR **strings, int addQuotes, int 
              *  result in a single backslash before the quote. */
             if (addQuotes) {
                 if (strings[index][cpLen - 1] == TEXT('\\')) {
-                    _sntprintf(&(strings[index][cpLen]), cpLenAlloc, TEXT("\\"));
+                    _sntprintf(&(strings[index][cpLen]), cpLenAlloc - cpLen, TEXT("\\"));
                     cpLen++;
                 }
-                _sntprintf(&(strings[index][cpLen]), cpLenAlloc, TEXT("\""));
+                _sntprintf(&(strings[index][cpLen]), cpLenAlloc - cpLen, TEXT("\""));
                 cpLen++;
             }
 
@@ -5674,7 +5676,7 @@ int wrapperBuildJavaClasspath(TCHAR **classpath) {
                     if (j > 0) {
                         (*classpath)[cpLen++] = wrapperClasspathSeparator; /* separator */
                     }
-                    _sntprintf(&((*classpath)[cpLen]), cpLenAlloc, TEXT("%s"), files[cnt]);
+                    _sntprintf(&((*classpath)[cpLen]), cpLenAlloc - cpLen, TEXT("%s"), files[cnt]);
                     cpLen += len2;
                     j++;
                     cnt++;
@@ -5761,7 +5763,8 @@ int wrapperBuildJavaClasspath(TCHAR **classpath) {
     freeStringProperties(propertyNames, propertyValues, propertyIndices);
     if (j == 0) {
         /* No classpath, use default. always room */
-        _sntprintf(&(*classpath[cpLen++]), cpLenAlloc, TEXT("./"));
+        _sntprintf(&(*classpath[cpLen]), cpLenAlloc - cpLen, TEXT("./"));
+        cpLen++;
     }
 
     return 0;
@@ -5799,11 +5802,11 @@ int wrapperBuildJavaCommandArrayClasspath(TCHAR **strings, int addQuotes, int in
 
         /* Add an open quote the classpath */
         if (addQuotes) {
-            _sntprintf(&(strings[index][cpLen]), len + 4, TEXT("\""));
+            _sntprintf(&(strings[index][cpLen]), len + 4 - cpLen, TEXT("\""));
             cpLen++;
         }
 
-        _sntprintf(&(strings[index][cpLen]), len + 4, TEXT("%s"), classpath);
+        _sntprintf(&(strings[index][cpLen]), len + 4 - cpLen, TEXT("%s"), classpath);
         cpLen += len;
 
         /* Add ending quote.  If the previous character is a backslash then
@@ -5812,10 +5815,10 @@ int wrapperBuildJavaCommandArrayClasspath(TCHAR **strings, int addQuotes, int in
          *  result in a single backslash before the quote. */
         if (addQuotes) {
             if (strings[index][cpLen - 1] == TEXT('\\')) {
-                _sntprintf(&(strings[index][cpLen]), len + 4, TEXT("\\"));
+                _sntprintf(&(strings[index][cpLen]), len + 4 - cpLen, TEXT("\\"));
                 cpLen++;
             }
-            _sntprintf(&(strings[index][cpLen]), len + 4, TEXT("\""));
+            _sntprintf(&(strings[index][cpLen]), len + 4 - cpLen, TEXT("\""));
             cpLen++;
         }
 

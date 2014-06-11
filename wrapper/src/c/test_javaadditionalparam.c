@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "CUnit/Basic.h"
+#include "logger.h"
 #include "property.h"
 #include "wrapper.h"
 
@@ -22,12 +23,25 @@
 
 /* TODO: Currently the source of tsJAP_testJavaAdditionalParamSuite is in wrapper.c  Should we move it in here? */
 
+void tsJAP_dummyLogFileChanged(const TCHAR *logFile) {
+}
+
 int tsJAP_init_properties(void) {
+    initLogging(tsJAP_dummyLogFileChanged);
+    logRegisterThread(WRAPPER_THREAD_MAIN);
+    setLogfileLevelInt(LEVEL_NONE);
+    setConsoleLogFormat(TEXT("LPM"));
+    setConsoleLogLevelInt(LEVEL_DEBUG);
+    setConsoleFlush(TRUE);
+    setSyslogLevelInt(LEVEL_NONE);
+
     properties = createProperties();
     return properties ? 0 : 1;
 }
 
 int tsJAP_clean_properties(void) {
+    disposeLogging();
+
     disposeProperties(properties);
     return 0;
 }

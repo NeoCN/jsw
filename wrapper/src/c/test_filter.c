@@ -37,6 +37,11 @@ int tsFLTR_init_wrapper(void) {
     return 0;
 }
 
+int tsFLTR_clean_wrapper(void) {
+    disposeLogging();
+    return 0;
+}
+
 void tsFLTR_subTestWrapperWildcardMatch(const TCHAR *pattern, const TCHAR *text, size_t expectedMinLen, int expectedMatch) {
     size_t minLen;
     int matched;
@@ -105,7 +110,7 @@ void tsFLTR_testWrapperWildcardMatch() {
 int tsFLTR_suiteFilter() {
     CU_pSuite filterSuite;
 
-    filterSuite = CU_add_suite("Filter Suite", tsFLTR_init_wrapper, NULL);
+    filterSuite = CU_add_suite("Filter Suite", tsFLTR_init_wrapper, tsFLTR_clean_wrapper);
     if (NULL == filterSuite) {
         return CU_get_error();
     }
