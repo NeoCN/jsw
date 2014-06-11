@@ -127,9 +127,12 @@ int logPauseTime = -1;
 int logBufferGrowth = FALSE;
 
 TCHAR *logFilePath;
+
+/* Size of the currentLogFileName and workLogFileName buffers. */
+size_t currentLogFileNameSize;
 TCHAR *currentLogFileName;
 TCHAR *workLogFileName;
-size_t logFileNameSize;
+
 int logFileRollMode = ROLL_MODE_SIZE;
 int logFileUmask = 0022;
 TCHAR *logLevelNames[] = { TEXT("NONE  "), TEXT("DEBUG "), TEXT("INFO  "), TEXT("STATUS"), TEXT("WARN  "), TEXT("ERROR "), TEXT("FATAL "), TEXT("ADVICE"), TEXT("NOTICE") };
@@ -649,7 +652,8 @@ extern int setLogfilePath(const TCHAR *log_file_path, const TCHAR *workingDir, i
     TCHAR *c;
 #endif
 
-    logFileNameSize = len + 10 + 1;
+    /* The currentLogFileNameSize is the size of log_file_path + 10 ("." + a roll number) + 1 (NULL). */
+    currentLogFileNameSize = len + 10 + 1;
     if (logFilePath) {
         free(logFilePath);
         free(currentLogFileName);
@@ -666,7 +670,7 @@ extern int setLogfilePath(const TCHAR *log_file_path, const TCHAR *workingDir, i
     }
     _tcsncpy(logFilePath, log_file_path, len + 1);
 
-    currentLogFileName = malloc(sizeof(TCHAR) * (len + 10 + 1));
+    currentLogFileName = malloc(sizeof(TCHAR) * currentLogFileNameSize);
     if (!currentLogFileName) {
         outOfMemoryQueued(TEXT("SLP"), 2);
         free(logFilePath);
@@ -674,13 +678,13 @@ extern int setLogfilePath(const TCHAR *log_file_path, const TCHAR *workingDir, i
         return TRUE;
     }
     currentLogFileName[0] = TEXT('\0');
-    workLogFileName = malloc(sizeof(TCHAR) * (len + 10 + 1));
+    workLogFileName = malloc(sizeof(TCHAR) * currentLogFileNameSize);
     if (!workLogFileName) {
         outOfMemoryQueued(TEXT("SLP"), 3);
         free(logFilePath);
         logFilePath = NULL;
         free(currentLogFileName);
-        logFileNameSize = 0;
+        currentLogFileNameSize = 0;
         currentLogFileName = NULL;
         return TRUE;
     }
@@ -1533,11 +1537,14 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
  * Generates a log file name given.
  *
  * buffer - Buffer into which to _sntprintf the generated name.
+ * bufferSize - Size of the buffer.
  * template - Template from which the name is generated.
  * nowDate - Optional date used to replace any YYYYMMDD tokens.
  * rollNum - Optional roll number used to replace any ROLLNUM tokens.
  */
-void generateLogFileName(TCHAR *buffer, const TCHAR *template, const TCHAR *nowDate, const TCHAR *rollNum ) {
+void generateLogFileName(TCHAR *buffer, size_t bufferSize, const TCHAR *template, const TCHAR *nowDate, const TCHAR *rollNum ) {
+    size_t bufferLen;
+    
     /* Copy the template to the buffer to get started. */
     _tcsncpy(buffer, template, _tcslen(logFilePath) + 11);
 
@@ -1571,7 +1578,9 @@ void generateLogFileName(TCHAR *buffer, const TCHAR *template, const TCHAR *nowD
         /* The name did not contain a ROLLNUM token. */
         if (rollNum != NULL ) {
             /* Generate the name as if ".ROLLNUM" was appended to the template. */
-            _sntprintf(buffer + _tcslen(buffer), logFileNameSize, TEXT(".%s"), rollNum);
+            bufferLen = _tcslen(buffer);
+            _sntprintf(buffer + bufferLen, bufferSize - bufferLen, TEXT(".%s"), rollNum);
+            buffer[bufferSize - 1] = TEXT('\0');
         }
     }
 }
@@ -1652,9 +1661,9 @@ int log_printf_message_logFileInner(int source_id, int level, int threadId, int 
             /* Generate the log file name if it is not already set. */
             if (currentLogFileName[0] == TEXT('\0')) {
                 if (logFileRollMode & ROLL_MODE_DATE) {
-                    generateLogFileName(currentLogFileName, logFilePath, nowDate, NULL);
+                    generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, nowDate, NULL);
                 } else {
-                    generateLogFileName(currentLogFileName, logFilePath, NULL, NULL);
+                    generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, NULL, NULL);
                 }
                 logFileChanged = TRUE;
             }
@@ -1687,7 +1696,7 @@ int log_printf_message_logFileInner(int source_id, int level, int threadId, int 
                 
                 /* Try the default file location. */
                 setLogfilePath(defaultLogFile, NULL, TRUE);
-                _sntprintf(currentLogFileName, logFileNameSize, defaultLogFile);
+                _sntprintf(currentLogFileName, currentLogFileNameSize, defaultLogFile);
                 logFileChanged = TRUE;
                 logfileFP = _tfopen(currentLogFileName, TEXT("a"));
                 if (logfileFP == NULL) {
@@ -2932,7 +2941,7 @@ void rollLogs() {
     do {
         i++;
         _sntprintf(rollNum, 11, TEXT("%d"), i);
-        generateLogFileName(workLogFileName, logFilePath, NULL, rollNum);
+        generateLogFileName(workLogFileName, currentLogFileNameSize, logFilePath, NULL, rollNum);
         result = _tstat(workLogFileName, &fileStat);
 #ifdef _DEBUG
         if (result == 0) {
@@ -2945,7 +2954,7 @@ void rollLogs() {
     for (; i > 1; i--) {
         _tcsncpy(currentLogFileName, workLogFileName, _tcslen(logFilePath) + 11);
         _sntprintf(rollNum, 11, TEXT("%d"), i - 1);
-        generateLogFileName(workLogFileName, logFilePath, NULL, rollNum);
+        generateLogFileName(workLogFileName, currentLogFileNameSize, logFilePath, NULL, rollNum);
 
         if ((logFileMaxLogFiles > 0) && (i > logFileMaxLogFiles) && (!logFilePurgePattern)) {
             /* The file needs to be deleted rather than rolled.   If a purge pattern was not specified,
@@ -2967,7 +2976,7 @@ void rollLogs() {
                         log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to delete old log file: %s (%s)"), workLogFileName, getLastErrorText());
                     }
                     rollFailure = TRUE;
-                    generateLogFileName(currentLogFileName, logFilePath, NULL, NULL); /* Set the name back so we don't cause a logfile name changed event. */
+                    generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, NULL, NULL); /* Set the name back so we don't cause a logfile name changed event. */
                     return;
                 }
             } else {
@@ -2981,7 +2990,7 @@ void rollLogs() {
                         log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to delete old log file: %s"), workLogFileName);
                     }
                     rollFailure = TRUE;
-                    generateLogFileName(currentLogFileName, logFilePath, NULL, NULL); /* Set the name back so we don't cause a logfile name changed event. */
+                    generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, NULL, NULL); /* Set the name back so we don't cause a logfile name changed event. */
                     return;
                 }
 #ifdef _DEBUG
@@ -3009,7 +3018,7 @@ void rollLogs() {
 #endif
                 } 
                 rollFailure = TRUE;
-                generateLogFileName(currentLogFileName, logFilePath, NULL, NULL); /* Set the name back so we don't cause a logfile name changed event. */
+                generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, NULL, NULL); /* Set the name back so we don't cause a logfile name changed event. */
                 return;
             }
 #ifdef _DEBUG
@@ -3021,7 +3030,7 @@ void rollLogs() {
     }
 
     /* Rename the current file to the #1 index position */
-    generateLogFileName(currentLogFileName, logFilePath, NULL, NULL);
+    generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, NULL, NULL);
     if (_trename(currentLogFileName, workLogFileName) != 0) {
         if (rollFailure == FALSE) {
             if (getLastError() == 2) {
@@ -3040,7 +3049,7 @@ void rollLogs() {
             } 
         }
         rollFailure = TRUE;
-        generateLogFileName(currentLogFileName, logFilePath, NULL, NULL); /* Set the name back so we don't cause a logfile name changed event. */
+        generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, NULL, NULL); /* Set the name back so we don't cause a logfile name changed event. */
         return;
     }
 #ifdef _DEBUG
@@ -3134,12 +3143,12 @@ void checkAndRollLogs(const TCHAR *nowDate) {
              *  Check the maximum file count. */
             if (logFileMaxLogFiles > 0) {
                 /* We will check for too many files here and then clear the current log file name so it will be set later. */
-                generateLogFileName(currentLogFileName, logFilePath, nowDate, NULL);
+                generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, nowDate, NULL);
 
                 if (logFilePurgePattern) {
                     limitLogFileCount(currentLogFileName, logFilePurgePattern, logFilePurgeSortMode, logFileMaxLogFiles + 1);
                 } else {
-                    generateLogFileName(workLogFileName, logFilePath, TEXT("????????"), NULL);
+                    generateLogFileName(workLogFileName, currentLogFileNameSize, logFilePath, TEXT("????????"), NULL);
                     limitLogFileCount(currentLogFileName, workLogFileName, WRAPPER_FILE_SORT_MODE_NAMES_DEC, logFileMaxLogFiles + 1);
                 }
 

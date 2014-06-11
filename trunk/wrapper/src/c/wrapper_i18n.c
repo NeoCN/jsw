@@ -964,11 +964,11 @@ int _tstat(const wchar_t* filename, struct stat *buf) {
 }
 
 /**
- * @param file_name The file name to be resolved.
+ * @param fileName The file name to be resolved.
  * @param resolvedName A buffer large enough to hold the expanded path.
- * @param resolvedNameLen The size of the resolvedName buffer, should usually be PATH_MAX + 1.
+ * @param resolvedNameSize The size of the resolvedName buffer, should usually be PATH_MAX + 1.
  *
- * @return resolved_name if successful, otherwise NULL.
+ * @return resolvedName if successful, otherwise NULL.
  */
 wchar_t* _trealpathN(const wchar_t* fileName, wchar_t *resolvedName, size_t resolvedNameSize) {
     char *cFile;
@@ -984,27 +984,27 @@ wchar_t* _trealpathN(const wchar_t* fileName, wchar_t *resolvedName, size_t reso
     /* Initialize the return value. */
     resolvedName[0] = TEXT('\0');
 
-    sizeFile = wcstombs(NULL, fileName, 0);
-    cFile = malloc(sizeof(char) * (sizeFile + 1));
+    sizeFile = wcstombs(NULL, fileName, 0) + 1;
+
+    if (sizeFile == (size_t)-1) {
+        return NULL;
+    }
+
+    cFile = malloc(sizeFile);
+
     if (cFile) {
-        wcstombs(cFile, fileName, sizeFile + 1);
+        wcstombs(cFile, fileName, sizeFile);
+        
+        /* get the canonicalized absolute pathname */
         returnVal = realpath(cFile, resolved);
-        if (returnVal == NULL) {
-            free(cFile);
 
-            /* The resolved var contains an error path.  Convert it. */
-            req = mbstowcs(NULL, resolved, MBSTOWCS_QUERY_LENGTH);
-            if (req == (size_t)-1) {
-                resolvedName[0] = TEXT('\0'); /* Terminate the output buffer as it does not contain a path. */
-                return NULL;
-            }
-            mbstowcs(resolvedName, resolved, resolvedNameSize);
-            resolvedName[resolvedNameSize - 1] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
-
-            return NULL;
-        }
         free(cFile);
 
+        /**
+         * In case realpath failed, resolved may contain a part of the path (until the folder that is invalid). So we convert it anyway. 
+         * For example cFile is "/home/user/alex/../nina" and in fact "/home/user/nina" doesn't exist.
+         * So realpath will fail and resolved will be "/home/user"
+         */
         req = mbstowcs(NULL, resolved, MBSTOWCS_QUERY_LENGTH);
         if (req == (size_t)-1) {
             resolvedName[0] = TEXT('\0'); /* Terminate the output buffer as it does not contain a path. */
@@ -1013,7 +1013,12 @@ wchar_t* _trealpathN(const wchar_t* fileName, wchar_t *resolvedName, size_t reso
         mbstowcs(resolvedName, resolved, resolvedNameSize);
         resolvedName[resolvedNameSize - 1] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
 
-        return resolvedName;
+        
+        if (returnVal == NULL) {
+            return NULL;
+        } else {
+            return resolvedName;
+        }
     }
     return NULL;
 }

@@ -1127,7 +1127,7 @@ int configFileReader(const TCHAR *filename,
     reader.callback = callback;
     reader.callbackParam = callbackParam;
     reader.enableIncludes = enableIncludes;
-    reader.preload = FALSE;
+    reader.preload = preload;
     reader.debugIncludes = FALSE;
     reader.debugProperties = FALSE;
     

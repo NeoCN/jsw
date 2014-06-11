@@ -5626,7 +5626,7 @@ LPTSTR PrintCertificateInfo(PCCERT_CONTEXT pCertContext, int level) {
         for (i = 0; i < 2; i++) {
             for (n = 0; n < dwData; n++) {
                 if (serialNr) {
-                    _sntprintf(serialNr + (n * 3) , serialNrLength, TEXT("%02x "), pCertContext->pCertInfo->SerialNumber.pbData[dwData - (n + 1)]);
+                    _sntprintf(serialNr + (n * 3) , serialNrLength - (n * 3), TEXT("%02x "), pCertContext->pCertInfo->SerialNumber.pbData[dwData - (n + 1)]);
                 } else {
                     serialNrLength += 3;
                 }
