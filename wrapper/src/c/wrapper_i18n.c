@@ -554,10 +554,15 @@ int _tremove(const TCHAR *path) {
     char* cPath;
     size_t req;
     int result;
-    req = wcstombs(NULL, path, 0) + 1;
-    cPath = malloc(req);
+
+    req = wcstombs(NULL, path, 0);
+    if (req == (size_t)-1) {
+        return -1;
+    }
+
+    cPath = malloc(req + 1);
     if (cPath) {
-        wcstombs(cPath, path, req);
+        wcstombs(cPath, path, req + 1);
         result = remove(cPath);
         free(cPath);
         return result;
@@ -572,15 +577,24 @@ int _trename(const TCHAR *path, const TCHAR *to) {
     int ret;
 
     ret = -1;
-    req = wcstombs(NULL, path, 0) + 1;
-    cPath = malloc(req);
-
+    req = wcstombs(NULL, path, 0);
+    if (req == (size_t)-1) {
+        return ret;
+    }
+    
+    cPath = malloc(req + 1);
     if (cPath) {
-        wcstombs(cPath, path, req);
-        req  = wcstombs(NULL, to, 0) + 1;
-        cTo = malloc(req);
+        wcstombs(cPath, path, req + 1);
+
+        req  = wcstombs(NULL, to, 0);
+        if (req == (size_t)-1) {
+            free(cPath);
+            return ret;
+        }
+        
+        cTo = malloc(req + 1);
         if (cTo) {
-            wcstombs(cTo, to, req);
+            wcstombs(cTo, to, req + 1);
             ret = rename(cPath, cTo);
             free(cTo);
         }
@@ -593,10 +607,14 @@ void _tsyslog(int priority, const TCHAR *message) {
     char* cMessage;
     size_t req;
 
-    req = wcstombs(NULL, message, 0) + 1;
-    cMessage = malloc(req);
+    req = wcstombs(NULL, message, 0);
+    if (req == (size_t)-1) {
+        return;
+    }
+
+    cMessage = malloc(req + 1);
     if (cMessage) {
-        wcstombs(cMessage, message, req);
+        wcstombs(cMessage, message, req + 1);
         syslog(priority, "%s", cMessage);
         free(cMessage);
     }
@@ -649,14 +667,24 @@ FILE* _tfopen(const wchar_t* file, const wchar_t* mode) {
     char* cMode;
     FILE *f = NULL;
 
-    sizeFile = wcstombs(NULL, (wchar_t*)file, 0) + 1;
-    cFile= malloc(sizeFile);
+    sizeFile = wcstombs(NULL, (wchar_t*)file, 0);
+    if (sizeFile == (size_t)-1) {
+        return NULL;
+    }
+
+    cFile= malloc(sizeFile + 1);
     if (cFile) {
-        wcstombs(cFile, (wchar_t*) file, sizeFile);
-        sizeMode = wcstombs(NULL, (wchar_t*)mode, 0) + 1;
-        cMode= malloc(sizeMode);
+        wcstombs(cFile, (wchar_t*) file, sizeFile + 1);
+
+        sizeMode = wcstombs(NULL, (wchar_t*)mode, 0);
+        if (sizeMode == (size_t)-1) {
+            free(cFile);
+            return NULL;
+        }
+
+        cMode= malloc(sizeMode + 1);
         if (cMode) {
-            wcstombs(cMode, (wchar_t*) mode, sizeMode);
+            wcstombs(cMode, (wchar_t*) mode, sizeMode + 1);
             f = fopen(cFile, cMode);
             free(cMode);
         }
@@ -669,10 +697,14 @@ int _tunlink(const wchar_t* address) {
     int size;
     char *cAddress;
 
-    size = wcstombs(NULL, (wchar_t*)address, 0) + 1;
-    cAddress= malloc(size);
+    size = wcstombs(NULL, (wchar_t*)address, 0);
+    if (size == (size_t)-1) {
+        return -1;
+    }
+
+    cAddress= malloc(size + 1);
     if (cAddress) {
-        wcstombs(cAddress, (wchar_t*) address, size);
+        wcstombs(cAddress, (wchar_t*) address, size + 1);
         size = unlink(cAddress);
         free(cAddress);
         return size;
@@ -687,10 +719,14 @@ int _tmkfifo(TCHAR* arg, mode_t mode) {
     int r; 
 
     r = -1;
-    size = wcstombs(NULL, arg, 0) + 1;
-    cStr = malloc(size);
+    size = wcstombs(NULL, arg, 0);
+    if (size == (size_t)-1) {
+        return r;
+    }
+
+    cStr = malloc(size + 1);
     if (cStr) {
-        wcstombs(cStr, arg, size);
+        wcstombs(cStr, arg, size + 1);
         r = mkfifo(cStr, mode);
         free(cStr);
     }
@@ -703,10 +739,14 @@ int _tchdir(const TCHAR *path) {
     char *cStr;
 
     r = -1;
-    size = wcstombs(NULL, path, 0) + 1;
-    cStr = malloc(size);
+    size = wcstombs(NULL, path, 0);
+    if (size == (size_t)-1) {
+        return r;
+    }
+
+    cStr = malloc(size + 1);
     if (cStr) {
-        wcstombs(cStr, path, size);
+        wcstombs(cStr, path, size + 1);
         r = chdir(cStr);
         free(cStr);
     }
@@ -726,10 +766,19 @@ int _texecvp(TCHAR* arg, TCHAR **cmd) {
     cCmd = malloc((i + 1) * sizeof *cCmd);
     if (cCmd) {
         for (i = 0; i < size; i++) {
-            req  = wcstombs(NULL, cmd[i], 0) + 1;
-            cCmd[i] = malloc(req);
+            req  = wcstombs(NULL, cmd[i], 0);
+            if (req == (size_t)-1) {
+                i--;
+                for (; i > 0; i--) {
+                    free(cCmd[i]);
+                }
+                free(cCmd);
+                return -1;
+            }
+
+            cCmd[i] = malloc(req + 1);
             if (cCmd[i]) {
-                wcstombs(cCmd[i], cmd[i], req);
+                wcstombs(cCmd[i], cmd[i], req + 1);
             } else {
                 i--;
                 for (; i > 0; i--) {
@@ -740,10 +789,19 @@ int _texecvp(TCHAR* arg, TCHAR **cmd) {
             }
         }
         cCmd[size] = '\0';
-        req = wcstombs(NULL, arg, 0) + 1;
-        cArg = malloc(req);
+
+        req = wcstombs(NULL, arg, 0);
+        if (req == (size_t)-1) {
+            for (; size >= 0; size--) {
+                free(cCmd[size]);
+            }
+            free(cCmd);
+            return -1;
+        }
+
+        cArg = malloc(req + 1);
         if (cArg) {
-            wcstombs(cArg, arg, req);
+            wcstombs(cArg, arg, req + 1);
             i = execvp(cArg, cCmd);
             free(cArg);
         } else {
@@ -803,10 +861,19 @@ int _texecve(TCHAR* arg, TCHAR **cmd, TCHAR** env) {
     cCmd = malloc((i + 1) * sizeof *cCmd);
     if (cCmd) {
         for (i = 0; i < sizeCmd; i++) {
-            req  = wcstombs(NULL, cmd[i], 0) + 1;
-            cCmd[i] = malloc(req);
+            req  = wcstombs(NULL, cmd[i], 0);
+            if (req == (size_t)-1) {
+                i--;
+                for (; i > 0; i--) {
+                    free(cCmd[i]);
+                }
+                free(cCmd);
+                return -1;
+            }
+
+            cCmd[i] = malloc(req + 1);
             if (cCmd[i]) {
-                wcstombs(cCmd[i], cmd[i], req);
+                wcstombs(cCmd[i], cmd[i], req + 1);
             } else {
                 i--;
                 for (; i > 0; i--) {
@@ -830,10 +897,23 @@ int _texecve(TCHAR* arg, TCHAR **cmd, TCHAR** env) {
             return -1;
         }
         for (i = 0; i < sizeEnv; i++) {
-            req = wcstombs(NULL, env[i], 0) + 1;
-            cEnv[i] = malloc(req);
+            req = wcstombs(NULL, env[i], 0);
+            if (req == (size_t)-1) {
+                i--;
+                for (; i > 0; i--) {
+                    free(cEnv[i]);
+                }
+                free(cEnv);
+                for (; sizeCmd >= 0; sizeCmd--) {
+                    free(cCmd[sizeCmd]);
+                }
+                free(cCmd);
+                return -1;
+            }
+
+            cEnv[i] = malloc(req + 1);
             if (cEnv[i]) {
-                wcstombs(cEnv[i], env[i], req);
+                wcstombs(cEnv[i], env[i], req + 1);
             } else {
                 i--;
                 for (; i > 0; i--) {
@@ -848,10 +928,23 @@ int _texecve(TCHAR* arg, TCHAR **cmd, TCHAR** env) {
             }
         }
         cEnv[sizeEnv] = '\0';
-        req  = wcstombs(NULL, arg, 0) + 1;
-        cArg = malloc(req);
+
+        req  = wcstombs(NULL, arg, 0);
+        if (req == (size_t)-1) {
+            for (; sizeEnv >= 0; sizeEnv--) {
+                free(cEnv[sizeEnv]);
+            }
+            free(cEnv);
+            for (; sizeCmd >= 0; sizeCmd--) {
+                free(cCmd[sizeCmd]);
+            }
+            free(cCmd);
+            return -1;
+        }
+
+        cArg = malloc(req + 1);
         if (cArg) {
-            wcstombs(cArg, arg, req);
+            wcstombs(cArg, arg, req + 1);
             i = execve(cArg, cCmd, cEnv);
             free(cArg);
         } else {
@@ -875,10 +968,14 @@ int _topen(const TCHAR *path, int oflag, mode_t mode) {
     int r;
     size_t size;
 
-    size = wcstombs(NULL, path, 0) + 1;
-    cPath = malloc(size);
+    size = wcstombs(NULL, path, 0);
+    if (size == (size_t)-1) {
+        return -1;
+    }
+
+    cPath = malloc(size + 1);
     if (cPath) {
-        wcstombs(cPath, path, size);
+        wcstombs(cPath, path, size + 1);
         r = open(cPath, oflag, mode);
         free(cPath);
         return r;
@@ -895,10 +992,14 @@ int _tputenv(const TCHAR *string) {
     size_t size;
     char *cStr;
 
-    size = wcstombs(NULL, (wchar_t*)string, 0) + 1;
-    cStr = malloc(size);
+    size = wcstombs(NULL, (wchar_t*)string, 0);
+    if (size == (size_t)-1) {
+        return -1;
+    }
+
+    cStr = malloc(size + 1);
     if (cStr) {
-        wcstombs(cStr, string, size);
+        wcstombs(cStr, string, size + 1);
         r = putenv(cStr);
         /* Can't free cStr as it becomes part of the environment. */
         /*  free(cstr); */
@@ -913,15 +1014,24 @@ int _tsetenv(const TCHAR *name, const TCHAR *value, int overwrite) {
     char *cName;
     char *cValue;
 
-    size = wcstombs(NULL, (wchar_t*)name, 0) + 1;
-    cName = malloc(size);
-    if (cName) {
-        wcstombs(cName, name, size);
+    size = wcstombs(NULL, (wchar_t*)name, 0);
+    if (size == (size_t)-1) {
+        return -1;
+    }
 
-        size = wcstombs(NULL, (wchar_t*)value, 0) + 1;
-        cValue = malloc(size);
+    cName = malloc(size + 1);
+    if (cName) {
+        wcstombs(cName, name, size + 1);
+
+        size = wcstombs(NULL, (wchar_t*)value, 0);
+        if (size == (size_t)-1) {
+            free(cName);
+            return -1;
+        }
+
+        cValue = malloc(size + 1);
         if (cValue) {
-            wcstombs(cValue, value, size);
+            wcstombs(cValue, value, size + 1);
 
             r = setenv(cName, cValue, overwrite);
 
@@ -937,10 +1047,14 @@ void _tunsetenv(const TCHAR *name) {
     size_t size;
     char *cName;
 
-    size = wcstombs(NULL, (wchar_t*)name, 0) + 1;
-    cName = malloc(size);
+    size = wcstombs(NULL, (wchar_t*)name, 0);
+    if (size == (size_t)-1) {
+        return;
+    }
+
+    cName = malloc(size + 1);
     if (cName) {
-        wcstombs(cName, name, size);
+        wcstombs(cName, name, size + 1);
 
         unsetenv(cName);
 
@@ -953,10 +1067,14 @@ int _tstat(const wchar_t* filename, struct stat *buf) {
     int size;
     char *cFileName;
 
-    size = wcstombs(NULL, (wchar_t*)filename, 0) + 1;
-    cFileName = malloc(size);
+    size = wcstombs(NULL, (wchar_t*)filename, 0);
+    if (size == (size_t)-1) {
+        return -1;
+    }
+
+    cFileName = malloc(size + 1);
     if (cFileName) {
-        wcstombs(cFileName, (wchar_t*) filename, size);
+        wcstombs(cFileName, (wchar_t*) filename, size + 1);
         size = stat(cFileName, buf);
         free(cFileName);
     }
@@ -984,16 +1102,14 @@ wchar_t* _trealpathN(const wchar_t* fileName, wchar_t *resolvedName, size_t reso
     /* Initialize the return value. */
     resolvedName[0] = TEXT('\0');
 
-    sizeFile = wcstombs(NULL, fileName, 0) + 1;
-
+    sizeFile = wcstombs(NULL, fileName, 0);
     if (sizeFile == (size_t)-1) {
         return NULL;
     }
 
-    cFile = malloc(sizeFile);
-
+    cFile = malloc(sizeFile + 1);
     if (cFile) {
-        wcstombs(cFile, fileName, sizeFile);
+        wcstombs(cFile, fileName, sizeFile + 1);
         
         /* get the canonicalized absolute pathname */
         returnVal = realpath(cFile, resolved);

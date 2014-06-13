@@ -1210,7 +1210,11 @@ void setSyslogEventSourceName( const TCHAR *event_source_name ) {
 #ifdef WIN32
         size = sizeof(TCHAR) * (_tcslen(event_source_name) + 1);
 #else
-        size = wcstombs(NULL, event_source_name, 0) + 1;
+        size = wcstombs(NULL, event_source_name, 0);
+        if (size == (size_t)-1) {
+            return;
+        }
+        size++;
 #endif
         loginfoSourceName = malloc(size);
         if (!loginfoSourceName) {

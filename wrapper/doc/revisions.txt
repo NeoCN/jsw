@@ -49,6 +49,11 @@ Java Service Wrapper Revision History.
 * Fix a buffer overflow problem on AIX which caused crashes or deadlocks on
   startup for some users.  This had been an issue since 3.5.0 but only reported
   recently.
+* Remove output debug messages on UNIX when the wrapper.port.address property
+  was set.
+* Clean up code when converting multibyte characters to wide characters. Some 
+  error checks were not implemented correctly. Found during a code review and
+  is not known to have actually caused any problems.
 
 3.5.24
 * Fix a problem where the message source of remote syslog messages from the JVM
