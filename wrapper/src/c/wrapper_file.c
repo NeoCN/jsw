@@ -336,7 +336,12 @@ TCHAR** wrapperFileGetFiles(const TCHAR* pattern, int sortMode) {
 #endif
 
     /* Get the first file. */
+#ifdef _IA64_
+    /* On Itanium, the first parameter is not a "const". If you don't cast it, then you have a warning */
+    if ((handle = _tfindfirst64((TCHAR *)pattern, &fblock)) > 0) {
+#else
     if ((handle = _tfindfirst64(pattern, &fblock)) > 0) {
+#endif
         if ((_tcscmp(fblock.name, TEXT(".")) != 0) && (_tcscmp(fblock.name, TEXT("..")) != 0)) {
             fileLen = _tcslen(fblock.name);
             files[cnt] = malloc((_tcslen(dirPart) + _tcslen(fblock.name) + 1) * sizeof(TCHAR));
