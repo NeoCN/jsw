@@ -164,7 +164,7 @@ jstring JNU_NewStringNative(JNIEnv *env, const TCHAR *strW) {
         size = WideCharToMultiByte(CP_UTF8, 0, strW, -1, NULL, 0, NULL, NULL);
         if (size == 0) {
             /* Failed. */
-            _tprintf(TEXT("WrapperJNI Warn: Failed to convert string \"%s\": %s\n"), strW, GetLastError()); fflush(NULL);
+            _tprintf(TEXT("WrapperJNI Warn: Failed to convert string \"%s\": %s\n"), strW, getLastErrorText()); fflush(NULL);
             return NULL;
         }
         msgMB = malloc(sizeof(char) * (size + 1));
@@ -179,7 +179,7 @@ jstring JNU_NewStringNative(JNIEnv *env, const TCHAR *strW) {
  #else
         size = wcstombs(NULL, strW, 0);
         if (size == (size_t)-1) {
-            _tprintf(TEXT("Invalid multibyte sequence \"%s\": %s\n"), strW, GetLastError());
+            _tprintf(TEXT("Invalid multibyte sequence \"%s\": %s\n"), strW, getLastErrorText());
             return NULL;
         }
 
