@@ -167,23 +167,28 @@ jstring JNU_NewStringNative(JNIEnv *env, const TCHAR *strW) {
             _tprintf(TEXT("WrapperJNI Warn: Failed to convert string \"%s\": %s\n"), strW, GetLastError()); fflush(NULL);
             return NULL;
         }
-        msgMB = malloc(sizeof(char) * size);
+        msgMB = malloc(sizeof(char) * (size + 1));
         if (!msgMB) {
             throwOutOfMemoryError(env, TEXT("JNSN1"));
             return NULL;
         }
-        WideCharToMultiByte(CP_UTF8, 0, strW, -1, msgMB, size, NULL, NULL);
+        WideCharToMultiByte(CP_UTF8, 0, strW, -1, msgMB, size + 1, NULL, NULL);
         result = (*env)->NewStringUTF(env, msgMB);
         free(msgMB);
         return result;
  #else
-        size = wcstombs(NULL, strW, 0) + 1;
-        msgMB = malloc(sizeof(char) * size);
+        size = wcstombs(NULL, strW, 0);
+        if (size == (size_t)-1) {
+            _tprintf(TEXT("Invalid multibyte sequence \"%s\": %s\n"), strW, GetLastError());
+            return NULL;
+        }
+
+        msgMB = malloc(sizeof(char) * (size + 1));
         if (!msgMB) {
             throwOutOfMemoryError(env, TEXT("JNSN2"));
             return NULL;
         }
-        wcstombs(msgMB, strW, size);
+        wcstombs(msgMB, strW, size + 1);
  #endif
     } else {
         /* Empty string. */

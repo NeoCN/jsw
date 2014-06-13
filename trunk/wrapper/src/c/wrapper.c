@@ -1214,20 +1214,20 @@ void protocolStartServerSocket() {
         }
         WideCharToMultiByte(CP_OEMCP, 0, wrapperData->portAddress, -1, tempAddress, (int)len, NULL, NULL);
 #else
-        len = wcstombs(NULL, wrapperData->portAddress, 0) + 1;
-        _tprintf(TEXT("%d  hanth %s\n"), len, wrapperData->portAddress);
+        len = wcstombs(NULL, wrapperData->portAddress, 0);
+        /* _tprintf(TEXT("%d  hanth %s\n"), len, wrapperData->portAddress); */
         if (len == (size_t)-1) {
             log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
                 TEXT("Invalid multibyte sequence in port address \"%s\" : %s"), wrapperData->portAddress, getLastErrorText());
             return;
         }
-        tempAddress = malloc(len);
+        tempAddress = malloc(len + 1);
         if (!tempAddress) {
             outOfMemory(TEXT("PSSS"), 2);
             return;
         }
-        wcstombs(tempAddress, wrapperData->portAddress, len);
-        _tprintf(TEXT("%d  hanth % s\n"), len, tempAddress);
+        wcstombs(tempAddress, wrapperData->portAddress, len + 1);
+        /* _tprintf(TEXT("%d  hanth % s\n"), len, tempAddress); */
 #endif
         addr_srv.sin_addr.s_addr = inet_addr(tempAddress);
         free(tempAddress);
@@ -1423,6 +1423,11 @@ void protocolOpenSocket() {
         int req;
 #ifdef WIN32
         req = MultiByteToWideChar(CP_OEMCP, 0, inet_ntoa(addr_srv.sin_addr), -1, NULL, 0);
+        if (req <= 0) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                    TEXT("Invalid multibyte sequence in protocol message \"%s\" : %s"), inet_ntoa(addr_srv.sin_addr), getLastErrorText());
+            return;
+        }
         socketSource = malloc(sizeof(TCHAR) * (req + 1));
         if (!socketSource) {
             outOfMemory(TEXT("PO"), 1);
@@ -1433,6 +1438,8 @@ void protocolOpenSocket() {
 
         req = mbstowcs(NULL, inet_ntoa(addr_srv.sin_addr), MBSTOWCS_QUERY_LENGTH);
         if (req == (size_t)-1) {
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
+                    TEXT("Invalid multibyte sequence in protocol message \"%s\" : %s"), inet_ntoa(addr_srv.sin_addr), getLastErrorText());
             return;
         }
         socketSource = malloc(sizeof(TCHAR) * (req + 1));
@@ -1796,20 +1803,20 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
                 }
             }
  #else
-            len = wcstombs(NULL, messageW, 0) + 1;
+            len = wcstombs(NULL, messageW, 0);
             if (len == (size_t)-1) {
                 log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
                     TEXT("Invalid multibyte sequence in protocol message \"%s\" : %s"), messageW, getLastErrorText());
                 returnVal = TRUE;
                 ok = FALSE;
             } else {
-                messageMB = malloc(len);
+                messageMB = malloc(len + 1);
                 if (!messageMB) {
                     outOfMemory(TEXT("WPF"), 2);
                     returnVal = TRUE;
                     ok = FALSE;
                 } else {
-                    wcstombs(messageMB, messageW, len);
+                    wcstombs(messageMB, messageW, len + 1);
                 }
             }
  #endif
@@ -3269,16 +3276,24 @@ void logChildOutput(const char* log) {
  #ifdef WIN32
     GetLocaleInfo(GetThreadLocale(), LOCALE_IDEFAULTANSICODEPAGE, buffer, sizeof(buffer));
     cp = _ttoi(buffer);
-    size = MultiByteToWideChar(cp, 0, log, -1 , NULL, 0) + 1;
-    tlog = (TCHAR*)malloc(size * sizeof(TCHAR));
+    size = MultiByteToWideChar(cp, 0, log, -1 , NULL, 0);
+    if (size <= 0) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                    TEXT("Invalid multibyte sequence in protocol message \"%s\" : %s"), log, getLastErrorText());
+        return;
+    }
+
+    tlog = (TCHAR*)malloc((size + 1) * sizeof(TCHAR));
     if (!tlog) {
         outOfMemory(TEXT("WLCO"), 1);
         return;
     }
-    MultiByteToWideChar(cp, 0, log, -1, (TCHAR*)tlog, size);
+    MultiByteToWideChar(cp, 0, log, -1, (TCHAR*)tlog, size + 1);
  #else
     size = mbstowcs(NULL, log, MBSTOWCS_QUERY_LENGTH);
     if (size == (size_t)-1) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                    TEXT("Invalid multibyte sequence in protocol message \"%s\" : %s"), log, getLastErrorText());
         return;
     }
     tlog = malloc(sizeof(TCHAR) * (size + 1));
@@ -4096,18 +4111,30 @@ int wrapperRunCommonInner() {
                 tz2[req] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
  #else
         req = MultiByteToWideChar(CP_OEMCP, 0, tzname[0], -1, NULL, 0);
-        tz1 = malloc(req * sizeof(TCHAR));
+        if (req <= 0) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                TEXT("Invalid multibyte sequence in port address \"%s\" : %s"), tzname[0], getLastErrorText());
+            return 1;
+        }
+
+        tz1 = malloc((req + 1) * sizeof(TCHAR));
         if (!tz1) {
             outOfMemory(TEXT("LHN"), 1);
         } else {
-            MultiByteToWideChar(CP_OEMCP,0, tzname[0], -1, tz1, (int)req);
+            MultiByteToWideChar(CP_OEMCP,0, tzname[0], -1, tz1, (int)req + 1);
             req = MultiByteToWideChar(CP_OEMCP, 0, tzname[1], -1, NULL, 0);
-            tz2 = malloc(req * sizeof(TCHAR));
+            if (req <= 0) {
+                free(tz1);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                    TEXT("Invalid multibyte sequence in port address \"%s\" : %s"), tzname[1], getLastErrorText());
+                return 1;
+            }
+            tz2 = malloc((req  + 1) * sizeof(TCHAR));
             if (!tz2) {
                 free(tz1);
                 outOfMemory(TEXT("LHN"), 2);
             } else {
-                MultiByteToWideChar(CP_OEMCP,0, tzname[1], -1, tz2, (int)req);
+                MultiByteToWideChar(CP_OEMCP,0, tzname[1], -1, tz2, (int)req + 1);
  #endif
 
 #else
@@ -6926,6 +6953,12 @@ void wrapperLoadHostName() {
 #ifdef UNICODE
  #ifdef WIN32
         len = MultiByteToWideChar(CP_OEMCP, 0, hostName, -1, NULL, 0);
+        if (len <= 0) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                TEXT("Invalid multibyte sequence in port address \"%s\" : %s"), hostName, getLastErrorText());
+            return;
+        }
+
         hostName2 = malloc(sizeof(LPWSTR) * (len + 1));
         if (!hostName2) {
             outOfMemory(TEXT("LHN"), 1);
@@ -6935,6 +6968,8 @@ void wrapperLoadHostName() {
  #else
         len = mbstowcs(NULL, hostName, MBSTOWCS_QUERY_LENGTH);
         if (len == (size_t)-1) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                TEXT("Invalid multibyte sequence in port address \"%s\" : %s"), hostName, getLastErrorText());
             return;
         }
         hostName2 = malloc(sizeof(TCHAR) * (len + 1));
