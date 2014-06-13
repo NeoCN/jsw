@@ -1,0 +1,423 @@
+<html>
+<head>
+
+</head>
+
+<body >
+<a name="N10008"></a>
+<table cellpadding="2" cellspacing="0" width="100%" border="0">
+<tr>
+<td bgcolor="#8888aa" class="sectionheader1" width="*">
+<H1>コンフィギュレーション・プロパティの概要</H1>
+</td>
+</tr>
+
+    
+<a name="N1002D"></a>
+<table cellpadding="2" cellspacing="0" width="100%" border="0">
+<tr>
+<td bgcolor="#8888aa" class="sectionheader1" width="*">
+<H1>wrapper.check.deadlock プロパティ</H1>
+</td>
+</tr>
+<tr>
+<td>
+        
+   
+        
+<p>
+            このプロパティは、他のプロパティとの組み合わせで、
+            <ul>
+                
+<li>
+                    ［<tt><a href="#interval">wrapper.check.deadlock.interval</a></tt>］、
+                </li>
+                
+<li>
+                    ［<tt><a href="#action">wrapper.check.deadlock.action</a></tt>］、
+                </li>
+                
+<li>
+                    ［<tt><a href="#output">wrapper.check.deadlock.output</a></tt>］
+                </li>
+            
+</ul>
+            デッドロックしたスレッドについて
+            JVMをどのようにモニター（監視）するかを設定するために使われます。
+            
+            これは、何とか回避策がある場合には、
+            難しいような潜在的な致命的な問題を検知して回避するのに、とても役に立ちます。
+        </p>
+        
+<p>
+            スレッドのデッドロック・チェックは、少なくともJavaバージョン1.5の利用していることが必要です。
+            JVMだけはチェックを無視します。
+        </p>
+        
+<p>
+            デッドロックのチェックの処理は、わりと高速ですが、
+            全てのスレッドを一時的にロックしてスナップショットをとりますので、
+            このプロパティはデフォルトで「FALSE」になっています。
+        </p>
+        
+<table cellspacing="0" cellpadding="0" width="100%" border="0" class="listing">
+<tr>
+<td class="listingcaption"><i>設定例：（デッドロック・チェック：OFF）</i></td>
+</tr>
+<tr>
+<td bgcolor="#eeeeee" class="listingcell"><font color="#444444">
+<pre class="listingpre">wrapper.check.deadlock=FALSE</pre>
+</font></td>
+</tr>
+</table>
+        
+<p>
+            
+<b>設定例：</b>
+        
+</p>
+        
+<p>
+            プロパティの詳細について下記をご覧いただきますが、
+            次のシンプルな例では、デッドロックの場所をログ化するようにWrapperを設定してあり、
+            即座にJVMを再起動します。
+        </p>
+        
+<table cellspacing="0" cellpadding="0" width="100%" border="0" class="listing">
+<tr>
+<td class="listingcaption"><i>設定例：</i></td>
+</tr>
+<tr>
+<td bgcolor="#eeeeee" class="listingcell"><font color="#444444">
+<pre class="listingpre">wrapper.check.deadlock=TRUE
+wrapper.check.deadlock.interval=60
+wrapper.check.deadlock.action=RESTART
+wrapper.check.deadlock.output=FULL</pre>
+</font></td>
+</tr>
+</table>
+        
+<p>
+            
+<b>デッドロックって？</b>
+        
+</p>
+        
+<p>
+            複数のスレッドがリソースをロックしているときに、
+            全てのスレッドが無制限に待ち状態になる状態になり、
+            デッドロックが起きることがあります。
+        </p>
+        
+<p>
+            一番シンプルな例だと、スレッドＡがオブジェクトＡをロックしている状態で、
+            オブジェクトＢのロックを試みるケースのときに、
+            その間、他のスレッドＢがオブジェクトＢをロックした状態で
+            オブジェクトＡをロックしようと待機しているケースです。
+            
+            このケースでは、
+            スレッドＡは、オブジェクトＢ待ちのため、
+            オブジェクトＡを決して開放されることはありません。
+            
+            同時に、スレッドＢは、オブジェクトＡが有効になるのを待っているため、
+            オブジェクトＢを永久にロックしたままになるため、
+            両者とも決して前に進めるはずがありません。
+        </p>
+    
+</td>
+</tr>
+</table>
+    
+<a name="interval"></a>
+<table cellpadding="2" cellspacing="0" width="100%" border="0">
+<tr>
+<td bgcolor="#8888aa" class="sectionheader1" width="*">
+<H1>wrapper.check.deadlock.interval</H1>
+</td>
+</tr>
+
+<tr>
+<td>
+        
+<p>
+            ［<tt>wrapper.check.deadlock.interval</tt>］
+            プロパティでは、
+            Wrapperがアプリケーションのデッドロックを探す
+            インターバル（一定間隔の周期）のコントロールを可能にします。
+            最短で１秒毎に１回のインターバルを設定できますが、
+            デフォルトでは「60」（１分あたり１回）です。
+            
+            一般的に、状態が安定していると分かっているアプリケーションの場合には、
+            このデッドロック・チェックの頻度を大幅に下げることも良いでしょう。
+        </p>
+        
+<table cellspacing="0" cellpadding="0" width="100%" border="0" class="listing">
+<tr>
+<td class="listingcaption"><i>設定例：（６０秒毎）</i></td>
+</tr>
+<tr>
+<td bgcolor="#eeeeee" class="listingcell"><font color="#444444">
+<pre class="listingpre">wrapper.check.deadlock.interval=60</pre>
+</font></td>
+</tr>
+</table>
+    
+</td>
+</tr>
+</table>
+    
+<a name="action"></a>
+<table cellpadding="2" cellspacing="0" width="100%" border="0">
+<tr>
+<td bgcolor="#8888aa" class="sectionheader1" width="*">
+<H1>wrapper.check.deadlock.action</H1>
+</td>
+</tr>
+<tr>
+<td>
+<p>
+            ［<tt>wrapper.check.deadlock.action</tt>］
+            プロパティでは、
+            デッドロックを検知したとき、Wrapperはどうするか、
+            Wrapperの動作についてのコントロールを可能にします。
+            デフォルトの動作では、「<tt>RESTART</tt>」です。
+        </p>
+        
+<table cellspacing="0" cellpadding="0" width="100%" border="0" class="listing">
+<tr>
+<td class="listingcaption"><i>設定例：（再起動する）</i></td>
+</tr>
+<tr>
+<td bgcolor="#eeeeee" class="listingcell"><font color="#444444">
+<pre class="listingpre">wrapper.check.deadlock.action=RESTART</pre>
+</font></td>
+</tr>
+</table>
+        
+<p>
+            可能な動作は次のとおり：
+            <ul>
+                
+<li>
+                    
+<b><tt>RESTART</tt></b> -  
+                    <p>
+                        カレントJVMを停止して、新しい「起動の試み（invocation）」の再起動します。
+                    </p>
+                
+</li>
+                
+<li>
+                    
+<b><tt>SHUTDOWN</tt></b> -  
+                    <p>
+                        JVMを停止して、同様にWrapperも停止します。
+                    </p>
+                
+</li>
+                
+<li>
+                    
+<b><tt>DUMP</tt></b> - 
+                    <p>
+                        スレッド・ダンプを呼び出します。
+                        当然のことながら、デッドロックが永続しているため、
+                        JVMが再起動するまでずっと、デッドロックしたステート（状態）が持続します、
+                        つまり、スレッド・ダンプもまた各インターバル（一定間隔の周期）ごとに呼び出されます
+                        のでご注意ください。
+                    </p>
+                
+</li>
+                
+<li>
+                    
+<b><tt>DUMP_RESTART</tt></b> -   
+                    <p>
+                        スレッド・ダンプを呼び出し、
+                        カレントJVMを停止して、新しい「起動の試み（invocation）」の再起動します。
+                    </p>
+                
+</li>
+                
+<li>
+                    
+<b><tt>DUMP_SHUTDOWN</tt></b> -  
+                    <p>
+                        スレッド・ダンプを呼び出し、
+                        JVMを停止して、同様にWrapperも停止します。
+                    </p>
+                
+</li>
+                
+<li>
+                    
+<b><tt>NONE</tt></b> - 
+                    <p>
+                        これは便利です、
+                        なぜなら、高い数値を持つトリガーなら、
+                        いかなるトリガーもトリガーされることを避けることができるので。
+                        because it will prevent any triggers 
+                        with a higher number from being triggered.
+                    </p>
+                
+</li>
+            
+</ul>
+        
+</p>
+    
+</td>
+</tr>
+</table>
+    
+<a name="output"></a>
+<table cellpadding="2" cellspacing="0" width="100%" border="0">
+<tr>
+<td bgcolor="#8888aa" class="sectionheader1" width="*">
+<H1>wrapper.check.deadlock.output</H1>
+</td>
+</tr>
+<tr>
+<td>
+<p>
+            ［<tt>wrapper.check.deadlock.output</tt>］
+            プロパティでは、
+            デッドロックを検知したとき、Wrapperがログ化する情報をコントロールを可能にします。
+            デフォルト出力では、「<tt>FULL</tt>」です。
+        </p>
+        
+<table cellspacing="0" cellpadding="0" width="100%" border="0" class="listing">
+<tr>
+<td class="listingcaption"><i>設定例：（完全なフルログ）</i></td>
+</tr>
+<tr>
+<td bgcolor="#eeeeee" class="listingcell"><font color="#444444">
+<pre class="listingpre">wrapper.check.deadlock.output=FULL</pre>
+</font></td>
+</tr>
+</table>
+        
+<p>
+            可能な出力レベルは次のとおり：
+            <ul>
+                
+<li>
+                    
+<b><tt>FULL</tt></b> -  
+                    <p>
+                        JVM内部で<tt>WrapperManager</tt>クラスが、
+                        デッドロックで呼び出されたスレッドの完全なスタック・トレース（一時記憶の軌跡）を含む
+                        レポートを出力します。
+                    </p>
+                    
+<table cellspacing="0" cellpadding="0" width="100%" border="0" class="listing">
+<tr>
+<td class="listingcaption"><i>「FULL（フル）」の出力例：</i></td>
+</tr>
+<tr>
+<td bgcolor="#eeeeee" class="listingcell"><font color="#444444">
+<pre class="listingpre">INFO   | jvm 1    | WrapperManager Error: Found 2 deadlocked threads!
+INFO   | jvm 1    | WrapperManager Error: =============================
+INFO   | jvm 1    | WrapperManager Error: "Locker-2" tid=18
+INFO   | jvm 1    | WrapperManager Error:   java.lang.Thread.State: BLOCKED
+INFO   | jvm 1    | WrapperManager Error:     at org.tanukisoftware.wrapper.test.DeadLock.lockSecond(DeadLock.java:64)
+INFO   | jvm 1    | WrapperManager Error:       - waiting on &lt;0x000000002fcac6db&gt; (a java.lang.Object) owned by "Locker-1" tid=17
+INFO   | jvm 1    | WrapperManager Error:     at org.tanukisoftware.wrapper.test.DeadLock.lockFirst(DeadLock.java:83)
+INFO   | jvm 1    | WrapperManager Error:       - locked &lt;0x0000000029c56c60&gt; (a java.lang.Object)
+INFO   | jvm 1    | WrapperManager Error:     at org.tanukisoftware.wrapper.test.DeadLock.access$100(DeadLock.java:22)
+INFO   | jvm 1    | WrapperManager Error:     at org.tanukisoftware.wrapper.test.DeadLock$1.run(DeadLock.java:42)
+INFO   | jvm 1    | WrapperManager Error:
+INFO   | jvm 1    | WrapperManager Error: "Locker-1" tid=17
+INFO   | jvm 1    | WrapperManager Error:   java.lang.Thread.State: BLOCKED
+INFO   | jvm 1    | WrapperManager Error:     at org.tanukisoftware.wrapper.test.DeadLock.lockSecond(DeadLock.java:64)
+INFO   | jvm 1    | WrapperManager Error:       - waiting on &lt;0x0000000029c56c60&gt; (a java.lang.Object) owned by "Locker-2" tid=18
+INFO   | jvm 1    | WrapperManager Error:     at org.tanukisoftware.wrapper.test.DeadLock.lockFirst(DeadLock.java:83)
+INFO   | jvm 1    | WrapperManager Error:       - locked &lt;0x000000002fcac6db&gt; (a java.lang.Object)
+INFO   | jvm 1    | WrapperManager Error:     at org.tanukisoftware.wrapper.test.DeadLock.access$100(DeadLock.java:22)
+INFO   | jvm 1    | WrapperManager Error:     at org.tanukisoftware.wrapper.test.DeadLock$1.run(DeadLock.java:42)
+INFO   | jvm 1    | WrapperManager Error:
+INFO   | jvm 1    | WrapperManager Error: =============================
+STATUS | wrapper  | A Thread Deadlock was detected in the JVM.  Restarting JVM.</pre>
+</font></td>
+</tr>
+</table>
+                
+</li>
+                
+<li>
+                    
+<b><tt>SIMPLE</tt></b> -  
+                    <p>
+                        JVM内部で<tt>WrapperManager</tt>クラスが、
+                        デッドロックで呼び出されたスレッドやオブジェクトの簡単な概要だけを含む
+                        レポートを出力します。
+                        多くの場合、特によく知られた問題に関しては十分です。
+                    </p>
+                    
+<table cellspacing="0" cellpadding="0" width="100%" border="0" class="listing">
+<tr>
+<td class="listingcaption"><i>「SIMPLE（シンプル）」の出力例</i></td>
+</tr>
+<tr>
+<td bgcolor="#eeeeee" class="listingcell"><font color="#444444">
+<pre class="listingpre">INFO   | jvm 1    | WrapperManager Error: Found 2 deadlocked threads!
+INFO   | jvm 1    | WrapperManager Error: =============================
+INFO   | jvm 1    | WrapperManager Error: "Locker-2" BLOCKED waiting on a java.lang.Object owned by "Locker-1"
+INFO   | jvm 1    | WrapperManager Error: "Locker-1" BLOCKED waiting on a java.lang.Object owned by "Locker-2"
+INFO   | jvm 1    | WrapperManager Error: =============================
+STATUS | wrapper  | A Thread Deadlock was detected in the JVM.  Restarting JVM.</pre>
+</font></td>
+</tr>
+</table>
+                
+</li>
+                
+<li>
+                    
+<b><tt>NONE</tt></b> -  
+                    <p>
+                        JVM内部で<tt>WrapperManager</tt>クラスが、
+                        全ての出力を抑えます。
+                        
+                        これはシステム製品の利用に向いています。
+                        問題は把握しており、
+                        たくさんのログ情報を望まない、あるいは、保持する必要がない、ケースに適しています。
+                        
+                        その他の選択として、Wrapperプロセスは、
+                        トリガーされた<a href="#action">アクション</a>が
+                        発生した理由を提供するために、
+                        常にシングル・エントリをログ化していきます。
+                    </p>                    
+<table cellspacing="0" cellpadding="0" width="100%" border="0" class="listing">
+<tr>
+<td class="listingcaption"><i>「NONE（なし）」の出力例</i></td>
+</tr>
+<tr>
+<td bgcolor="#eeeeee" class="listingcell"><font color="#444444">
+<pre class="listingpre">STATUS | wrapper  | A Thread Deadlock was detected in the JVM.  Restarting JVM.</pre>
+</font></td>
+</tr>
+</table>                
+</li>            
+</ul>        
+</p>    
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</td><td width="4"></td>
+</tr>
+<tr>
+<td bgcolor="#808080" height="1" colspan="3"></td>
+</tr>
+</table>
+</center>
+</body>
+</html>
