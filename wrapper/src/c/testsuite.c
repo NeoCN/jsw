@@ -27,7 +27,7 @@
 /********************************************************************
  * Main
  *******************************************************************/
-void showHelp(TCHAR *app) {
+static void showHelp(TCHAR *app) {
     _tprintf(TEXT("Wrapper testsuite help.\n"));
     _tprintf(TEXT("%s <COMMAND>\n"), app);
     _tprintf(TEXT("\n"));
@@ -48,6 +48,7 @@ int main(int argc, char **cargv) {
     TCHAR **argv;
     int i;
     size_t req;
+    int errorCode;
 
     argv = malloc(argc * sizeof * argv);
     if (!argv) {
@@ -58,6 +59,10 @@ int main(int argc, char **cargv) {
         req = mbstowcs(NULL, cargv[i], MBSTOWCS_QUERY_LENGTH);
         if (req == (size_t)-1) {
             _tprintf(TEXT("Encoding problem with arguments in Main\n"));
+            while (--i > 0) {
+                free(argv[i]);
+            }
+            free(argv);
             return 1;
         }
         argv[i] = malloc(sizeof(TCHAR) * (req + 1));
@@ -79,54 +84,67 @@ int main(int argc, char **cargv) {
     /* initialize the CUnit test registry */
     if (CUE_SUCCESS != CU_initialize_registry())
     {
-        return CU_get_error();
+        errorCode = CU_get_error();
+        goto error;
     }
 
     /* add a suite to the registry */
     if (tsEX_suiteExample()) {
         CU_cleanup_registry();
-        return CU_get_error();
+        errorCode = CU_get_error();
+        goto error;
     }
 
     if (tsFLTR_suiteFilter()) {
         CU_cleanup_registry();
-        return CU_get_error();
+        errorCode = CU_get_error();
+        goto error;
     }
 
     if (tsJAP_suiteJavaAdditionalParam()) {
         CU_cleanup_registry();
-        return CU_get_error();
+        errorCode = CU_get_error();
+        goto error;
     }
 
     if (tsHASH_suiteHashMap()) {
         CU_cleanup_registry();
-        return CU_get_error();
+        errorCode = CU_get_error();
+        goto error;
     }
 
     if (argc < 2) {
         showHelp(argv[0]);
-        return 1;
+        errorCode = 1;
     } else if (strcmpIgnoreCase(argv[1], TEXT("--basic")) == 0) {
         /* Run all tests using the CUnit Basic interface */
         CU_set_output_filename("testsuite");
         CU_basic_set_mode(CU_BRM_VERBOSE);
         CU_basic_run_tests();
         CU_cleanup_registry();
-        return CU_get_error();
+        errorCode = CU_get_error();
     } else if (strcmpIgnoreCase(argv[1], TEXT("--auto")) == 0) {
         /* Run all tests using the CUnit Automated interface */
         CU_list_tests_to_file();
         CU_automated_run_tests();
         CU_cleanup_registry();
-        return CU_get_error();
+        errorCode = CU_get_error();
     } else if (strcmpIgnoreCase(argv[1], TEXT("--console")) == 0) {
         /* Run all tests using the CUnit Console interface */
         CU_console_run_tests();
         CU_cleanup_registry();
-        return CU_get_error();
+        errorCode = CU_get_error();
     } else {
         showHelp(argv[0]);
-        return 1;
+        errorCode = 1;
     }
+
+error:
+    for (i = 0; i < argc; i++) {
+        free(argv[i]);
+    }
+    free(argv);
+
+    return errorCode;
 }
 

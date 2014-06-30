@@ -2,6 +2,8 @@ Java Service Wrapper Revision History.
 --------------------------------------
 
 3.5.26
+* Improve the log messages when a JVM restart is requested when the Wrapper is
+  in a state that it will be ignored.
 
 3.5.25
 * (Professional) Improve the wrapper.timer.<n>.interval property so it is now
