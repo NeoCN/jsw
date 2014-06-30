@@ -2967,7 +2967,7 @@ void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int acti
         while ((action = actionList[i]) != ACTION_LIST_END) {
                 switch(action) {
                 case ACTION_RESTART:
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s  Restarting JVM."), triggerMsg);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s  %s"), triggerMsg, wrapperGetRestartProcessMessage());
                     wrapperRestartProcess();
                     break;
 
@@ -4326,6 +4326,33 @@ void wrapperStopProcess(int exitCode, int force) {
     }
 }
 
+/**
+ * Depending on the current state, we want to change the exact message displayed when restarting the JVM.
+ *
+ * The logic here needs to match that in wrapperRestartProcess.
+ */
+const TCHAR *wrapperGetRestartProcessMessage() {
+    if ((wrapperData->jState == WRAPPER_JSTATE_DOWN_CLEAN) ||
+        (wrapperData->jState == WRAPPER_JSTATE_STOP) ||
+        (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
+        (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
+        (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
+        (wrapperData->jState == WRAPPER_JSTATE_KILL) ||
+        (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK) ||
+        (wrapperData->jState == WRAPPER_JSTATE_DOWN_FLUSH) ||
+        (wrapperData->jState == WRAPPER_JSTATE_LAUNCH_DELAY)) {
+        if (wrapperData->restartRequested || (wrapperData->jState == WRAPPER_JSTATE_LAUNCH_DELAY)) {
+            return TEXT("Restart JVM (Ignoring, already restarting).");
+        } else {
+            return TEXT("Restart JVM (Ignoring, already shutting down).");
+        }
+    } else if (wrapperData->exitRequested || wrapperData->restartRequested) {
+        return TEXT("Restart JVM (Ignoring, already restarting).");
+    } else {
+        return TEXT("Restarting JVM.");
+    }
+}
+        
 /**
  * Used to ask the state engine to shut down the JVM.  This are always intentional restart requests.
  */
@@ -8518,6 +8545,11 @@ static void tsJAP_subTestJavaAdditionalParamSuite(int stripQuote, TCHAR *config,
     for (i = 0; i < strings_len; i++) {
         CU_ASSERT(_tcscmp(strings[i], param.strings[i]) == 0);
     }
+
+    for (i = 0; i < strings_len; i++) {
+        free(param.strings[i]);
+    }
+    free(param.strings);
 }
 
 #define TSJAP_ARRAY_LENGTH(a) (sizeof(a) / sizeof(a[0]))

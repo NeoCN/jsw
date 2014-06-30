@@ -549,7 +549,7 @@ void commandPoll(TICKS nowTicks) {
 
                             /* Process the command. */
                             if (strcmpIgnoreCase(command, TEXT("RESTART")) == 0) {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Restarting JVM."), command);
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'.  %s"), command, wrapperGetRestartProcessMessage());
                                 wrapperRestartProcess();
                             } else if (strcmpIgnoreCase(command, TEXT("STOP")) == 0) {
                                 if (param1 == NULL) {
@@ -1285,8 +1285,8 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
                     TEXT("Ping settings:"),
                     wrapperData->pingInterval, wrapperData->pingIntervalLogged, wrapperData->pingTimeout, wrapperData->pingAlertThreshold);
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                    TEXT("%s wrapper.startup.timeout=%d, wrapper.shutdown.timeout=%d, wrapper.jvm_exit.timeout=%d, wrapper.jvm_cleanup.timeout=%d, wrapper.jvm_terminate.timeout=%d"),
-                    TEXT("Shutdown Timeouts:"),
+                    TEXT("%s wrapper.shutdown.timeout=%d, wrapper.jvm_exit.timeout=%d, wrapper.jvm_cleanup.timeout=%d, wrapper.jvm_terminate.timeout=%d"),
+                    TEXT("Shutdown Timeouts:"), 
                     wrapperData->shutdownTimeout, wrapperData->jvmExitTimeout, wrapperData->jvmCleanupTimeout, wrapperData->jvmTerminateTimeout);
             }
 

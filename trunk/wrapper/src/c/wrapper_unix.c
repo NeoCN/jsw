@@ -215,7 +215,7 @@ void takeSignalAction(int sigNum, const TCHAR *sigName, int mode) {
         switch (mode) {
         case WRAPPER_SIGNAL_MODE_RESTART:
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                TEXT("%s trapped.  Restarting JVM."), sigName);
+                TEXT("%s trapped.  %s"), sigName, wrapperGetRestartProcessMessage());
             wrapperRestartProcess();
             break;
 

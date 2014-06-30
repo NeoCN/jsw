@@ -895,6 +895,13 @@ extern void wrapperDetachJava();
 extern void wrapperStopProcess(int exitCode, int force);
 
 /**
+ * Depending on the current state, we want to change the exact message displayed when restarting the JVM.
+ *
+ * The logic here needs to match that in wrapperRestartProcess.
+ */
+extern const TCHAR *wrapperGetRestartProcessMessage();
+
+/**
  * Used to ask the state engine to shut down the JVM.
  */
 extern void wrapperRestartProcess();
