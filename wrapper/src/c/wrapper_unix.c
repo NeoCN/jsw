@@ -1752,7 +1752,7 @@ int main(int argc, char **argv) {
 #endif    
     
     /* Create UNICODE versions of the argv array for internal use. */
-    argv = malloc(argc * sizeof * argv);
+    argv = malloc(argc * sizeof(TCHAR *) * argv);
     if(!argv) {
         _tprintf(TEXT("Out of Memory in Main\n"));
         appExit(1, 0, NULL);

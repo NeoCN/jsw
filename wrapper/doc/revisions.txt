@@ -4,6 +4,9 @@ Java Service Wrapper Revision History.
 3.5.26
 * Improve the log messages when a JVM restart is requested when the Wrapper is
   in a state that it will be ignored.
+* (Standard, Professional) Add an additional debug message when a deadlock
+  sweep completes.  No functional change but this was added to make it easy to
+  tell how long the sweep takes on a given application.
 
 3.5.25
 * (Professional) Improve the wrapper.timer.<n>.interval property so it is now
