@@ -1196,7 +1196,7 @@ void wrapperExecute() {
 
     /* Update the CLASSPATH in the environment if requested so the JVM can access it. */ 
     if (wrapperData->environmentClasspath) {
-        setEnv(TEXT("CLASSPATH"), wrapperData->classpath, ENV_SOURCE_WRAPPER);
+        setEnv(TEXT("CLASSPATH"), wrapperData->classpath, ENV_SOURCE_APPLICATION);
     }
 
     /* Make sure the log file is closed before the Java process is created.  Failure to do
@@ -1715,7 +1715,7 @@ int setWorkingDir(TCHAR *app) {
     }
 
     /* Set a variable to the location of the binary. */
-    setEnv(TEXT("WRAPPER_BIN_DIR"), szPath, ENV_SOURCE_WRAPPER);
+    setEnv(TEXT("WRAPPER_BIN_DIR"), szPath, ENV_SOURCE_APPLICATION);
 
     if (wrapperSetWorkingDir(szPath, TRUE)) {
         free(szPath);

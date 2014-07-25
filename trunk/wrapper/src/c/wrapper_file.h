@@ -11,7 +11,7 @@
 
 /**
  * Author:
- *   Leif Mortenson <leif@tanukisoftware.com>
+ *   Tanuki Software Development Team <support@tanukisoftware.com>
  */
 
 #ifndef _WRAPPER_FILE_H
@@ -24,29 +24,6 @@
 #endif
 
 /*#define WRAPPER_FILE_DEBUG*/
-
-#define WRAPPER_FILE_SORT_MODE_TIMES 100
-#define WRAPPER_FILE_SORT_MODE_NAMES_ASC 101
-#define WRAPPER_FILE_SORT_MODE_NAMES_DEC 102
-
-/**
- * Returns a valid sort mode given a name: "TIMES", "NAMES_ASC", "NAMES_DEC".
- *  In the event of an invalid value, TIMES will be returned.
- */
-extern int wrapperFileGetSortMode(const TCHAR *modeName);
-
-/**
- * Returns a NULL terminated list of file names within the specified pattern.
- *  The files will be sorted new to old for TIMES.  Then incremental ordering
- *  for NAMES.  The numeric components of the names will be treated as
- *  numbers and sorted accordingly.
- */
-extern TCHAR** wrapperFileGetFiles(const TCHAR* pattern, int sortMode);
-
-/**
- * Frees the array of file names returned by wrapperFileGetFiles()
- */
-extern void wrapperFileFreeFiles(TCHAR** files);
 
 /**
  * Tests whether a file exists.

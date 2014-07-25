@@ -7,6 +7,8 @@ Java Service Wrapper Revision History.
 * (Standard, Professional) Add an additional debug message when a deadlock
   sweep completes.  No functional change but this was added to make it easy to
   tell how long the sweep takes on a given application.
+* Clean up the internal tracking of where environment variables were set.
+  No functional changes.
 
 3.5.25
 * (Professional) Improve the wrapper.timer.<n>.interval property so it is now

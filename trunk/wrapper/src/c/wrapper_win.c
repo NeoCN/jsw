@@ -1666,7 +1666,7 @@ void wrapperExecute() {
 
     /* Update the CLASSPATH in the environment if requested so the JVM can access it. */ 
     if (wrapperData->environmentClasspath) {
-        setEnv(TEXT("CLASSPATH"), wrapperData->classpath, ENV_SOURCE_WRAPPER);
+        setEnv(TEXT("CLASSPATH"), wrapperData->classpath, ENV_SOURCE_APPLICATION);
     }
 
     /* Setup environment. Use parent's for now */
@@ -5209,7 +5209,7 @@ int setWorkingDir() {
         pos[0] = (TCHAR)0;
     }
     /* Set a variable to the location of the binary. */
-    setEnv(TEXT("WRAPPER_BIN_DIR"), szPath, ENV_SOURCE_WRAPPER);
+    setEnv(TEXT("WRAPPER_BIN_DIR"), szPath, ENV_SOURCE_APPLICATION);
     result = wrapperSetWorkingDir(szPath, TRUE);
     free(szPath);
     return result;

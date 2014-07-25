@@ -41,7 +41,7 @@
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
-#include "wrapper_file.h"
+#include "logger_file.h"
 
 #ifdef WIN32
  #include <io.h>
@@ -146,7 +146,7 @@ char *loginfoSourceName = NULL;
 int  logFileMaxSize = -1;
 int  logFileMaxLogFiles = -1;
 TCHAR *logFilePurgePattern = NULL;
-int  logFilePurgeSortMode = WRAPPER_FILE_SORT_MODE_TIMES;
+int  logFilePurgeSortMode = LOGGER_FILE_SORT_MODE_TIMES;
 
 TCHAR logFileLastNowDate[9];
 /* Defualt formats (Must be 4 chars) */
@@ -2838,7 +2838,7 @@ void limitLogFileCount(const TCHAR *current, const TCHAR *pattern, int sortMode,
     _tprintf(TEXT("limitLogFileCount(%s, %s, %d, %d)\n"), current, pattern, sortMode, count);
 #endif
 
-    files = wrapperFileGetFiles(pattern, sortMode);
+    files = loggerFileGetFiles(pattern, sortMode);
     if (!files) {
         /* Failed */
         return;
@@ -2890,7 +2890,7 @@ void limitLogFileCount(const TCHAR *current, const TCHAR *pattern, int sortMode,
         }
     }
 
-    wrapperFileFreeFiles(files);
+    loggerFileFreeFiles(files);
 }
 
 /**
@@ -3153,7 +3153,7 @@ void checkAndRollLogs(const TCHAR *nowDate) {
                     limitLogFileCount(currentLogFileName, logFilePurgePattern, logFilePurgeSortMode, logFileMaxLogFiles + 1);
                 } else {
                     generateLogFileName(workLogFileName, currentLogFileNameSize, logFilePath, TEXT("????????"), NULL);
-                    limitLogFileCount(currentLogFileName, workLogFileName, WRAPPER_FILE_SORT_MODE_NAMES_DEC, logFileMaxLogFiles + 1);
+                    limitLogFileCount(currentLogFileName, workLogFileName, LOGGER_FILE_SORT_MODE_NAMES_DEC, logFileMaxLogFiles + 1);
                 }
 
                 currentLogFileName[0] = TEXT('\0');
