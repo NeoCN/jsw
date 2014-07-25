@@ -48,6 +48,7 @@
 #include "wrapperinfo.h"
 #include "wrapper.h"
 #include "logger.h"
+#include "logger_file.h"
 #include "wrapper_file.h"
 
 #ifdef WIN32
@@ -308,7 +309,7 @@ void wrapperAddDefaultProperties() {
             return;
         }
 #endif
-        setEnv(TEXT("WRAPPER_CONF_DIR"), wrapperData->confDir, ENV_SOURCE_WRAPPER);
+        setEnv(TEXT("WRAPPER_CONF_DIR"), wrapperData->confDir, ENV_SOURCE_APPLICATION);
         free(confDirTemp);
     }
 
@@ -566,7 +567,7 @@ void dumpEnvironment(int logLevel) {
             TEXT('-'),
             TEXT('-'),
 #endif
-            (envSrc->source & ENV_SOURCE_WRAPPER ? TEXT('W') : TEXT('-')),
+            (envSrc->source & ENV_SOURCE_APPLICATION ? TEXT('W') : TEXT('-')),
             (envSrc->source & ENV_SOURCE_CONFIG ? TEXT('C') : TEXT('-')),
             envSrc->name,
             (envVal ? envVal : TEXT("<null>"))
@@ -651,7 +652,7 @@ void wrapperLoadLoggingProperties(int preload) {
     setLogfilePurgePattern(getFileSafeStringProperty(properties, TEXT("wrapper.logfile.purge.pattern"), TEXT("")));
 
     /* Load log file purge sort */
-    setLogfilePurgeSortMode(wrapperFileGetSortMode(getStringProperty(properties, TEXT("wrapper.logfile.purge.sort"), TEXT("TIMES"))));
+    setLogfilePurgeSortMode(loggerFileGetSortMode(getStringProperty(properties, TEXT("wrapper.logfile.purge.sort"), TEXT("TIMES"))));
 
     /* Get the close timeout. */
     wrapperData->logfileCloseTimeout = propIntMax(propIntMin(getIntProperty(properties, TEXT("wrapper.logfile.close.timeout"), getIntProperty(properties, TEXT("wrapper.logfile.inactivity.timeout"), 1)), 3600), -1);
@@ -2401,7 +2402,7 @@ int wrapperInitialize() {
         }
     }
     /* Set a variable to the initial working directory. */
-    setEnv(TEXT("WRAPPER_INIT_DIR"), wrapperData->initialPath, ENV_SOURCE_WRAPPER);
+    setEnv(TEXT("WRAPPER_INIT_DIR"), wrapperData->initialPath, ENV_SOURCE_APPLICATION);
 
 #ifdef WIN32
     if (!(protocolMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
@@ -5690,7 +5691,7 @@ int wrapperBuildJavaClasspath(TCHAR **classpath) {
             /* Does this contain wildcards? */
             if ((_tcsrchr(propStripped, TEXT('*')) != NULL) || (_tcschr(propStripped, TEXT('?')) != NULL)) {
                 /* Need to do a wildcard search */
-                files = wrapperFileGetFiles(propStripped, WRAPPER_FILE_SORT_MODE_NAMES_ASC);
+                files = loggerFileGetFiles(propStripped, LOGGER_FILE_SORT_MODE_NAMES_ASC);
                 if (!files) {
                     /* Failed */
                     if (propStripped != prop) {
@@ -5715,7 +5716,7 @@ int wrapperBuildJavaClasspath(TCHAR **classpath) {
                             if (propStripped != prop) {
                                 free(propStripped);
                             }
-                            wrapperFileFreeFiles(files);
+                            loggerFileFreeFiles(files);
                             freeStringProperties(propertyNames, propertyValues, propertyIndices);
                             outOfMemory(TEXT("WBJCP"), 2);
                             return -1;
@@ -5735,7 +5736,7 @@ int wrapperBuildJavaClasspath(TCHAR **classpath) {
                     j++;
                     cnt++;
                 }
-                wrapperFileFreeFiles(files);
+                loggerFileFreeFiles(files);
             } else {
                 /* This classpath entry does not contain any wildcards. */
 
@@ -8115,7 +8116,7 @@ int wrapperSetWorkingDir(const TCHAR* dir, int logErrors) {
     }
 
     /* Set a variable to the location of the binary. */
-    setEnv(TEXT("WRAPPER_WORKING_DIR"), dir, ENV_SOURCE_WRAPPER);
+    setEnv(TEXT("WRAPPER_WORKING_DIR"), dir, ENV_SOURCE_APPLICATION);
 
     return FALSE;
 }

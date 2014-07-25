@@ -784,8 +784,11 @@ int setEnvInner(const TCHAR *name, const TCHAR *value) {
  *
  * @param name Name of the variable being set.
  * @param value Value to be set, NULL to clear it.
- * @param source Where the variable came from.  If value is WRAPPER_ENV_SOURCE_PARENT
- *               then the value may be NULL and will never be set to the environment.
+ * @param source Where the variable came from.
+ *               Must be one of ENV_SOURCE_PARENT, ENV_SOURCE_APPLICATION, ENV_SOURCE_CONFIG,
+ *                 or ENV_SOURCE_REG_SYSTEM or ENV_SOURCE_REG_ACCOUNT on Windows.
+ *               If value is ENV_SOURCE_PARENT then the value may be NULL and will never be
+ *                 set to the environment.
  *
  * Return TRUE if there were any problems, FALSE otherwise.
  */
@@ -1236,7 +1239,7 @@ Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("set default env('%s', '%s')"),
                     property->name + 12, property->value);
 #endif
-                setEnv(property->name + 12, property->value, (internal ? ENV_SOURCE_WRAPPER : ENV_SOURCE_CONFIG));
+                setEnv(property->name + 12, property->value, (internal ? ENV_SOURCE_APPLICATION : ENV_SOURCE_CONFIG));
             } else {
 #ifdef _DEBUG
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT(
@@ -1255,7 +1258,7 @@ Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("set env('%s', '%s')"),
                 property->name + 4, property->value);
 #endif
-            setEnv(property->name + 4, property->value, (internal ? ENV_SOURCE_WRAPPER : ENV_SOURCE_CONFIG));
+            setEnv(property->name + 4, property->value, (internal ? ENV_SOURCE_APPLICATION : ENV_SOURCE_CONFIG));
         }
     }
     free(propertyValueTrim);

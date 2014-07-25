@@ -185,13 +185,6 @@ typedef unsigned int TICKS;
 typedef unsigned long TICKS;
 #endif
 
-#define WRAPPER_ENV_SOURCE_PARENT      1
-#define WRAPPER_ENV_SOURCE_WRAPPER     2
-#ifdef WIN32
-#define WRAPPER_ENV_SOURCE_REG_SYSTEM  4
-#define WRAPPER_ENV_SOURCE_REG_ACCOUNT 8
-#endif
-
 #ifdef WIN32
 /* Defines the maximum number of service manager control events that can be queued in a single loop. */
 #define CTRL_CODE_QUEUE_SIZE 26 /* Can enqueue one less than this count at any time. */
