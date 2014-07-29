@@ -75,6 +75,7 @@ int wrapperFileExists(const TCHAR * filename) {
     return FALSE;
 }
 
+#ifdef WIN32
 /**
  * @param path to check.
  * @param advice 0 if advice should be displayed.
@@ -82,7 +83,6 @@ int wrapperFileExists(const TCHAR * filename) {
  * @return advice or advice + 1 if advice was logged.
  */
 int wrapperGetUNCFilePath(const TCHAR *path, int advice) {
-#ifdef WIN32
     TCHAR drive[4];
     DWORD result;
 
@@ -104,10 +104,9 @@ int wrapperGetUNCFilePath(const TCHAR *path, int advice) {
             }
         }
     }
-#endif
     return advice;
 }
-
+#endif
 
 /**
  * Read configuration file.
