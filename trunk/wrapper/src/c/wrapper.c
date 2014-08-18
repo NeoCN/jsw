@@ -874,9 +874,9 @@ int wrapperLoadConfigurationProperties(int preload) {
     /* Now load the configuration file.
      *  When this happens, the working directory MUST be set to the original working dir. */
 #ifdef WIN32
-    if (loadProperties(properties, wrapperData->configFile, preload)) {
+    if (loadProperties(properties, wrapperData->configFile, preload, wrapperData->argCommand, wrapperData->originalWorkingDir, wrapperData->isDebugging)) {
 #else
-    if (loadProperties(properties, wrapperData->configFile, (preload | wrapperData->daemonize))) {
+    if (loadProperties(properties, wrapperData->configFile, (preload | wrapperData->daemonize), wrapperData->argCommand, wrapperData->originalWorkingDir, wrapperData->isDebugging)) {
 #endif
         /* File not found. */
         /* If this was a default file name then we don't want to show this as
@@ -5384,7 +5384,7 @@ int wrapperLoadParameterFile(TCHAR **strings, int addQuotes, int detectDebugJVM,
     callbackParam.index = index;
     callbackParam.isJVMParam = isJVMParameter;
 
-    readResult = configFileReader(parameterFilePath, TRUE, loadParameterFileCallback, &callbackParam, FALSE, FALSE);
+    readResult = configFileReader(parameterFilePath, TRUE, loadParameterFileCallback, &callbackParam, FALSE, FALSE, wrapperData->argCommand, wrapperData->originalWorkingDir, properties->warnedVarMap, properties->logWarnings, properties->logWarningLogLevel, wrapperData->isDebugging);
     switch (readResult) {
     case CONFIG_FILE_READER_SUCCESS:
         return callbackParam.index;

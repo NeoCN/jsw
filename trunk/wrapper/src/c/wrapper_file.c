@@ -21,6 +21,7 @@
  #include <errno.h>
  #include <tchar.h>
  #include <io.h>
+ #include <winsock.h>
 #else
  #include <stdlib.h>
  #include <string.h>
@@ -35,7 +36,6 @@
 #include "wrapper_file.h"
 #include "logger.h"
 #include "wrapper_i18n.h"
-#include "wrapper.h"
 #include "property.h"
 
 #ifndef TRUE
@@ -116,7 +116,13 @@ int configFileReader_Read(ConfigFileReader *reader,
                           int fileRequired,
                           int depth,
                           const TCHAR *parentFilename,
-                          int parentLineNumber)
+                          int parentLineNumber,
+                          const TCHAR *argCommand,
+                          const TCHAR *originalWorkingDir,
+                          PHashMap warnedVarMap,
+                          int logWarnings,
+                          int logWarningLogLevel,
+                          int isDebugging)
 {
     FILE *stream;
     char bufferMB[MAX_PROPERTY_NAME_VALUE_LENGTH];
@@ -159,10 +165,10 @@ int configFileReader_Read(ConfigFileReader *reader,
             if (depth > 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     TEXT("%sIncluded configuration file not found: %s\n  Referenced from: %s (line %d)\n  Current working directory: %s"),
-                    (reader->debugIncludes ? TEXT("  ") : TEXT("")), filename, parentFilename, parentLineNumber, wrapperData->originalWorkingDir);
+                    (reader->debugIncludes ? TEXT("  ") : TEXT("")), filename, parentFilename, parentLineNumber, originalWorkingDir);
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    TEXT("Configuration file not found: %s\n  Current working directory: %s"), filename, wrapperData->originalWorkingDir);
+                    TEXT("Configuration file not found: %s\n  Current working directory: %s"), filename, originalWorkingDir);
             }
         } else {
 #ifdef _DEBUG
@@ -400,7 +406,7 @@ int configFileReader_Read(ConfigFileReader *reader,
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                             TEXT("Found #include file in %s: %s"), filename, c);
                     }
-                    evaluateEnvironmentVariables(c, expBuffer, MAX_PROPERTY_NAME_VALUE_LENGTH, properties->logWarnings, properties->warnedVarMap, properties->logWarningLogLevel);
+                    evaluateEnvironmentVariables(c, expBuffer, MAX_PROPERTY_NAME_VALUE_LENGTH, logWarnings, warnedVarMap, logWarningLogLevel);
 
                     if (reader->debugIncludes && (_tcscmp(c, expBuffer) != 0)) {
                         /* Only show this log if there were any environment variables. */
@@ -416,7 +422,7 @@ int configFileReader_Read(ConfigFileReader *reader,
                         if (reader->debugIncludes || includeRequired) {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                                 TEXT("Unable to resolve the full path of included configuration file: %s (%s)\n  Referenced from: %s (line %d)\n  Current working directory: %s"),
-                                expBuffer, getLastErrorText(), filename, lineNumber, wrapperData->originalWorkingDir);
+                                expBuffer, getLastErrorText(), filename, lineNumber, originalWorkingDir);
                         }
                         absoluteBuffer = NULL;
                     } else {
@@ -428,7 +434,7 @@ int configFileReader_Read(ConfigFileReader *reader,
                                 if (reader->debugIncludes || includeRequired) {
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                                         TEXT("Unable to resolve the full path of included configuration file: %s (%s)\n  Referenced from: %s (line %d)\n  Current working directory: %s"),
-                                        expBuffer, getLastErrorText(), filename, lineNumber, wrapperData->originalWorkingDir);
+                                        expBuffer, getLastErrorText(), filename, lineNumber, originalWorkingDir);
                                 }
                                 free(absoluteBuffer);
                                 absoluteBuffer = NULL;
@@ -444,7 +450,7 @@ int configFileReader_Read(ConfigFileReader *reader,
                             if (reader->debugIncludes || includeRequired) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                                     TEXT("Unable to resolve the full path of included configuration file: %s (%s)\n  Referenced from: %s (line %d)\n  Current working directory: %s"),
-                                    expBuffer, getLastErrorText(), filename, lineNumber, wrapperData->originalWorkingDir);
+                                    expBuffer, getLastErrorText(), filename, lineNumber, originalWorkingDir);
                             }
                             free(absoluteBuffer);
                             absoluteBuffer = NULL;
@@ -453,7 +459,7 @@ int configFileReader_Read(ConfigFileReader *reader,
 #endif
                     if (absoluteBuffer) {
                         if (depth < MAX_INCLUDE_DEPTH) {
-                            readResult = configFileReader_Read(reader, absoluteBuffer, includeRequired, depth + 1, filename, lineNumber);
+                            readResult = configFileReader_Read(reader, absoluteBuffer, includeRequired, depth + 1, filename, lineNumber, argCommand, originalWorkingDir, warnedVarMap, logWarnings, logWarningLogLevel, isDebugging);
                             if (readResult == CONFIG_FILE_READER_SUCCESS) {
                                 /* Ok continue. */
                             } else if ((readResult == CONFIG_FILE_READER_FAIL) || (readResult == CONFIG_FILE_READER_HARD_FAIL)) {
@@ -537,6 +543,12 @@ int configFileReader_Read(ConfigFileReader *reader,
  * @param enableIncludes If TRUE then includes will be supported.
  * @param preload TRUE if this is being called in the preload step meaning that all errors
  *                should be suppressed.
+ * @param argCommand Argument passed to the binary.
+ * @param originalWorkingDir Working directory of the binary at the moment it was launched.
+ * @param warnedVarMap Map of undefined environment variables for which the user was warned.
+ * @param logWarnings Flag that controls whether or not warnings will be logged.
+ * @param logWarningLogLevel Log level at which any log warnings will be logged.
+ * @param isDebugging Flag that controls whether or not debug output will be logged.
  *
  * @return CONFIG_FILE_READER_SUCCESS if the file was read successfully,
  *         CONFIG_FILE_READER_FAIL if there were any problems at all, or
@@ -547,7 +559,13 @@ int configFileReader(const TCHAR *filename,
                      ConfigFileReader_Callback callback,
                      void *callbackParam,
                      int enableIncludes,
-                     int preload) {
+                     int preload,
+                     const TCHAR *argCommand,
+                     const TCHAR *originalWorkingDir,
+                     PHashMap warnedVarMap,
+                     int logWarnings,
+                     int logWarningLogLevel,
+                     int isDebugging) {
     ConfigFileReader reader;
     
     /* Initialize the reader. */
@@ -558,7 +576,7 @@ int configFileReader(const TCHAR *filename,
     reader.debugIncludes = FALSE;
     reader.debugProperties = FALSE;
     
-    return configFileReader_Read(&reader, filename, fileRequired, 0, NULL, 0);
+    return configFileReader_Read(&reader, filename, fileRequired, 0, NULL, 0, argCommand, originalWorkingDir, warnedVarMap, logWarnings, logWarningLogLevel, isDebugging);
 }
 
 
