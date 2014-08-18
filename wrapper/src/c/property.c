@@ -495,10 +495,18 @@ static int loadPropertiesCallback(void *callbackParam, const TCHAR *fileName, in
  * @param properties Properties structure to load into.
  * @param filename File to load the properties from.
  * @param preload TRUE if this is a preload call that should have supressed error output.
+ * @param argCommand Argument passed to the binary.
+ * @param originalWorkingDir Working directory of the binary at the moment it was launched.
+ * @param isDebugging Flag that controls whether or not debug output will be logged.
  *
  * @return TRUE if there were any problems, FALSE if successful.
  */
-int loadProperties(Properties *properties, const TCHAR* filename, int preload) {
+int loadProperties(Properties *properties,
+                   const TCHAR* filename,
+                   int preload,
+                   const TCHAR *argCommand,
+                   const TCHAR *originalWorkingDir,
+                   int isDebugging) {
     /* Store the time that the property file began to be loaded. */
     #ifdef WIN32
     struct _timeb timebNow;
@@ -519,7 +527,7 @@ int loadProperties(Properties *properties, const TCHAR* filename, int preload) {
     nowTM = localtime(&now);
     memcpy(&loadPropertiesTM, nowTM, sizeof(struct tm));
 
-    loadResult = configFileReader(filename, FALSE, loadPropertiesCallback, properties, TRUE, preload);
+    loadResult = configFileReader(filename, FALSE, loadPropertiesCallback, properties, TRUE, preload, argCommand, originalWorkingDir, properties->warnedVarMap, properties->logWarnings, properties->logWarningLogLevel, isDebugging);
 
     /* Any failure is a failure in the root. */
     switch (loadResult) {

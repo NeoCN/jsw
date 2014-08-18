@@ -19,9 +19,9 @@
 
 #ifdef WIN32
 #include <tchar.h>
-#else
-#include "wrapper_i18n.h"
 #endif
+#include "wrapper_i18n.h"
+#include "wrapper_hashmap.h"
 
 /*#define WRAPPER_FILE_DEBUG*/
 
@@ -61,6 +61,12 @@ typedef int (*ConfigFileReader_Callback)(void *param, const TCHAR *fileName, int
  * @param enableIncludes If TRUE then includes will be supported.
  * @param preload TRUE if this is being called in the preload step meaning that all errors
  *                should be suppressed.
+ * @param argCommand Argument passed to the binary.
+ * @param originalWorkingDir Working directory of the binary at the moment it was launched.
+ * @param warnedVarMap Map of undefined environment variables for which the user was warned.
+ * @param logWarnings Flag that controls whether or not warnings will be logged.
+ * @param logWarningLogLevel Log level at which any log warnings will be logged.
+ * @param isDebugging Flag that controls whether or not debug output will be logged.
  *
  * @return CONFIG_FILE_READER_SUCCESS if the file was read successfully,
  *         CONFIG_FILE_READER_FAIL if there were any problems at all, or
@@ -71,7 +77,13 @@ extern int configFileReader(const TCHAR *filename,
                             ConfigFileReader_Callback callback,
                             void *callbackParam,
                             int enableIncludes,
-                            int preload);
+                            int preload,
+                            const TCHAR *argCommand,
+                            const TCHAR *originalWorkingDir,
+                            PHashMap warnedVarMap,
+                            int logWarnings,
+                            int logWarningLogLevel,
+                            int isDebugging);
 
 #endif
 
