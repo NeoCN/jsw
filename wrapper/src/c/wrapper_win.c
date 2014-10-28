@@ -3443,7 +3443,7 @@ LSA_HANDLE wrapperGetPolicyHandle(TCHAR* referencedDomainName) {
 #endif
         }
         if (ntsResult != STATUS_SUCCESS) {
-        /* An error occurred. Display it as a win32 error code. */
+            /* An error occurred. Display it as a win32 error code. */
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("OpenPolicy failed %lu"), LsaNtStatusToWinError(ntsResult));
             return NULL;
         }
@@ -5862,6 +5862,10 @@ LPTSTR printWholeCertificateInfo(LPCWSTR wrapperExeName, int level) {
             }
             
         }
+        
+        /* increment size for hodling \0 */
+        size++;
+
         buffer = calloc(size, sizeof(TCHAR));
         if (!buffer) {
             outOfMemory(TEXT("GWCI"), 2);
@@ -5895,6 +5899,7 @@ LPTSTR printWholeCertificateInfo(LPCWSTR wrapperExeName, int level) {
             _sntprintf(buffer + _tcslen(buffer), size - _tcslen(buffer), TEXT("    Date of TimeStamp : %04d/%02d/%02d %02d:%02d"),
                                             st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute);
         }
+        buffer[size - 1] = TEXT('\0');
 
     } __finally {               
         /* Clean up. */
@@ -5929,6 +5934,7 @@ LPTSTR printWholeCertificateInfo(LPCWSTR wrapperExeName, int level) {
             free(string2);
         }
     }
+
     return buffer;
 }
 
