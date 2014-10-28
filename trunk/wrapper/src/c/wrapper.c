@@ -3321,6 +3321,10 @@ void logChildOutput(const char* log) {
 
 /**
  * This function is for moving a buffer inside itself.
+ *
+ * This implementation exists because the standard memcpy is not reliable on
+ *  some platforms when the source and target buffer are the same.  Most likely the
+ *  problem was caused by internal optimizations, but it was leading to crashes.
  */
 void safeMemCpy(char *buffer, size_t target, size_t src, size_t nbyte) {
     size_t i;
