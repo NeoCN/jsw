@@ -9,7 +9,37 @@ Java Service Wrapper Revision History.
   tell how long the sweep takes on a given application.
 * Clean up the internal tracking of where environment variables were set.
   No functional changes.
-
+* When detecting Cygwin with 'uname -o' in the script file, some OS's
+  (Solaris, MacOS, etc.) show an error message because '-o' is not a valid
+  parameter.  Now we hide this error message to avoid confusion and we can
+  guess that Cygwin is not running.
+* Allow to control the service in systemd using the script file.
+* Improve script file. Fix a typo. On MacOS, add another alternative way to
+  find Java and use full path to execute sysctl in case it's not in the path.
+  Thanks to Dannes Wessels for pointing this out.
+* Fix a problem on newer version of Windows when customizing the Wrapper. 
+  The certificate was not removed when creating the target. This was leading
+  to an error when trying to sign the target with a new certificate.
+* Fix a problem in the WrapperSimpleApp, WrapperStartStopApp, and
+  WrapperJarApp helper classes where command line problems that resulted in
+  the JVM exiting on startup looked like unexpected exits.  This meant that
+  the Wrapper would try to relaunch the JVM again rather than giving up on the
+  first attempt.
+* Modified the WrapperSimpleApp, WrapperStartStopApp, and WrapperJarApp helper
+  classes so that their usage banners will only now be shown for command line
+  related problems.  Issues with the specified classes, methods, or jar files
+  are still logged as errors, but showing the user the usage in these cases
+  was confusing.
+* Correct the WrapperResources.getString() method that has no replacement
+  arguments so that its processing of the raw string is handled the same as
+  methods which have replacement arguments.  Now all strings are processed
+  by the MessageFormat class before being returned.  Previous versions were
+  not consistent about the need to escape single quotes.
+* Added optional key validation to make sure that strings passed in to the
+  WrapperResources.getString() method are formatted correctly.  See the
+  WrapperResources class for information how to enable.
+* Clean up escaping of single quotes in a few messages.
+  
 3.5.25
 * (Professional) Improve the wrapper.timer.<n>.interval property so it is now
   possible to specify ranges and lists of values as well as offsets for
@@ -695,6 +725,10 @@ Java Service Wrapper Revision History.
   a warning whenever it detects that the Wrapper took a long time to record a
   log message.  This was added to test a reported issue caused by slow IO on
   very heavily loaded systems.
+* Added a new 'G' log format to log the time in milliseconds of the previous
+  log message.  See documentation with the wrapper.log.warning.threshold
+  property.  Added to the wrapper.console.format, wrapper.logfile.format, and
+  wrapper.logdialog.format properties.
 * Fix a problem where a filter that requested the JVM to restart would be
   ignored if the JVM exited on its own immediately.  The Wrapper is now more
   consistent so that restart requests from within the JVM or filters will

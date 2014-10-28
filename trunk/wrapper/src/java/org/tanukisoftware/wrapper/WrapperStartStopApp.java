@@ -146,6 +146,26 @@ public class WrapperStartStopApp
      */
     private boolean m_startComplete;
     
+    /**
+     * Flag that is set if there were any initialization problems.
+     */
+    private boolean m_initFailed;
+    
+    /**
+     * Error message which should be shown if initialization Failed.
+     */
+    private String m_initError;
+    
+    /**
+     * True if usage should be shown as part of an initialization error.
+     */
+    private boolean m_initShowUsage;
+    
+    /**
+     * The exception which caused the error.  Only needs to be set if the stacktrace is required.
+     */
+    private Throwable m_initException;
+    
     /*---------------------------------------------------------------
      * Constructors
      *-------------------------------------------------------------*/
@@ -156,7 +176,6 @@ public class WrapperStartStopApp
      */
     protected WrapperStartStopApp( String args[] )
     {
-        
         // Initialize the WrapperManager class on startup by referencing it.
         Class wmClass = WrapperManager.class;
         
@@ -165,52 +184,79 @@ public class WrapperStartStopApp
         m_outError = new WrapperPrintStream( System.out, "WrapperStartStopApp Error: " );
         m_outDebug = new WrapperPrintStream( System.out, "WrapperStartStopApp Debug: " );
         
+        // Do all of our initialization here so the modified array lists which are passed
+        //  to the WrapperListener.start method can remain unchanged.  Ideally we would
+        //  want to handle this within the start method, but that would be an API change
+        //  that could effect users.
+        
+        // startArgs will be an args array with the main class name and stop args stripped off.
+        String[] startArgs;
+        
         // Get the class name of the application
         if ( args.length < 5 )
         {
-            m_outError.println( WrapperManager.getRes().getString( "Not enough argments.  Minimum 5 required." ) );
-            showUsage();
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        
-        
-        // Look for the start main method.
-        m_startMainMethod = getMainMethod( args[0] );
-        // Get the start arguments
-        String[] startArgs = getArgs( args, 1 );
-        
-        
-        // Where do the stop arguments start
-        int stopArgBase = 2 + startArgs.length;
-        if ( args.length < stopArgBase + 3 )
-        {
-            m_outError.println( WrapperManager.getRes().getString( "Not enough argments. Minimum 3 after start arguments." ) );
-            showUsage();
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        // Look for the stop main method.
-        m_stopMainMethod = getMainMethod( args[stopArgBase] );
-        // Get the stopWait flag
-        if ( args[stopArgBase + 1].equalsIgnoreCase( "true" ) )
-        {
-            m_stopWait = true;
-        }
-        else if ( args[stopArgBase + 1].equalsIgnoreCase( "false" ) )
-        {
-            m_stopWait = false;
+            m_initFailed = true;
+            m_initError = WrapperManager.getRes().getString( "Not enough argments.  Minimum {0} required.", "5" );
+            m_initShowUsage = true;
+            
+            // No main class, do the best we can for now.
+            startArgs = new String[0];
         }
         else
         {
-            m_outError.println( WrapperManager.getRes().getString(
-                    "The stop_wait argument must be either true or false." ) );
-            showUsage();
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
+            // Look for the start main method.
+            m_startMainMethod = getMainMethod( args[0] );
+            // Get the start arguments
+            startArgs = getArgs( args, 1 );
+            if ( startArgs == null )
+            {
+                // Failed, but we need an empty array for the start method below.
+                startArgs = new String[0];
+                
+                // m_initFailed and m_initError already set.
+            }
+            else
+            {
+                // Where do the stop arguments start
+                int stopArgBase = 2 + startArgs.length;
+                if ( args.length < stopArgBase + 3 )
+                {
+                    m_initFailed = true;
+                    m_initError = WrapperManager.getRes().getString( "Not enough argments. Minimum 3 after start arguments." );
+                    m_initShowUsage = true;
+                }
+                else
+                {
+                    // Look for the stop main method.
+                    m_stopMainMethod = getMainMethod( args[stopArgBase] );
+                    // Get the stopWait flag
+                    if ( args[stopArgBase + 1].equalsIgnoreCase( "true" ) )
+                    {
+                        m_stopWait = true;
+                    }
+                    else if ( args[stopArgBase + 1].equalsIgnoreCase( "false" ) )
+                    {
+                        m_stopWait = false;
+                    }
+                    else
+                    {
+                        m_initFailed = true;
+                        m_initError = WrapperManager.getRes().getString( "The stop_wait argument must be either true or false." );
+                        m_initShowUsage = true;
+                    }
+                    
+                    if ( !m_initFailed )
+                    {
+                        // Get the start arguments
+                        m_stopMainArgs = getArgs( args, stopArgBase + 2 );
+                        if ( m_stopMainArgs == null )
+                        {
+                            // m_initFailed and m_initError already set.
+                        }
+                    }
+                }
+            }
         }
-        // Get the start arguments
-        m_stopMainArgs = getArgs( args, stopArgBase + 2 );
         
         // Start the application.  If the JVM was launched from the native
         //  Wrapper then the application will wait for the native Wrapper to
@@ -222,16 +268,22 @@ public class WrapperStartStopApp
         //  been propperly initialized by calling the start method above.
     }
     
-    
+    /**
+     * Helper method to make it easier for user classes extending this class to have their
+     *  own methods of parsing the command line.
+     */
     protected WrapperStartStopApp( Method startMainMethod,
-                                 Method stopMainMethod,
-                                 boolean stopWait,
-                                 String[] stopMainArgs )
+                                   Method stopMainMethod,
+                                   boolean stopWait,
+                                   String[] stopMainArgs )
     {
         m_startMainMethod = startMainMethod;
         m_stopMainMethod = stopMainMethod;
         m_stopWait = stopWait;
         m_stopMainArgs = stopMainArgs;
+        
+        // NOTE - The call to WrapperManager.start() appears to be missing here, but it can't be added
+        //        as doing so would break how existing users are making use of this constructor.
     }
     
     /*---------------------------------------------------------------
@@ -363,6 +415,24 @@ public class WrapperStartStopApp
      */
     public Integer start( String[] args )
     {
+        // See if there were any startup problems.
+        if ( m_initFailed )
+        {
+            if ( m_initError != null )
+            {
+                m_outError.println( m_initError );
+            }
+            if ( m_initException != null )
+            {
+                m_initException.printStackTrace( m_outError );
+            }
+            if ( m_initShowUsage )
+            {
+                showUsage();
+            }
+            return new Integer( 1 );
+        }
+        
         // Decide whether or not to wait for the start main method to complete before returning.
         boolean waitForStartMain = WrapperSystemPropertyUtil.getBooleanProperty(
             WrapperStartStopApp.class.getName() + ".waitForStartMain", false );
@@ -650,25 +720,22 @@ public class WrapperStartStopApp
         }
         catch ( ClassNotFoundException e )
         {
-            m_outError.println( WrapperManager.getRes().getString(
-                    "Unable to locate the class {0}: {1}", className, e ) );
-            showUsage();
-            WrapperManager.stop( 1 );
+            m_initFailed = true;
+            m_initError = WrapperManager.getRes().getString( "Unable to locate the class {0}: {1}", className, e );
+            m_initShowUsage = true;
             return null;  // Will not get here
         }
         catch ( ExceptionInInitializerError e )
         {
-            m_outError.println( WrapperManager.getRes().getString(
-                    "Class {0} found but could not be initialized due to:", className ) );
-            e.printStackTrace( m_outError );
-            WrapperManager.stop( 1 );
+            m_initFailed = true;
+            m_initError = WrapperManager.getRes().getString( "Class {0} found but could not be initialized due to:", className );
+            m_initException = e;
             return null;  // Will not get here
         }
         catch ( LinkageError e )
         {
-            m_outError.println( WrapperManager.getRes().getString(
-                    "Class {0} found but could not be initialized: {1}", className , e ) );
-            WrapperManager.stop( 1 );
+            m_initFailed = true;
+            m_initError = WrapperManager.getRes().getString( "Class {0} found but could not be initialized: {1}", className , e );
             return null;  // Will not get here
         }
         
@@ -685,29 +752,25 @@ public class WrapperStartStopApp
         {
             try
             {
-            // getDeclaredMethod will return any method named <methodname> in the specified class,
-            // while getMethod will only return public methods, but it will search up the
-            // inheritance path.
-            // try without parameters
+                // getDeclaredMethod will return any method named <methodname> in the specified class,
+                // while getMethod will only return public methods, but it will search up the
+                // inheritance path.
+                // try without parameters
                 mainMethod = mainClass.getMethod( methodName, new Class[] { } );
             }
             catch ( NoSuchMethodException e2 )
             {
             }
             if ( mainMethod == null ) {
-                m_outError.println( WrapperManager.getRes().getString(
-                        "Unable to locate a public static {2} method in class {0}: {1}", className, e, methodName ) );
-                showUsage();
-                WrapperManager.stop( 1 );
+                m_initFailed = true;
+                m_initError = WrapperManager.getRes().getString( "Unable to locate a public static {2} method in class {0}: {1}", className, e, methodName );
                 return null;  // Will not get here
             }
         }
         catch ( SecurityException e )
         {
-            m_outError.println( WrapperManager.getRes().getString(
-                    "Unable to locate a public static {2} method in class {0}: {1}", className, e, methodName ) );
-            showUsage();
-            WrapperManager.stop( 1 );
+            m_initFailed = true;
+            m_initError = WrapperManager.getRes().getString( "Unable to locate a public static {2} method in class {0}: {1}", className, e, methodName );
             return null;  // Will not get here
         }
         
@@ -715,17 +778,19 @@ public class WrapperStartStopApp
         int modifiers = mainMethod.getModifiers();
         if ( !( Modifier.isPublic( modifiers ) && Modifier.isStatic( modifiers ) ) )
         {
-            m_outError.println( WrapperManager.getRes().getString(
-                    "The {1} method in class {0} must be declared public and static.",
-                     className, methodName ) );
-            showUsage();
-            WrapperManager.stop( 1 );
+            m_initFailed = true;
+            m_initError = WrapperManager.getRes().getString( "The {1} method in class {0} must be declared public and static.", className, methodName );
             return null;  // Will not get here
         }
         
         return mainMethod;
     }
     
+    /**
+     * Parses a set of arguments starting with a count.
+     *
+     * @return the Argument list, or null if there was a problem.
+     */
     private String[] getArgs( String[] args, int argBase )
     {
         // The arg at the arg base should be a count of the number of available arguments.
@@ -736,30 +801,26 @@ public class WrapperStartStopApp
         }
         catch ( NumberFormatException e )
         {
-            m_outError.println( WrapperManager.getRes().getString(
-                    "Illegal argument count: {0}", args[argBase] ) );
-            showUsage();
-            WrapperManager.stop( 1 );
-            return null;  // Will not get here
+            m_initFailed = true;
+            m_initError = WrapperManager.getRes().getString( "Illegal argument count: {0}", args[argBase] );
+            m_initShowUsage = true;
+            return null;
         }
         if ( argCount < 0 )
         {
-            m_outError.println( WrapperManager.getRes().getString(
-                    "Illegal argument count: {0}", args[argBase] ) );
-            showUsage();
-            WrapperManager.stop( 1 );
-            return null;  // Will not get here
+            m_initFailed = true;
+            m_initError = WrapperManager.getRes().getString( "Illegal argument count: {0}", args[argBase] );
+            m_initShowUsage = true;
+            return null;
         }
         
         // Make sure that there are enough arguments in the array.
         if ( args.length < argBase + 1 + argCount )
         {
-            m_outError.println( WrapperManager.getRes().getString(
-                    "Not enough argments.  Argument count of {0} was specified.",
-                new Integer( argCount) ) );
-            showUsage();
-            WrapperManager.stop( 1 );
-            return null;  // Will not get here
+            m_initFailed = true;
+            m_initError = WrapperManager.getRes().getString( "Not enough argments.  Argument count of {0} was specified.", new Integer( argCount) );
+            m_initShowUsage = true;
+            return null;
         }
         
         // Create the argument array

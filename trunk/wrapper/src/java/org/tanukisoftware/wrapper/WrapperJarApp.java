@@ -121,6 +121,26 @@ public class WrapperJarApp
      */
     private boolean m_startComplete;
     
+    /**
+     * Flag that is set if there were any initialization problems.
+     */
+    private boolean m_initFailed;
+    
+    /**
+     * Error message which should be shown if initialization Failed.
+     */
+    private String m_initError;
+    
+    /**
+     * True if usage should be shown as part of an initialization error.
+     */
+    private boolean m_initShowUsage;
+    
+    /**
+     * The exception which caused the error.  Only needs to be set if the stacktrace is required.
+     */
+    private Throwable m_initException;
+    
     /*---------------------------------------------------------------
      * Constructors
      *-------------------------------------------------------------*/
@@ -139,222 +159,235 @@ public class WrapperJarApp
         m_outError = new WrapperPrintStream( System.out, "WrapperJarApp Error: " );
         m_outDebug = new WrapperPrintStream( System.out, "WrapperJarApp Debug: " );
         
-        // Get the class name of the application
+        // Do all of our initialization here so the modified array list which is passed
+        //  to the WrapperListener.start method can remain unchanged.  Ideally we would
+        //  want to handle this within the start method, but that would be an API change
+        //  that could effect users.
+        
+        // appArgs will be an args array with the jar file name stripped off.
+        String[] appArgs;
+        
+        // Get the jar file name of the application
         if ( args.length < 1 )
         {
-            showUsage();
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        
-        // Look for the specified jar file.
-        File file = new File( args[0] );
-        if ( !file.exists() )
-        {
-            m_outError.println( WrapperManager.getRes().getString(
-                    "Unable to locate the jar file {0}", args[0] ) );
-            showUsage();
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        File parent = file.getParentFile();
-
-        JarFile jarFile;
-        try
-        {
-            jarFile = new JarFile( file );
-        }
-        catch ( IOException e )
-        {
-            m_outError.println( WrapperManager.getRes().getString(
-                    "Unable to open the jar file {0} : {1}", args[0], e ) );
-            showUsage();
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        
-        Manifest manifest;
-        try
-        {
-            manifest = jarFile.getManifest();
-        }
-        catch ( IOException e )
-        {
-            m_outError.println( WrapperManager.getRes().getString(
-                    "Unable to access the jar''s manifest file {0} : {1}", args[0], e ) );
-            showUsage();
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        
-        Attributes attributes = manifest.getMainAttributes();
-        String mainClassName = attributes.getValue( "Main-Class" );
-        if ( mainClassName == null ) 
-        {
-            m_outError.println( WrapperManager.getRes().getString(
-                    "The Main-Class was not specified correctly in the jar file. Please make sure all required meta information is being set." ) );
-            /* no main class, no chance this will ever do something sensible, so stop here now */
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-
-        }
-        String classPath = attributes.getValue( "Class-Path" );
-
-        if ( WrapperManager.isDebugEnabled() )
-        {
-            m_outDebug.println( "Jar Main-Class: " + mainClassName );
-        }
-        
-        URL[] classURLs;
-        if ( ( classPath != null ) && ( !classPath.equals( "" ) ) )
-        {
-            if ( WrapperManager.isDebugEnabled() )
-            {
-                m_outDebug.println( WrapperManager.getRes().getString("Jar Classpath: {0}", classPath ) );
-            }
+            m_initFailed = true;
+            m_initError = WrapperManager.getRes().getString( "Not enough argments.  Minimum {0} required.", "1" );
+            m_initShowUsage = true;
             
-            StringTokenizer st = new StringTokenizer( classPath, " \n\r" );
-            classURLs = new URL[st.countTokens() + 1];
-            
-            // Store the main jar in the classpath.
-            try
-            {
-                classURLs[0] = new URL( "file:" + file.getAbsolutePath() );
-            }
-            catch ( MalformedURLException e )
-            {
-                m_outError.println( WrapperManager.getRes().getString(
-                        "Unable to add jar to classpath: {0}", e ) );
-                showUsage();
-                WrapperManager.stop( 1 );
-                return;  // Will not get here
-            }
-            if ( WrapperManager.isDebugEnabled() )
-            {
-                m_outDebug.println( WrapperManager.getRes().getString("    Classpath[0]=") + classURLs[0] );
-            }
-            
-            // Add any other jars in the manifest classpath relative to the location of the main jar.
-            for ( int i = 1; st.hasMoreTokens(); i++ )
-            {
-                String classEntry = st.nextToken();
-                try
-                {
-                    classURLs[i] = new URL( "file:" + new File( parent, classEntry).getAbsolutePath() );
-                }
-                catch ( MalformedURLException e )
-                {
-                    m_outError.println( WrapperManager.getRes().getString(
-                            "Malformed classpath in the jar''s manifest file {0} : {1}", args[0], e ) );
-                    showUsage();
-                    WrapperManager.stop( 1 );
-                    return;  // Will not get here
-                }
-                if ( WrapperManager.isDebugEnabled() )
-                {
-                    m_outDebug.println( WrapperManager.getRes().getString("    Classpath[{0}]=", new Integer( i ) ) + classURLs[i] );
-                }
-            }
+            // No jar file name, do the best we can for now.
+            appArgs = new String[0];
         }
         else
         {
-            if ( WrapperManager.isDebugEnabled() )
+            // Look for the specified jar file.
+            File file = new File( args[0] );
+            if ( !file.exists() )
             {
-                m_outDebug.println( WrapperManager.getRes().getString("Jar Classpath: Not specified." ) );
+                m_initFailed = true;
+                m_initError = WrapperManager.getRes().getString( "Unable to locate the jar file {0}", args[0] );
+                m_initShowUsage = true;
+            }
+            else
+            {
+                File parent = file.getParentFile();
+        
+                JarFile jarFile;
+                try
+                {
+                    jarFile = new JarFile( file );
+                }
+                catch ( IOException e )
+                {
+                    m_initFailed = true;
+                    m_initError = WrapperManager.getRes().getString( "Unable to open the jar file {0} : {1}", args[0], e );
+                    jarFile = null;
+                }
+                
+                if ( !m_initFailed )
+                {
+                    Manifest manifest;
+                    try
+                    {
+                        manifest = jarFile.getManifest();
+                    }
+                    catch ( IOException e )
+                    {
+                        m_initFailed = true;
+                        m_initError = WrapperManager.getRes().getString( "Unable to access the jar''s manifest file {0} : {1}", args[0], e );
+                        manifest = null;
+                    }
+                    
+                    if ( !m_initFailed )
+                    {
+                        Attributes attributes = manifest.getMainAttributes();
+                        String mainClassName = attributes.getValue( "Main-Class" );
+                        if ( mainClassName == null ) 
+                        {
+                            m_initFailed = true;
+                            m_initError = WrapperManager.getRes().getString( "The Main-Class was not specified correctly in the jar file''s manifest file.  Please make sure all required meta information is being set." );
+                            /* no main class, no chance this will ever do something sensible, so stop here now */
+                        }
+                        else
+                        {
+                            String classPath = attributes.getValue( "Class-Path" );
+                    
+                            if ( WrapperManager.isDebugEnabled() )
+                            {
+                                m_outDebug.println( "Jar Main-Class: " + mainClassName );
+                            }
+                            
+                            URL[] classURLs;
+                            if ( ( classPath != null ) && ( !classPath.equals( "" ) ) )
+                            {
+                                if ( WrapperManager.isDebugEnabled() )
+                                {
+                                    m_outDebug.println( WrapperManager.getRes().getString("Jar Classpath: {0}", classPath ) );
+                                }
+                                
+                                StringTokenizer st = new StringTokenizer( classPath, " \n\r" );
+                                classURLs = new URL[st.countTokens() + 1];
+                                
+                                // Store the main jar in the classpath.
+                                try
+                                {
+                                    classURLs[0] = new URL( "file:" + file.getAbsolutePath() );
+                                }
+                                catch ( MalformedURLException e )
+                                {
+                                    m_initFailed = true;
+                                    m_initError = WrapperManager.getRes().getString( "Unable to add jar to classpath: {0}", e );
+                                }
+                                if ( !m_initFailed )
+                                {
+                                    if ( WrapperManager.isDebugEnabled() )
+                                    {
+                                        m_outDebug.println( WrapperManager.getRes().getString("    Classpath[0]=") + classURLs[0] );
+                                    }
+                                    
+                                    // Add any other jars in the manifest classpath relative to the location of the main jar.
+                                    for ( int i = 1; st.hasMoreTokens(); i++ )
+                                    {
+                                        String classEntry = st.nextToken();
+                                        try
+                                        {
+                                            classURLs[i] = new URL( "file:" + new File( parent, classEntry).getAbsolutePath() );
+                                        }
+                                        catch ( MalformedURLException e )
+                                        {
+                                            m_initFailed = true;
+                                            m_initError = WrapperManager.getRes().getString( "Malformed classpath in the jar''s manifest file {0} : {1}", args[0], e );
+                                        }
+                                        if ( !m_initFailed )
+                                        {
+                                            if ( WrapperManager.isDebugEnabled() )
+                                            {
+                                                m_outDebug.println( WrapperManager.getRes().getString("    Classpath[{0}]=", new Integer( i ) ) + classURLs[i] );
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                if ( WrapperManager.isDebugEnabled() )
+                                {
+                                    m_outDebug.println( WrapperManager.getRes().getString( "Jar Classpath: Not specified." ) );
+                                }
+                                
+                                classURLs = new URL[1];
+                                
+                                // Store the main jar in the classpath.
+                                try
+                                {
+                                    classURLs[0] = new URL( "file:" + file.getAbsolutePath() );
+                                }
+                                catch ( MalformedURLException e )
+                                {
+                                    m_initFailed = true;
+                                    m_initError = WrapperManager.getRes().getString( "Unable to add jar to classpath: {0}", e );
+                                }
+                                if ( !m_initFailed )
+                                {
+                                    if ( WrapperManager.isDebugEnabled() )
+                                    {
+                                        m_outDebug.println( WrapperManager.getRes().getString( "    Classpath[0]=" ) + classURLs[0] );
+                                    }
+                                }
+                            }
+                            
+                            if ( !m_initFailed )
+                            {
+                                URLClassLoader cl = URLClassLoader.newInstance( classURLs, this.getClass().getClassLoader() );
+                                
+                                // Look for the specified class by name
+                                Class mainClass;
+                                try
+                                {
+                                    mainClass = Class.forName( mainClassName, true, cl );
+                                }
+                                catch ( ClassNotFoundException e )
+                                {
+                                    m_initFailed = true;
+                                    m_initError = WrapperManager.getRes().getString( "Unable to locate the class {0} : {1}", mainClassName, e );
+                                    mainClass = null;
+                                }
+                                catch ( ExceptionInInitializerError e )
+                                {
+                                    m_initFailed = true;
+                                    m_initError = WrapperManager.getRes().getString( "Class {0} found but could not be initialized due to:", mainClassName );
+                                    m_initException = e;
+                                    mainClass = null;
+                                }
+                                catch ( LinkageError e )
+                                {
+                                    m_initFailed = true;
+                                    m_initError = WrapperManager.getRes().getString( "Class {0} found but could not be initialized: {1}", mainClassName,  e );
+                                    mainClass = null;
+                                }
+                                
+                                if ( !m_initFailed )
+                                {
+                                    // Look for the main method
+                                    try
+                                    {
+                                        // getDeclaredMethod will return any method named main in the specified class,
+                                        //  while getMethod will only return public methods, but it will search up the
+                                        //  inheritance path.
+                                        m_mainMethod = mainClass.getMethod( "main", new Class[] { String[].class } );
+                                    }
+                                    catch ( NoSuchMethodException e )
+                                    {
+                                        m_initFailed = true;
+                                        m_initError = WrapperManager.getRes().getString( "Unable to locate a public static main method in class {0} : {1}", args[0] , e );
+                                    }
+                                    catch ( SecurityException e )
+                                    {
+                                        m_initFailed = true;
+                                        m_initError = WrapperManager.getRes().getString( "Unable to locate a public static main method in class {0} : {1}", args[0], e );
+                                    }
+                                    
+                                    if ( !m_initFailed )
+                                    {
+                                        // Make sure that the method is public and static
+                                        int modifiers = m_mainMethod.getModifiers();
+                                        if ( !( Modifier.isPublic( modifiers ) && Modifier.isStatic( modifiers ) ) )
+                                        {
+                                            m_initFailed = true;
+                                            m_initError = WrapperManager.getRes().getString( "The main method in class {0} must be declared public and static.", args[0] );
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
             
-            classURLs = new URL[1];
-            
-            // Store the main jar in the classpath.
-            try
-            {
-                classURLs[0] = new URL( "file:" + file.getAbsolutePath() );
-            }
-            catch ( MalformedURLException e )
-            {
-                m_outError.println( WrapperManager.getRes().getString(
-                        "Unable to add jar to classpath: {0}", e ) );
-                showUsage();
-                WrapperManager.stop( 1 );
-                return;  // Will not get here
-            }
-            if ( WrapperManager.isDebugEnabled() )
-            {
-                m_outDebug.println( WrapperManager.getRes().getString( "    Classpath[0]=" ) + classURLs[0] );
-            }
+            // Strip the jar file name off of the args list.
+            //  This is assuming the jar file name was valid for now.
+            appArgs = new String[args.length - 1];
+            System.arraycopy( args, 1, appArgs, 0, appArgs.length );
         }
-        
-        URLClassLoader cl = URLClassLoader.newInstance( classURLs, this.getClass().getClassLoader() );
-        
-        // Look for the specified class by name
-        Class mainClass;
-        try
-        {
-            mainClass = Class.forName( mainClassName, true, cl );
-        }
-        catch ( ClassNotFoundException e )
-        {
-            m_outError.println( WrapperManager.getRes().getString(
-                    "Unable to locate the class {0} : {1}", mainClassName, e ) );
-            showUsage();
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        catch ( ExceptionInInitializerError e )
-        {
-            m_outError.println( WrapperManager.getRes().getString(
-                    "Class {0} found but could not be initialized due to:", mainClassName ) );
-            e.printStackTrace( m_outError );
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        catch ( LinkageError e )
-        {
-            m_outError.println( WrapperManager.getRes().getString(
-                    "Class {0} found but could not be initialized: {1}", mainClassName,  e ) );
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        
-        // Look for the main method
-        try
-        {
-            // getDeclaredMethod will return any method named main in the specified class,
-            //  while getMethod will only return public methods, but it will search up the
-            //  inheritance path.
-            m_mainMethod = mainClass.getMethod( "main", new Class[] { String[].class } );
-        }
-        catch ( NoSuchMethodException e )
-        {
-            m_outError.println( WrapperManager.getRes().getString(
-                "Unable to locate a public static main method in class {0} : {1}", args[0] , e ) );
-            showUsage();
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        catch ( SecurityException e )
-        {
-            m_outError.println( WrapperManager.getRes().getString(
-                "Unable to locate a public static main method in class {0} : {1}", args[0], e ) );
-            showUsage();
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        
-        // Make sure that the method is public and static
-        int modifiers = m_mainMethod.getModifiers();
-        if ( !( Modifier.isPublic( modifiers ) && Modifier.isStatic( modifiers ) ) )
-        {
-            m_outError.println( WrapperManager.getRes().getString(
-                "The main method in class {0} must be declared public and static.", args[0] ) );
-            showUsage();
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        
-        // Build the application args array
-        String[] appArgs = new String[args.length - 1];
-        System.arraycopy( args, 1, appArgs, 0, appArgs.length );
         
         // Start the application.  If the JVM was launched from the native
         //  Wrapper then the application will wait for the native Wrapper to
@@ -487,6 +520,24 @@ public class WrapperJarApp
      */
     public Integer start( String[] args )
     {
+        // See if there were any startup problems.
+        if ( m_initFailed )
+        {
+            if ( m_initError != null )
+            {
+                m_outError.println( m_initError );
+            }
+            if ( m_initException != null )
+            {
+                m_initException.printStackTrace( m_outError );
+            }
+            if ( m_initShowUsage )
+            {
+                showUsage();
+            }
+            return new Integer( 1 );
+        }
+        
         // Decide whether or not to wait for the start main method to complete before returning.
         boolean waitForStartMain = WrapperSystemPropertyUtil.getBooleanProperty(
             WrapperJarApp.class.getName() + ".waitForStartMain", false );

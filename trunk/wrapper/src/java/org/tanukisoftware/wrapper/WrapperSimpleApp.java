@@ -130,6 +130,26 @@ public class WrapperSimpleApp
      */
     private boolean m_startComplete;
     
+    /**
+     * Flag that is set if there were any initialization problems.
+     */
+    private boolean m_initFailed;
+    
+    /**
+     * Error message which should be shown if initialization Failed.
+     */
+    private String m_initError;
+    
+    /**
+     * True if usage should be shown as part of an initialization error.
+     */
+    private boolean m_initShowUsage;
+    
+    /**
+     * The exception which caused the error.  Only needs to be set if the stacktrace is required.
+     */
+    private Throwable m_initException;
+    
     /*---------------------------------------------------------------
      * Constructors
      *-------------------------------------------------------------*/
@@ -144,112 +164,127 @@ public class WrapperSimpleApp
         // Initialize the WrapperManager class on startup by referencing it.
         Class wmClass = WrapperManager.class;
         m_mainMethod = null;
+        
         // Set up some log channels
         m_outInfo = new WrapperPrintStream( System.out, "WrapperSimpleApp: " );
         m_outError = new WrapperPrintStream( System.out, "WrapperSimpleApp Error: " );
         m_outDebug = new WrapperPrintStream( System.out, "WrapperSimpleApp Debug: " );
         
+        // Do all of our initialization here so the modified array list which is passed
+        //  to the WrapperListener.start method can remain unchanged.  Ideally we would
+        //  want to handle this within the start method, but that would be an API change
+        //  that could effect users.
+        
+        // appArgs will be an args array with the main class name stripped off.
+        String[] appArgs;
+        
         // Get the class name of the application
         if ( args.length < 1 )
         {
-            showUsage();
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
+            m_initFailed = true;
+            m_initError = WrapperManager.getRes().getString( "Not enough argments.  Minimum {0} required.", "1" );
+            m_initShowUsage = true;
+            
+            // No main class, do the best we can for now.
+            appArgs = new String[0];
         }
-        
-        // Look for the specified class by name
-        Class mainClass;
-        String mainClassString = args[0];
-        String mainMethodString = "main";
-        String ar[];
-        
-        ar = args[0].split( "/" );
-        if (ar.length > 1)
+        else
         {
-            mainClassString = ar[0];
-            mainMethodString = ar[1];
-        }
-        
-        try
-        {
-            mainClass = Class.forName( mainClassString );
-        }
-        catch ( ClassNotFoundException e )
-        {
-            m_outError.println( WrapperManager.getRes().getString(
-                    "Unable to locate the class {0} : {1}", mainClassString , e ) );
-            showUsage();
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        catch ( ExceptionInInitializerError e )
-        {
-            m_outError.println( WrapperManager.getRes().getString(
-                    "Class {0} found but could not be initialized due to:", mainClassString ) );
-            e.printStackTrace( m_outError );
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        catch ( LinkageError e )
-        {
-            m_outError.println( WrapperManager.getRes().getString(
-                    "Class {0} found but could not be initialized: {1}", mainClassString, e ) );
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        
-        // Look for the main method
-        try
-        {
-            // getDeclaredMethod will return any method named main in the specified class,
-            //  while getMethod will only return public methods, but it will search up the
-            //  inheritance path.
-            m_mainMethod = mainClass.getMethod( mainMethodString, new Class[] { String[].class } );
-        }
-        catch ( NoSuchMethodException e )
-        {
+            // Look for the specified class by name
+            String ar[] = args[0].split( "/" );
+            String mainClassString;
+            String mainMethodString;
+            if ( ar.length > 1 )
+            {
+                mainClassString = ar[0];
+                mainMethodString = ar[1];
+            }
+            else
+            {
+                mainClassString = args[0];
+                mainMethodString = "main";
+            }
+            
+            Class mainClass;
             try
             {
-            // getDeclaredMethod will return any method named <methodname> in the specified class,
-            // while getMethod will only return public methods, but it will search up the
-            // inheritance path.
-            // try without parameters
-                m_mainMethod = mainClass.getMethod( mainMethodString, new Class[] { } );
+                mainClass = Class.forName( mainClassString );
             }
-            catch ( NoSuchMethodException e2 )
+            catch ( ClassNotFoundException e )
             {
+                m_initFailed = true;
+                m_initError = WrapperManager.getRes().getString( "Unable to locate the class {0} : {1}", mainClassString, e );
+                m_initShowUsage = true;
+                mainClass = null;
             }
-            if ( m_mainMethod == null ) {
-                m_outError.println(WrapperManager.getRes().getString(
-                    "Unable to locate a public static {2} method in class {0} : {1}", mainClassString, e, mainMethodString ) );
-                showUsage();
-                WrapperManager.stop( 1 );
-                return;  // Will not get here
+            catch ( ExceptionInInitializerError e )
+            {
+                m_initFailed = true;
+                m_initError = WrapperManager.getRes().getString( "Class {0} found but could not be initialized due to:", mainClassString );
+                m_initException = e;
+                mainClass = null;
             }
+            catch ( LinkageError e )
+            {
+                m_initFailed = true;
+                m_initError = WrapperManager.getRes().getString( "Class {0} found but could not be initialized: {1}", mainClassString, e );
+                mainClass = null;
+            }
+            
+            if ( !m_initFailed )
+            {
+                // Look for the main method
+                try
+                {
+                    // getDeclaredMethod will return any method named main in the specified class,
+                    //  while getMethod will only return public methods, but it will search up the
+                    //  inheritance path.
+                    m_mainMethod = mainClass.getMethod( mainMethodString, new Class[] { String[].class } );
+                }
+                catch ( NoSuchMethodException e )
+                {
+                    try
+                    {
+                        // getDeclaredMethod will return any method named <methodname> in the specified class,
+                        // while getMethod will only return public methods, but it will search up the
+                        // inheritance path.
+                        // try without parameters
+                        m_mainMethod = mainClass.getMethod( mainMethodString, new Class[] { } );
+                    }
+                    catch ( NoSuchMethodException e2 )
+                    {
+                        // Handle with first exception.
+                    }
+                    
+                    if ( m_mainMethod == null )
+                    {
+                        m_initFailed = true;
+                        m_initError = WrapperManager.getRes().getString( "Unable to locate a public static {2} method in class {0} : {1}", mainClassString, e, mainMethodString );
+                    }
+                }
+                catch ( SecurityException e )
+                {
+                    m_initFailed = true;
+                    m_initError = WrapperManager.getRes().getString( "Unable to locate a public static {2} method in class {0} : {1}", mainClassString, e, mainMethodString );
+                }
+                
+                if ( !m_initFailed )
+                {
+                    // Make sure that the method is public and static
+                    int modifiers = m_mainMethod.getModifiers();
+                    if ( !( Modifier.isPublic( modifiers ) && Modifier.isStatic( modifiers ) ) )
+                    {
+                        m_initFailed = true;
+                        m_initError = WrapperManager.getRes().getString( "The {1} method in class {0} must be declared public and static.", mainClassString, mainMethodString );
+                    }
+                }
+            }
+            
+            // Strip the main class off of the args list.
+            //  This is assuming the main class was valid for now.
+            appArgs = new String[args.length - 1];
+            System.arraycopy( args, 1, appArgs, 0, appArgs.length );
         }
-        catch ( SecurityException e )
-        {
-            m_outError.println( WrapperManager.getRes().getString(
-                "Unable to locate a public static {2} method in class {0} : {1}", mainClassString, e, mainMethodString ) );
-            showUsage();
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        
-        // Make sure that the method is public and static
-        int modifiers = m_mainMethod.getModifiers();
-        if ( !( Modifier.isPublic( modifiers ) && Modifier.isStatic( modifiers ) ) )
-        {
-            m_outError.println(WrapperManager.getRes().getString(
-                "The {1} method in class {0} must be declared public and static.", mainClassString, mainMethodString ) );
-            showUsage();
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        
-        // Build the application args array
-        String[] appArgs = new String[args.length - 1];
-        System.arraycopy( args, 1, appArgs, 0, appArgs.length );
         
         // Start the application.  If the JVM was launched from the native
         //  Wrapper then the application will wait for the native Wrapper to
@@ -385,9 +420,29 @@ public class WrapperSimpleApp
      * If there are any problems, then an Integer should be returned, set to
      * the desired exit code.  If the application should continue,
      * return null.
+     *
+     * @param args Arguments passed to the application.
      */
     public Integer start( String[] args )
     {
+        // See if there were any startup problems.
+        if ( m_initFailed )
+        {
+            if ( m_initError != null )
+            {
+                m_outError.println( m_initError );
+            }
+            if ( m_initException != null )
+            {
+                m_initException.printStackTrace( m_outError );
+            }
+            if ( m_initShowUsage )
+            {
+                showUsage();
+            }
+            return new Integer( 1 );
+        }
+        
         // Decide whether or not to wait for the start main method to complete before returning.
         boolean waitForStartMain = WrapperSystemPropertyUtil.getBooleanProperty(
             WrapperSimpleApp.class.getName() + ".waitForStartMain", false );
