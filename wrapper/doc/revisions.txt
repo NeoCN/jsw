@@ -20,6 +20,12 @@ Java Service Wrapper Revision History.
 * Fix a problem on newer version of Windows when customizing the Wrapper. 
   The certificate was not removed when creating the target. This was leading
   to an error when trying to sign the target with a new certificate.
+* Add missing support in the shell script for restarting/stopping the Wrapper 
+  service with launchctl on Mac OS X.
+* Add missing support in the shell script for restarting/stopping the Wrapper 
+  service with Upstart.
+* Add the possibility set the path to 'su' and to add optional parameters in 
+  the shell script using SU_PATH and SU_OPTS.
 * Fix a problem in the WrapperSimpleApp, WrapperStartStopApp, and
   WrapperJarApp helper classes where command line problems that resulted in
   the JVM exiting on startup looked like unexpected exits.  This meant that
@@ -39,6 +45,7 @@ Java Service Wrapper Revision History.
   WrapperResources.getString() method are formatted correctly.  See the
   WrapperResources class for information how to enable.
 * Clean up escaping of single quotes in a few messages.
+  
   
 3.5.25
 * (Professional) Improve the wrapper.timer.<n>.interval property so it is now
@@ -515,7 +522,7 @@ Java Service Wrapper Revision History.
   intended message.  This could be seen if the configured log file did not
   have write permissions.  Other than the incorrect log message, the Wrapper
   worked correctly.  Introduced in 3.5.2.
-* Fix a problem in the UNIX script where running with upstart wasn't working
+* Fix a problem in the UNIX script where running with Upstart wasn't working
   correctly when RUN_AS_USER was set.
 * Relax security checks when running the 'status' command against the UNIX
   shell script so it now allows any user running the script to perform the
@@ -921,7 +928,7 @@ Java Service Wrapper Revision History.
   cause problems writing Japanese text when the file.encoding is German for
   example.
 * Added support in the shell script for starting/installing the wrapper on
-  system boot with upstart.
+  system boot with Upstart.
 * Fix a problem in the shell script where it would fail to recognize a running
   Wrapper if the Wrapper command line or path contained a square bracket.
 * Modify the way we test for the existance of the temp directory so we now
