@@ -4424,7 +4424,7 @@ public final class WrapperManager
                 catch ( AccessControlException e )
                 {
                     // This can happen if the security policy is not setup correctly.
-                    m_outError.println( getRes().getString( "Unable to remove the Wrapper's shudownhook: {0}", e ) );
+                    m_outError.println( getRes().getString( "Unable to remove the Wrapper''s shudownhook: {0}", e ) );
                     m_hookRemoveFailed = true;
                 }
             }

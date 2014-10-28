@@ -204,7 +204,7 @@ public final class WrapperUserEventPermission extends BasicPermission
             String element = strok.nextToken();
             if ( element.indexOf( '*' ) >= 0 )
             {
-                throw new AccessControlException( WrapperManager.getRes().getString( "can't define '*' inside a sequence." ) );
+                throw new AccessControlException( WrapperManager.getRes().getString( "can''t define ''*'' inside a sequence." ) );
             }
             int range = element.indexOf( "-" );
             if ( range >= 0 )
