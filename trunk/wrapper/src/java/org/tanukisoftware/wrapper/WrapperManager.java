@@ -1624,7 +1624,7 @@ public final class WrapperManager
                 {
                     // The library file was found but could not be loaded for some reason.
                     // This message is logged when localization is unavailable.
-                    m_outInfo.println( "WARNING - Unable to load the Wrapper''s native library '" + libFile.getName() + "'." );
+                    m_outInfo.println( "WARNING - Unable to load the Wrapper's native library '" + libFile.getName() + "'." );
                     m_outInfo.println( "          The file is located on the path at the following location but" );
                     m_outInfo.println( "          could not be loaded:" );
                     m_outInfo.println( "            " + libFile.getAbsolutePath() );
