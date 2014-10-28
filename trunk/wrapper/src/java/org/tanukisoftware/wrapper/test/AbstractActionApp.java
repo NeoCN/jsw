@@ -275,6 +275,21 @@ public abstract class AbstractActionApp
             WrapperManager.appearSlow( m_slowSeconds );
             
         }
+        else if ( action.equals( "appear_slow_1" ) )
+        {
+            WrapperManager.appearSlow( 1 );
+            
+        }
+        else if ( action.equals( "appear_slow_5" ) )
+        {
+            WrapperManager.appearSlow( 5 );
+            
+        }
+        else if ( action.equals( "appear_slow_reset" ) )
+        {
+            WrapperManager.appearSlow( 0 );
+            
+        }
         else if ( action.equals( "deadlock" ) )
         {
             if ( WrapperManager.isStandardEdition() )
@@ -719,6 +734,11 @@ public abstract class AbstractActionApp
         System.err.println( Main.getRes().getString( "   restart                  : Calls WrapperManager.restart()" ) );
         System.err.println( Main.getRes().getString( "   restartandreturn         : Calls WrapperManager.restartAndReturn()" ) );
         System.err.println( Main.getRes().getString( "  Additional Tests:" ) );
+        System.err.println( Main.getRes().getString( "   appear_slow_1            : Calls WrapperManager.appearSlow(1)" ) );
+        System.err.println( Main.getRes().getString( "   appear_slow_5            : Calls WrapperManager.appearSlow(5)" ) );
+        System.err.println( Main.getRes().getString( "   appear_slow_reset        : Calls WrapperManager.appearSlow(0) to return to normal" ) );
+        System.err.println( Main.getRes().getString( "   deadlock                 : Executes some deadlocking code to test deadlock detection" ) );
+        System.err.println( Main.getRes().getString( "   outofmemory              : Simulates an OutOfMemoryError being thrown" ) );
         System.err.println( Main.getRes().getString( "   ignore_events            : Makes this application ignore control events." ) );
         System.err.println( Main.getRes().getString( "   dump                     : Calls WrapperManager.requestThreadDump()" ) );
         System.err.println( Main.getRes().getString( "   deadlock_out             : Deadlocks the JVM's System.out and err streams." ) );
