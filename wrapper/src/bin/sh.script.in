@@ -137,8 +137,11 @@ RUN_LEVEL=20
 # Do not modify anything beyond this point
 #-----------------------------------------------------------------------------
 
-# check if we are running under Cygwin terminal
-CYGWIN=`uname -o`
+# check if we are running under Cygwin terminal.
+# Note: on some OS's (for example Solaris, MacOS), -o is not a valid parameter 
+# and it shows an error message. We redirect stderr to null so the error message
+# doesn't show up.
+CYGWIN=`uname -o 2>/dev/null`
 if [ "$CYGWIN" = "Cygwin" ]
 then
   eval echo `gettext 'This script is not compatible with Cygwin.  Please use the Wrapper batch files to control the Wrapper.'`
@@ -151,6 +154,17 @@ then
 else
     COMMAND="$1"
 fi
+
+# check if there is a parameter "sysd"
+SYSD=
+if [ $# -gt 1 ] ; then
+    if [ $2 = "sysd" ] ; then
+        SYSD=1
+    fi
+fi
+
+# default location for the service file
+SYSTEMD_SERVICE_FILE="/etc/systemd/system/$APP_NAME.service"
 
 # Required for HP-UX Startup
 if [ `uname -s` = "HP-UX" -o `uname -s` = "HP-UX64" ] ; then
@@ -298,7 +312,7 @@ then
     then
         DIST_BITS="32"
     else
-        if [ "X`sysctl -n hw.cpu64bit_capable`" == "X1" ]  
+        if [ "X`/usr/sbin/sysctl -n hw.cpu64bit_capable`" == "X1" ]  
         then
             DIST_BITS="64"
         else
@@ -402,7 +416,11 @@ fi
 if [ "$DIST_OS" = "macosx" ]
 then
     if [ -z "$JAVA_HOME" ]; then
-        JAVA_HOME="/Library/Java/Home"; export JAVA_HOME
+        if [ -x /usr/libexec/java_home ]; then
+            JAVA_HOME=`/usr/libexec/java_home`; export JAVA_HOME
+        else
+            JAVA_HOME="/Library/Java/Home"; export JAVA_HOME
+        fi
     fi
 fi
 
@@ -1007,6 +1025,70 @@ upstartstart() {
     startwait
 }
 
+systemdInstall() {
+    eval echo `gettext ' Installing the $APP_LONG_NAME daemon using systemd...'`
+    if [ -f "${REALDIR}/${APP_NAME}.service" ] ; then 
+        eval echo `gettext ' a custom service file ${APP_NAME}.service found'`
+        cp "${REALDIR}/${APP_NAME}.service" "${SYSTEMD_SERVICE_FILE}"
+    else
+        eval echo `gettext ' creating default service file...'`
+        echo "[Unit]"                            > "${SYSTEMD_SERVICE_FILE}"
+        echo "Description=${APP_LONG_NAME}"     >> "${SYSTEMD_SERVICE_FILE}"
+        echo "After=syslog.target"              >> "${SYSTEMD_SERVICE_FILE}"
+        echo ""                                 >> "${SYSTEMD_SERVICE_FILE}"
+        echo "[Service]"                        >> "${SYSTEMD_SERVICE_FILE}"
+        echo "Type=forking"                     >> "${SYSTEMD_SERVICE_FILE}"
+        echo "ExecStart=${REALPATH} start sysd" >> "${SYSTEMD_SERVICE_FILE}"
+        echo "ExecStop=${REALPATH} stop sysd"   >> "${SYSTEMD_SERVICE_FILE}"
+        echo ""                                 >> "${SYSTEMD_SERVICE_FILE}"
+        echo "[Install]"                        >> "${SYSTEMD_SERVICE_FILE}"
+        echo "WantedBy=multi-user.target"       >> "${SYSTEMD_SERVICE_FILE}"
+
+        systemctl daemon-reload
+        systemctl enable "${APP_NAME}"
+    fi
+}
+
+systemdStart() {
+    # check if the service file is present
+    if [ -f "${SYSTEMD_SERVICE_FILE}" ] ; then 
+        eval echo `gettext 'Reading file ${SYSTEMD_SERVICE_FILE}'`
+    else
+        eval echo `gettext 'No service file detected. Did you install the service?'`
+        exit 1
+    fi
+
+    systemctl start $APP_NAME
+    if [ $? -ne 0 ] ; then
+        eval echo `gettext 'Failed to start service $APP_NAME'`
+        exit 1
+    fi
+}
+
+systemdStop() {
+    systemctl stop $APP_NAME
+    if [ $? -ne 0 ] ; then
+        eval echo `gettext 'Failed to stop $APP_NAME'`
+        exit 1
+    fi
+}
+
+systemdRestart() {
+    systemctl restart $APP_NAME
+    if [ $? -ne 0 ] ; then
+        eval echo `gettext 'Failed to restart $APP_NAME'`
+        exit 1
+    fi
+}
+
+systemdRemove() {
+    stopit "0"
+    eval echo `gettext ' Removing $APP_LONG_NAME daemon from systemd...'`
+    systemctl disable $APP_NAME
+    rm "/etc/systemd/system/${APP_NAME}.service"
+    systemctl daemon-reload
+}
+
 start() {
     eval echo `gettext 'Starting $APP_LONG_NAME...'`
     getpid
@@ -1145,30 +1227,6 @@ installUpstart() {
     fi
 }
 
-installSystemd() {
-    eval echo `gettext ' Installing the $APP_LONG_NAME daemon using systemd..'`
-    if [ -f "${REALDIR}/${APP_NAME}.service" ] ; then 
-        eval echo `gettext ' a custom service file ${APP_NAME}.service found'`
-        cp "${REALDIR}/${APP_NAME}.service" "/etc/systemd/system/${APP_NAME}.service"
-    else
-        eval echo `gettext ' creating default service file..'`
-        echo "[Unit]"                            > "/etc/systemd/system/${APP_NAME}.service"
-        echo "Description=${APP_LONG_NAME}"     >> "/etc/systemd/system/${APP_NAME}.service"
-        echo "After=syslog.target"              >> "/etc/systemd/system/${APP_NAME}.service"
-        echo ""                                 >> "/etc/systemd/system/${APP_NAME}.service"
-        echo "[Service]"                        >> "/etc/systemd/system/${APP_NAME}.service"
-        echo "Type=forking"                     >> "/etc/systemd/system/${APP_NAME}.service"
-        echo "ExecStart=\"${REALPATH}\" start"  >> "/etc/systemd/system/${APP_NAME}.service"
-        echo "ExecStop=\"${REALPATH}\" stop"    >> "/etc/systemd/system/${APP_NAME}.service"
-        echo ""                                 >> "/etc/systemd/system/${APP_NAME}.service"
-        echo "[Install]"                        >> "/etc/systemd/system/${APP_NAME}.service"
-        echo "WantedBy=multi-user.target"       >> "/etc/systemd/system/${APP_NAME}.service"
-
-        systemctl daemon-reload
-        systemctl enable "${APP_NAME}.service"
-    fi
-}
-
 installdaemon() {
     if [ `id | sed 's/^uid=//;s/(.*$//'` != "0" ] ; then       
         eval echo `gettext 'Must be root to perform this action.'`
@@ -1197,7 +1255,7 @@ installdaemon() {
                     eval echo `gettext ' The $APP_LONG_NAME daemon is already installed.'`
                     exit 1
                 elif [ -n "$USE_SYSTEMD" -a -d "/etc/systemd" ] ; then
-                        installSystemd
+                        systemdInstall
                 else
                     if [ -n "$USE_UPSTART" -a -d "/etc/init" ] ; then
                         installUpstart
@@ -1214,7 +1272,7 @@ installdaemon() {
                     eval echo `gettext ' The $APP_LONG_NAME daemon is already installed.'`
                     exit 1
                 elif [ -n "$USE_SYSTEMD" -a -d "/etc/systemd" ] ; then
-                        installSystemd
+                        systemdInstall
                 else
                     eval echo `gettext ' Installing the $APP_LONG_NAME daemon..'`
                     ln -s "$REALPATH" "/etc/init.d/$APP_NAME"
@@ -1227,7 +1285,7 @@ installdaemon() {
                     exit 1
                 else
                     if [ -n "$USE_SYSTEMD" -a -d "/etc/systemd" ] ; then
-                        installSystemd
+                        systemdInstall
                     elif [ -n "$USE_UPSTART" -a -d "/etc/init" ] ; then
                         installUpstart
                     else 
@@ -1241,7 +1299,7 @@ installdaemon() {
                 if [ -f "/etc/init.d/$APP_NAME" -o -L "/etc/init.d/$APP_NAME" ] ; then
                     eval echo `gettext ' The $APP_LONG_NAME daemon is already installed.'`
                     exit 1
-                # "lsitab" will failse
+                else
                     eval echo `gettext ' Installing the $APP_LONG_NAME daemon..'`
                     ln -s "$REALPATH" /etc/init.d/$APP_NAME
                     for i in `ls "/etc/rc3.d/K"??"$APP_NAME_LOWER" "/etc/rc5.d/K"??"$APP_NAME_LOWER" "/etc/rc3.d/S"??"$APP_NAME_LOWER" "/etc/rc5.d/S"??"$APP_NAME_LOWER" 2>/dev/null` ; do
@@ -1409,12 +1467,8 @@ removedaemon() {
                     /sbin/chkconfig "$APP_NAME" off
                     /sbin/chkconfig --del "$APP_NAME"
                     rm -f "/etc/init.d/$APP_NAME"
-                elif [ -f "/etc/systemd/system/${APP_NAME}.service" ] ; then
-                    stopit "0"
-                    eval echo `gettext ' Removing $APP_LONG_NAME daemon from systemd...'`
-                    systemctl stop "${APP_NAME}.service"
-                    rm "/etc/systemd/system/${APP_NAME}.service"
-                    systemctl daemon-reload
+                elif [ -n "$USE_SYSTEMD" -a -f "${SYSTEMD_SERVICE_FILE}" ] ; then
+                    systemdRemove
                 elif [ -f "/etc/init/${APP_NAME}.conf" ] ; then
                     stopit "0"
                     eval echo `gettext ' Removing $APP_LONG_NAME daemon from upstart...'`
@@ -1430,12 +1484,8 @@ removedaemon() {
                     eval echo `gettext ' Removing $APP_LONG_NAME daemon...'`
                     insserv -r "/etc/init.d/$APP_NAME"
                     rm -f "/etc/init.d/$APP_NAME"
-                elif [ -f "/etc/systemd/system/${APP_NAME}.service" ] ; then
-                    stopit "0"
-                    eval echo `gettext ' Removing $APP_LONG_NAME daemon from systemd...'`
-                    systemctl stop "${APP_NAME}.service"
-                    rm "/etc/systemd/system/${APP_NAME}.service"
-                    systemctl daemon-reload
+                elif [ -n "$USE_SYSTEMD" -a -f "${SYSTEMD_SERVICE_FILE}" ] ; then
+                    systemdRemove
                 else
                     eval echo `gettext ' The $APP_LONG_NAME daemon is not currently installed.'`
                     exit 1
@@ -1447,12 +1497,8 @@ removedaemon() {
                     eval echo `gettext ' Removing $APP_LONG_NAME daemon from init.d...'`
                     update-rc.d -f "$APP_NAME" remove
                     rm -f "/etc/init.d/$APP_NAME"
-                elif [ -f "/etc/systemd/system/${APP_NAME}.service" ] ; then
-                    stopit "0"
-                    eval echo `gettext ' Removing $APP_LONG_NAME daemon from systemd...'`
-                    systemctl stop "${APP_NAME}.service"
-                    rm "/etc/systemd/system/${APP_NAME}.service"
-                    systemctl daemon-reload
+                elif [ -n "$USE_SYSTEMD" -a -f "${SYSTEMD_SERVICE_FILE}" ] ; then
+                    systemdRemove
                 elif [ -f "/etc/init/${APP_NAME}.conf" ] ; then
                     stopit "0"
                     eval echo `gettext ' Removing $APP_LONG_NAME daemon from upstart...'`
@@ -1682,7 +1728,13 @@ docommand() {
                 macosxstart
             elif [ "$DIST_OS" = "linux" -a -f "/etc/init/${APP_NAME}.conf" ] ; then
                 upstartstart
+            elif [ "$DIST_OS" = "linux" -a -n "$USE_SYSTEMD" -a -z "$SYSD" ] ; then
+                systemdStart
             else
+                if [ -n "$SYSD" ] ; then
+                    shift
+                fi
+                
                 checkUser touchlock "$@"
                 if [ ! -n "$FIXED_COMMAND" ] ; then
                     shift
@@ -1692,17 +1744,28 @@ docommand() {
             ;;
     
         'stop')
-            checkUser "" "$COMMAND"
-            stopit "0"
+            if [ "$DIST_OS" = "linux" -a -n "$USE_SYSTEMD" -a -z "$SYSD" ] ; then
+                systemdStop
+            else
+                checkUser "" "$COMMAND"
+                stopit "0"
+            fi
             ;;
     
         'restart')
-            checkUser touchlock "$COMMAND"
-            if [ ! -n "$FIXED_COMMAND" ] ; then
-                shift
+            if [ "$DIST_OS" = "linux" -a -n "$USE_SYSTEMD" -a -z "$SYSD" ] ; then
+                systemdRestart
+            else
+                if [ -n "$SMF" ] ; then
+                    shift
+                fi
+                checkUser touchlock "$COMMAND"
+                if [ ! -n "$FIXED_COMMAND" ] ; then
+                    shift
+                fi
+                stopit "0"
+                start "$@"
             fi
-            stopit "0"
-            start "$@"
             ;;
     
         'condrestart')
