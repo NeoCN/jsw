@@ -27,11 +27,37 @@ import java.text.MessageFormat;
  *  methods.  If the resource files are not found, or the specific key is not found
  *  then the key is returned unmodified.
  *
+ * All resource keys passed to <CODE>getString()</CODE> will be processed using the
+ *  java.util.MessageFormat class.  As such, single quotes must be escaped.
+ *  This class can optionally validate all such keys and logs warnings about
+ *  keys which fail these checks.  It is possible to enable this validation with
+ *  the following property.  (Defaults to FALSE)
+ *  -Dorg.tanukisoftware.wrapper.WrapperResources.validateResourceKeys=TRUE
+ *
  * @author Leif Mortenson <leif@tanukisoftware.com>
  */
 public final class WrapperResources
 {
+    /** Error level log channel */
+    private static WrapperPrintStream m_outError;
+    
+    /** True if resource keys should be validated. */
+    private static boolean m_validateResourceKeys;
+    
+    /** Helper object to reduce number of new objects. */
+    private static final Object[] EMPTY_OBJECT_ARRAY = new Object[0];
+    
+    /** Id of the resource.  Assigned within native code. */
     private long m_Id;
+    
+    /*---------------------------------------------------------------
+     * Static Methods
+     *-------------------------------------------------------------*/
+    static
+    {
+        m_outError = new WrapperPrintStream( System.out, "WrapperResources Error: " );
+        m_validateResourceKeys = WrapperSystemPropertyUtil.getBooleanProperty( WrapperResources.class.getName() + ".validateResourceKeys", false );
+    }
     
     /*---------------------------------------------------------------
      * Constructors
@@ -82,6 +108,79 @@ public final class WrapperResources
      * Methods
      *-------------------------------------------------------------*/
     /**
+     * Checks the resource key to make sure that all of its single quotes are excaped correctly.
+     *
+     * @param str String which was or will be localized.
+     * @param localized True if str is a localized string, false if it is the key.
+     */
+    private void validateResourceKey( String str, boolean localized )
+    {
+        int pos = 0;
+        int len = str.length();
+        do
+        {
+            pos = str.indexOf( '\'', pos );
+            if ( pos < 0 )
+            {
+                break;
+            }
+            
+            pos++;
+            if ( ( pos >= len ) || ( str.charAt( pos ) != '\'' ) )
+            {
+                // Unescaped quote at end of string.
+                //  If one of the following keys or their localized strings have such a problem this will recurse.
+                if ( localized )
+                {
+                    m_outError.println( WrapperManager.getRes().getString( "Localized resource string''s single quotes not escaped correctly: {0}", str ) );
+                }
+                else
+                {
+                    m_outError.println( WrapperManager.getRes().getString( "Resource key''s single quotes not escaped correctly: {0}", str ) );
+                }
+                break;
+            }
+            pos++;
+        }
+        while ( pos < len );
+    }
+
+    /**
+     * Request a localized version of the specified key.
+     *
+     * The returned string will be the raw string which has not yet
+     *  been processed by MessageFormat.
+     *
+     * @param key Resource to be localized.
+     *
+     * @return The localized version of the key.
+     */
+    private String getStringInner( String key )
+    {
+        if ( m_validateResourceKeys )
+        {
+            validateResourceKey( key, false );
+        }
+        
+        if ( ( m_Id != 0 ) && WrapperManager.isNativeLibraryOk() )
+        {
+            String str = nativeGetLocalizedString( key );
+            if ( !str.equals( key ) )
+            {
+                if ( m_validateResourceKeys )
+                {
+                    validateResourceKey( str, true );
+                }
+            }
+            return str;
+        }
+        else
+        {
+            return key;
+        }
+    }
+    
+    /**
      * Request a localized version of the specified key.
      *
      * @param key Resource to be localized.
@@ -90,14 +189,9 @@ public final class WrapperResources
      */
     public String getString( String key )
     {
-        if ( ( m_Id != 0 ) && WrapperManager.isNativeLibraryOk() )
-        {
-            return nativeGetLocalizedString( key );
-        }
-        else
-        {
-            return key;
-        }
+        // Even through we are not replacing any tokens, always call the format
+        //  method so things like escaped quotes will be handled in a consistent way.
+        return MessageFormat.format( getStringInner( key ), EMPTY_OBJECT_ARRAY );
     }
     
     /**
@@ -115,7 +209,7 @@ public final class WrapperResources
      */
     public String getString( String key, Object[] arguments )
     {
-        return MessageFormat.format( getString( key ), arguments );
+        return MessageFormat.format( getStringInner( key ), arguments );
     }
     
     /**
@@ -133,7 +227,7 @@ public final class WrapperResources
      */
     public String getString( String key, Object arg0 )
     {
-        return MessageFormat.format( getString( key ), new Object[] { arg0 } );
+        return MessageFormat.format( getStringInner( key ), new Object[] { arg0 } );
     }
     
     /**
@@ -152,7 +246,7 @@ public final class WrapperResources
      */
     public String getString( String key, Object arg0, Object arg1 )
     {
-        return MessageFormat.format( getString( key ), new Object[] { arg0, arg1 } );
+        return MessageFormat.format( getStringInner( key ), new Object[] { arg0, arg1 } );
     }
     
     /**
@@ -172,7 +266,7 @@ public final class WrapperResources
      */
     public String getString( String key, Object arg0, Object arg1, Object arg2 )
     {
-        return MessageFormat.format( getString( key ), new Object[] { arg0, arg1, arg2 } );
+        return MessageFormat.format( getStringInner( key ), new Object[] { arg0, arg1, arg2 } );
     }
     
     /**
@@ -193,7 +287,7 @@ public final class WrapperResources
      */
     public String getString( String key, Object arg0, Object arg1, Object arg2, Object arg3 )
     {
-        return MessageFormat.format( getString( key ), new Object[] { arg0, arg1, arg2, arg3 } );
+        return MessageFormat.format( getStringInner( key ), new Object[] { arg0, arg1, arg2, arg3 } );
     }
     
     /**
@@ -215,7 +309,7 @@ public final class WrapperResources
      */
     public String getString( String key, Object arg0, Object arg1, Object arg2, Object arg3, Object arg4 )
     {
-        return MessageFormat.format( getString( key ), new Object[] { arg0, arg1, arg2, arg3, arg4 } );
+        return MessageFormat.format( getStringInner( key ), new Object[] { arg0, arg1, arg2, arg3, arg4 } );
     }
 }
 
