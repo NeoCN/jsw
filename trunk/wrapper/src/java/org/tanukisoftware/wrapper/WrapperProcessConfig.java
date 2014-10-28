@@ -289,7 +289,7 @@ public final class WrapperProcessConfig
                 }
                 else if ( ( (String)key ).indexOf( '=' ) != -1 )
                 {
-                    throw new IllegalArgumentException( WrapperManager.getRes().getString( "Map entry names must not contain an equal sign ('=')." ) );
+                    throw new IllegalArgumentException( WrapperManager.getRes().getString( "Map entry names must not contain an equal sign (''='')." ) );
                 }
                 Object value = entry.getKey();
                 if ( !( value instanceof String ) )

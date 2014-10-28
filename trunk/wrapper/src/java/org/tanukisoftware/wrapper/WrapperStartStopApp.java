@@ -849,7 +849,7 @@ public class WrapperStartStopApp
         System.out.println( WrapperManager.getRes().getString(
             "                   application." ) );
         System.out.println( WrapperManager.getRes().getString(
-            "  start_arg_count: The number of arguments to be passed to the start class's " ) );
+            "  start_arg_count: The number of arguments to be passed to the start class''s " ) );
         System.out.println( WrapperManager.getRes().getString(
             "                   main method." ) );
         System.out.println( WrapperManager.getRes().getString(
@@ -865,7 +865,7 @@ public class WrapperStartStopApp
         System.out.println( WrapperManager.getRes().getString(
             "                   complete before exiting (true/false)." ) );
         System.out.println( WrapperManager.getRes().getString(
-            "  stop_arg_count:  The number of arguments to be passed to the stop class's " ) );
+            "  stop_arg_count:  The number of arguments to be passed to the stop class''s " ) );
         System.out.println( WrapperManager.getRes().getString(
             "                   main method." ) );
         System.out.println( WrapperManager.getRes().getString(
