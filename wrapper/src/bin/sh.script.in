@@ -316,12 +316,45 @@ case "$DIST_OS" in
         ;;
 esac
 
+# Compare Versions $1<$2=0, $1==$2=1, $1>$2=2
+compareVersions () {
+    if [[ "$1" = "$2" ]]
+    then
+        return 1
+    else
+        local IFS=.
+        local a1=($1)
+        local a2=($2)
+        local i
+        for ((i=${#a1[@]}; i<${#a2[@]}; i++))
+        do
+            a1[i]=0
+        done
+        for ((i=${#a2[@]}; i<${#a1[@]}; i++))
+        do
+            a2[i]=0
+        done
+        for ((i=0; i<${#a1[@]}; i++))
+        do
+            if ((${a1[i]} < ${a2[i]}))
+            then
+                return 0
+            elif ((${a1[i]} > ${a2[i]}))
+            then
+                return 2
+            fi
+        done
+        return 1
+    fi
+}
+
 # Resolve the architecture
 if [ "$DIST_OS" = "macosx" ]
 then
     OS_VER=`sw_vers | grep 'ProductVersion:' | grep -o '[0-9]*\.[0-9]*\.[0-9]*\|[0-9]*\.[0-9]*'`
     DIST_ARCH="universal"
-    if [[ "$OS_VER" < "10.5.0" ]]
+    compareVersions "$OS_VER" "10.5.0"
+    if [[ $? < 1 ]]
     then
         DIST_BITS="32"
     else

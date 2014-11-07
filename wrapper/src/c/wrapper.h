@@ -78,9 +78,13 @@
 #define WRAPPER_TIMER_FAST_THRESHOLD (2 * 24 * 3600 * 1000 / WRAPPER_TICK_MS) /* Default to 2 days. */
 #define WRAPPER_TIMER_SLOW_THRESHOLD (2 * 24 * 3600 * 1000 / WRAPPER_TICK_MS) /* Default to 2 days. */
 
-#define WRAPPER_BACKEND_TYPE_UNKNOWN 0 /* Unknown type. */
-#define WRAPPER_BACKEND_TYPE_SOCKET  1 /* Use a loopback socket to communicate. */
-#define WRAPPER_BACKEND_TYPE_PIPE    2 /* Use a pair of pipes to communicate. */
+#define WRAPPER_BACKEND_ERROR_NEXT     99 /* value returned when there is an error trying to connect to a socket and we should try the next way to connect */
+#define WRAPPER_BACKEND_TYPE_UNKNOWN   0 /* Unknown type. */
+#define WRAPPER_BACKEND_TYPE_SOCKET_V4 0x01
+#define WRAPPER_BACKEND_TYPE_SOCKET_V6 0x02
+#define WRAPPER_BACKEND_TYPE_SOCKET    (WRAPPER_BACKEND_TYPE_SOCKET_V4 | WRAPPER_BACKEND_TYPE_SOCKET_V6)
+#define WRAPPER_BACKEND_TYPE_PIPE      0x04 /* Use a pair of pipes to communicate. */
+#define WRAPPER_BACKEND_TYPE_AUTO      (WRAPPER_BACKEND_TYPE_SOCKET | WRAPPER_BACKEND_TYPE_PIPE)
 
 #define WRAPPER_WSTATE_STARTING  51 /* Wrapper is starting.  Remains in this state
                                      *  until the JVM enters the STARTED state or

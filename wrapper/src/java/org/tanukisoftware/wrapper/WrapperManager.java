@@ -133,12 +133,18 @@ public final class WrapperManager
     /** The number of milliseconds in one tick.  Used for internal system
      *   time independent time keeping. */
     private static final int TICK_MS                     = 100;
-    private static final int TIMER_FAST_THRESHOLD     = 2 * 24 * 3600 * 1000 / TICK_MS; // 2 days.
-    private static final int TIMER_SLOW_THRESHOLD     = 2 * 24 * 3600 * 1000 / TICK_MS; // 2 days.
+    private static final int TIMER_FAST_THRESHOLD        = 2 * 24 * 3600 * 1000 / TICK_MS; // 2 days.
+    private static final int TIMER_SLOW_THRESHOLD        = 2 * 24 * 3600 * 1000 / TICK_MS; // 2 days.
     
+
+    /**
+     * Backend server can be of 3 types: socket IPv4, socket IPv6 or pipe
+     */
     private static final int BACKEND_TYPE_UNKNOWN        = 0;
-    private static final int BACKEND_TYPE_SOCKET         = 1;
-    private static final int BACKEND_TYPE_PIPE           = 2;
+    private static final int BACKEND_TYPE_SOCKET_V4      = 0x01;
+    private static final int BACKEND_TYPE_SOCKET_V6      = 0x02;
+    private static final int BACKEND_TYPE_PIPE           = 0x04;
+   
     
     private static final byte WRAPPER_MSG_START          = (byte)100;
     private static final byte WRAPPER_MSG_STOP           = (byte)101;
@@ -767,7 +773,9 @@ public final class WrapperManager
             }
            
             // Decide what the backend connection type is
-            if ( WrapperSystemPropertyUtil.getStringProperty( "wrapper.backend", "SOCKET" ).equalsIgnoreCase( "PIPE" ) )
+            String backendType = WrapperSystemPropertyUtil.getStringProperty( "wrapper.backend", "SOCKET" );
+            
+            if ( backendType.equalsIgnoreCase( "PIPE" ) )
             {
                 // Pipe based communication
                 m_backendType = BACKEND_TYPE_PIPE;
@@ -775,12 +783,21 @@ public final class WrapperManager
             else
             {
                 // Socket based communication
-                m_backendType = BACKEND_TYPE_SOCKET;
+                if (backendType.equalsIgnoreCase( "SOCKET" ) ) {
+                    m_backendType = BACKEND_TYPE_SOCKET_V4;
+                } else{
+                    m_backendType = BACKEND_TYPE_SOCKET_V6;
+                }
                 
-                // A port must have been specified.
+                // An address may not have been specified.
                 if ( ( m_wrapperPortAddress = System.getProperty( "wrapper.port.address" ) ) == null )
                 {
-                    m_wrapperPortAddress = "127.0.0.1";
+                    /* Use the default loopback */
+                    if (m_backendType == BACKEND_TYPE_SOCKET_V4) {
+                        m_wrapperPortAddress = "127.0.0.1";
+                    } else {
+                        m_wrapperPortAddress = "::1";
+                    }
                 }
 
                 String sPort;
@@ -4751,7 +4768,7 @@ public final class WrapperManager
         
         m_properties = properties;
     }
-
+    
     /**
      * Opens a socket to the Wrapper process.
      */
@@ -4967,6 +4984,7 @@ public final class WrapperManager
         {
             openBackendSocket();
         }
+        
         if ( !m_backendConnected )
         {
             return;
