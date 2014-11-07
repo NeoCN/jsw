@@ -1749,7 +1749,25 @@ int main(int argc, char **argv) {
         /* Don't call appExit here as we are not far enough along. */
         return 1;
     }
-#endif    
+#endif  
+  
+    /* we should set the locale before trying to convert cargv to argv,
+     * because there might be accentued letter in cargv */
+    retLocale = _tsetlocale(LC_ALL, TEXT(""));
+    if (retLocale) {
+#if defined(UNICODE)
+        free(retLocale);
+#endif
+    } else {
+        /* TODO - We need to be careful about LANG here as it is not set on all systems. */
+        /*
+        envLang = _tgetenv(TEXT("LANG"));
+        _tprintf(TEXT("Can't set the locale(%s); make sure $LC_* and $LANG are correct.\n"), envLang);
+#if defined(UNICODE)
+        free(envLang);
+#endif
+        */
+    }
     
     /* Create UNICODE versions of the argv array for internal use. */
     argv = malloc(argc * sizeof(TCHAR *));
@@ -1780,21 +1798,7 @@ int main(int argc, char **argv) {
     }
 
 #endif
-    retLocale = _tsetlocale(LC_ALL, TEXT(""));
-    if (retLocale) {
-#if defined(UNICODE)
-        free(retLocale);
-#endif
-    } else {
-        /* TODO - We need to be careful about LANG here as it is not set on all systems. */
-        /*
-        envLang = _tgetenv(TEXT("LANG"));
-        _tprintf(TEXT("Can't set the locale(%s); make sure $LC_* and $LANG are correct.\n"), envLang);
-#if defined(UNICODE)
-        free(envLang);
-#endif
-        */
-    }
+
     if (wrapperInitialize()) {
         appExit(1, argc, argv);
         return 1; /* For compiler. */

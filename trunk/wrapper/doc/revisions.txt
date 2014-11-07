@@ -45,7 +45,19 @@ Java Service Wrapper Revision History.
   WrapperResources.getString() method are formatted correctly.  See the
   WrapperResources class for information how to enable.
 * Clean up escaping of single quotes in a few messages.
-  
+* Add new options for property wrapper.backend.type: AUTO, SOCKET,
+  SOCKET_IPv4, SOCKET_IPv6, PIPE. When set to AUTO, the Wrapper will try to
+  open a socket ipv4 and fallback to ipv6 and to pipe in case of error.
+* Fix bug when converting from multibyte to wide char without setting the
+  locale at startup (Unix only). Thanks to Bert.
+* Add a 'CLOSE_BACKEND' alias to 'CLOSE_SOCKET' as a test command for the
+  wrapper.commandfile property.  This is because there have been multiple
+  options for the backend connection for some time and the name is more
+  portable.
+* Fix a problem on Mac when running OS X Yosemite where the script was failing
+  to correctly compare versions '10.10' to '10.5.0'.  This was leading to the
+  script thinking that only 32-bit binaries could be run.  This was only an
+  issue if the delta pack naming of the wrapper binaries was being used.
   
 3.5.25
 * (Professional) Improve the wrapper.timer.<n>.interval property so it is now

@@ -642,7 +642,7 @@ void commandPoll(TICKS nowTicks) {
                                 } else {
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Disable %s."), command, command);
                                 }
-                            } else if (strcmpIgnoreCase(command, TEXT("CLOSE_SOCKET")) == 0) {
+                            } else if ((strcmpIgnoreCase(command, TEXT("CLOSE_SOCKET")) == 0) || (strcmpIgnoreCase(command, TEXT("CLOSE_BACKEND")) == 0)) {
                                 if (wrapperData->commandFileTests) {
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Command '%s'.  Closing backend socket to JVM..."), command);
                                     wrapperProtocolClose();

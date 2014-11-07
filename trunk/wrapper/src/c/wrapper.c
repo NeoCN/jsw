@@ -33,6 +33,12 @@
  *   Ryan Shaw
  */
 
+#ifdef WIN32
+ /* add the 2 following include to use IPv6 and added wsock32.lib in the makefile */
+ #include <Ws2tcpip.h>
+ #include <winsock2.h>
+#endif
+
 #include <errno.h>
 #include <math.h>
 #include <stdio.h>
@@ -57,7 +63,6 @@
  #include <shlwapi.h>
  #include <windows.h>
  #include <io.h>
-
 
 /* MS Visual Studio 8 went and deprecated the POXIX names for functions.
  *  Fixing them all would be a big headache for UNIX versions. */
@@ -147,6 +152,14 @@ int protocolActiveServerPipeConnected = FALSE;
 SOCKET protocolActiveServerSD = INVALID_SOCKET;
 /* Client Socket. */
 SOCKET protocolActiveBackendSD = INVALID_SOCKET;
+
+#ifndef IN6ADDR_LOOPBACK_INIT
+ /* even if I include ws2ipdef.h, it doesn't define IN6ADDR_LOOPBACK_INIT,
+    so that's why I define it here */
+ #define IN6ADDR_LOOPBACK_INIT { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 }
+#endif
+#define LOOPBACK_IPv4  "127.0.0.1"
+struct in6_addr LOOPBACK_IPv6 = IN6ADDR_LOOPBACK_INIT;  
 
 int disposed = FALSE;
 int loadConfiguration();
@@ -1021,6 +1034,9 @@ void protocolStopServerPipe() {
     }
 }
 
+/**
+ * There is no difference between closing a socket IPv4 vs a socket IPv6
+ */
 void protocolStopServerSocket() {
     int rc;
 
@@ -1052,8 +1068,10 @@ void protocolStopServer() {
         protocolStopServerSocket();
     }
 }
+
 int protocolActiveServerPipeStarted = FALSE;
-void protocolStartServerPipe() {
+
+int protocolStartServerPipe() {
     size_t pipeNameLen;
     TCHAR *pipeName;
 
@@ -1065,7 +1083,7 @@ void protocolStartServerPipe() {
     pipeName = malloc(sizeof(TCHAR) * (pipeNameLen + 1));
     if (!pipeName) {
         outOfMemory(TEXT("PSSP"), 1);
-        return;
+        return TRUE;
     }
 #ifdef WIN32
     _sntprintf(pipeName, pipeNameLen, TEXT("\\\\.\\pipe\\wrapper-%d-%d-out"), wrapperData->wrapperPID, wrapperData->jvmRestarts + 1);
@@ -1087,7 +1105,7 @@ void protocolStartServerPipe() {
 
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, TEXT("Unable to create backend pipe: %s"), getLastErrorText());
         free(pipeName);
-        return;
+        return TRUE;
     }
     if (wrapperData->isDebugging) {
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("server listening on pipe %s."), pipeName);
@@ -1110,17 +1128,118 @@ void protocolStartServerPipe() {
 #endif
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, TEXT("Unable to create backend pipe: %s"), getLastErrorText());
         free(pipeName);
-        return;
+        return TRUE;
     }
     if (wrapperData->isDebugging) {
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("server listening on pipe %s."), pipeName);
     }
     protocolActiveServerPipeStarted = TRUE;
     free(pipeName);
+
+    return FALSE;
 }
 
-void protocolStartServerSocket() {
-    struct sockaddr_in addr_srv;
+#ifdef WIN32
+/**
+ * This function doesn't exist on Windows. Similar to inet_ntop that you can find on unix.
+ * Convert IPv4 and IPv6 addresses from binary to text form 
+ * @param af The family type (AF_INET or AF_INET6)
+ * @param src Network address structure
+ * @param dst Pointer where to write the text form of the address
+ * @return On success, inet_ntop() returns a non-NULL pointer to dst. NULL is returned if there was an error.
+ */
+const char* inet_ntop(int af, const void* src, char* dst, socklen_t cnt) {
+    int result;
+    struct sockaddr_in6 addr6;
+    struct sockaddr_in  addr4;
+
+    if (af == AF_INET) {
+        memset(&addr4, 0, sizeof(struct sockaddr_in));
+        memcpy(&(addr4.sin_addr), src, sizeof(addr4.sin_addr));
+        addr4.sin_family = af;
+
+        /* here is the function to return a TCHAR. I keep it commented out just as a note */
+        /* result = WSAAddressToString((struct sockaddr*) &addr4, sizeof(struct sockaddr_in), 0, dst, (LPDWORD) &cnt); */
+        result = getnameinfo((struct sockaddr *)&addr4, sizeof(struct sockaddr_in), dst, cnt, NULL, 0, NI_NUMERICHOST);
+    } else {
+        memset(&addr6, 0, sizeof(struct sockaddr_in));
+        memcpy(&(addr6.sin6_addr), src, sizeof(addr6.sin6_addr));
+        addr6.sin6_family = af;
+
+        /* here is the function to return a TCHAR. I keep it commented out just as a note */
+        /* result = WSAAddressToString((struct sockaddr*) &addr6, sizeof(struct sockaddr_in6), 0, dst, (LPDWORD) &cnt); */
+        result = getnameinfo((struct sockaddr *)&addr6, sizeof(struct sockaddr_in6), dst, cnt, NULL, 0, NI_NUMERICHOST);
+    }
+
+    if (result != 0) {
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("getnameinfo failed (%d): (%s)"), result, getLastErrorText());
+        return NULL;
+    }
+    return dst;
+}
+
+/**
+ * This function doesn't exist on Windows. Similar to inet_pton that you can find on unix.
+ * convert IPv4 and IPv6 addresses from text to binary form
+ * @param af The family type (AF_INET or AF_INET6)
+ * @param src The adress in text
+ * @param dst Pointer where to write the binary form of the address
+ * @return FALSE if no error.
+ */
+int inet_pton(int af, const char *src, void *dst) {
+        struct addrinfo hints;
+        struct addrinfo *res, *ressave;
+        int result;
+        int i = 0;
+        struct sockaddr_in6 *sockaddr_ipv6;
+        struct sockaddr_in  *sockaddr_ipv4;
+        
+        memset(&hints, 0, sizeof(struct addrinfo));
+        hints.ai_family = af;
+
+        result = getaddrinfo(src, NULL, &hints, &res);
+        if (result != 0) {
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("getaddrinfo failed (%d): (%s)"), result, getLastErrorText());
+            return TRUE;
+        }
+        
+        ressave = res;
+
+        while (res) {
+            switch (res->ai_family) {
+                case AF_INET:
+                    sockaddr_ipv4 = (struct sockaddr_in *) res->ai_addr;
+                    memcpy(dst, &sockaddr_ipv4->sin_addr, sizeof(struct  in_addr));
+                    result = FALSE;
+                    break;
+                case AF_INET6:
+                     sockaddr_ipv6 = (struct sockaddr_in6 *) res->ai_addr;
+                     memcpy(dst, &sockaddr_ipv6->sin6_addr, sizeof(struct  in6_addr));
+                     result = FALSE;
+                    break;
+                default:
+                    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("Ignore unsupported family type: %d"), res->ai_family);
+                    break;
+            }
+
+            res = res->ai_next;
+        }
+
+        freeaddrinfo(ressave);
+        return result;
+}
+
+#endif
+
+/**
+ * Start server using a socket
+ * @param IPv4 if true then we use IPv4, otherwise we use IPv6
+ * @return FALSE if socket is created successfully. For some specific error, returns WRAPPER_BACKEND_ERROR_NEXT, for all the other errors returns TRUE
+ */
+int protocolStartServerSocket(int IPv4) {
+    struct sockaddr_in  addr_srv4;
+    struct sockaddr_in6 addr_srv6;
+    
     int rc;
     int port;
     int fixedPort;
@@ -1135,11 +1254,16 @@ void protocolStartServerSocket() {
 #endif
 
     /* Create the server socket. */
-    protocolActiveServerSD = socket(AF_INET, SOCK_STREAM, 0);
+    if (IPv4) {
+        protocolActiveServerSD = socket(AF_INET, SOCK_STREAM, 0);
+    } else {
+        protocolActiveServerSD = socket(AF_INET6, SOCK_STREAM, 0);
+    }
+    
     if (protocolActiveServerSD == INVALID_SOCKET) {
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR,
             TEXT("server socket creation failed. (%s)"), getLastErrorText());
-        return;
+        return WRAPPER_BACKEND_ERROR_NEXT;
     }
 
     /* Make sure the socket is reused. */
@@ -1174,7 +1298,7 @@ void protocolStartServerSocket() {
             TEXT("server socket ioctlsocket failed. (%s)"), getLastErrorText());
         wrapperProtocolClose();
         protocolStopServer();
-        return;
+        return TRUE;
     }
 
     /* If a port was specified in the configuration file then we want to
@@ -1190,15 +1314,28 @@ void protocolStartServerSocket() {
     }
 
   tryagain:
-    /* Try binding to the port. */
-    /*log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_STATUS, TEXT("Trying port %d"), port);*/
-
-    /* Cleanup the addr_srv first */
-    memset(&addr_srv, 0, sizeof(addr_srv));
-
-    addr_srv.sin_family = AF_INET;
+    /* Cleanup the socket first */
+    if (IPv4) {
+        memset(&addr_srv4, 0, sizeof(addr_srv4));
+        addr_srv4.sin_family = AF_INET;
+        addr_srv4.sin_port = htons((u_short)port);
+    } else {
+        memset(&addr_srv6, 0, sizeof(addr_srv6));
+        addr_srv6.sin6_family = AF_INET6;
+        addr_srv6.sin6_flowinfo = 0;
+        /* htons switch the 2 bytes. For example:
+           32000 in binary: 1111101 00000000
+           After swap: 00000000 1111101 which is 125 in decimal */
+        addr_srv6.sin6_port = htons((u_short)port);
+    }
+    
     if (wrapperData->portAddress == NULL) {
-        addr_srv.sin_addr.s_addr = inet_addr("127.0.0.1");
+        /* the user hasn't defined any address, so we use the loopback address */
+        if (IPv4) {
+            addr_srv4.sin_addr.s_addr = inet_addr(LOOPBACK_IPv4);
+        } else {
+            addr_srv6.sin6_addr = LOOPBACK_IPv6;
+        }
     } else {
 #ifdef UNICODE
 #ifdef WIN32
@@ -1206,47 +1343,67 @@ void protocolStartServerSocket() {
         if (len <= 0) {
             log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
                 TEXT("Invalid multibyte sequence in port address \"%s\" : %s"), wrapperData->portAddress, getLastErrorText());
-            return;
+            return TRUE;
         }
         tempAddress = malloc(len);
         if (!tempAddress) {
             outOfMemory(TEXT("PSSS"), 1);
-            return;
+            return TRUE;
         }
         WideCharToMultiByte(CP_OEMCP, 0, wrapperData->portAddress, -1, tempAddress, (int)len, NULL, NULL);
 #else
         len = wcstombs(NULL, wrapperData->portAddress, 0);
-        /* _tprintf(TEXT("%d  hanth %s\n"), len, wrapperData->portAddress); */
         if (len == (size_t)-1) {
             log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
                 TEXT("Invalid multibyte sequence in port address \"%s\" : %s"), wrapperData->portAddress, getLastErrorText());
-            return;
+            return TRUE;
         }
         tempAddress = malloc(len + 1);
         if (!tempAddress) {
             outOfMemory(TEXT("PSSS"), 2);
-            return;
+            return TRUE;
         }
         wcstombs(tempAddress, wrapperData->portAddress, len + 1);
-        /* _tprintf(TEXT("%d  hanth % s\n"), len, tempAddress); */
 #endif
-        addr_srv.sin_addr.s_addr = inet_addr(tempAddress);
+        
+        /* convert the adress from text to binary form */
+        if (IPv4) {
+            inet_pton(AF_INET, (const char *)tempAddress, &(addr_srv4.sin_addr));
+        } else {
+            inet_pton(AF_INET6, (const char *)tempAddress, &(addr_srv6.sin6_addr));
+        }
+
         free(tempAddress);
 #else 
-        addr_srv.sin_addr.s_addr = inet_addr(wrapperData->portAddress);
+        
+        if (IPv4) {
+            inet_pton(AF_INET, (const char *)wrapperData->portAddress, &(addr_srv4.sin_addr));
+        } else {
+            inet_pton(AF_INET6, (const char *)wrapperData->portAddress, &(addr_srv6.sin6_addr));
+        }
+
 #endif
     }
-    addr_srv.sin_port = htons((u_short)port);
+
+
 #ifdef WIN32
-    rc = bind(protocolActiveServerSD, (struct sockaddr FAR *)&addr_srv, sizeof(addr_srv));
+    if (IPv4) {
+        rc = bind(protocolActiveServerSD, (struct sockaddr FAR *)&addr_srv4, sizeof(addr_srv4));
+    } else {
+        rc = bind(protocolActiveServerSD, (struct sockaddr FAR *)&addr_srv6, sizeof(addr_srv6));
+    }
 #else /* UNIX */
-    rc = bind(protocolActiveServerSD, (struct sockaddr *)&addr_srv, sizeof(addr_srv));
+    if (IPv4) {
+        rc = bind(protocolActiveServerSD, (struct sockaddr *)&addr_srv4, sizeof(addr_srv4));
+    } else {
+        rc = bind(protocolActiveServerSD, (struct sockaddr *)&addr_srv6, sizeof(addr_srv6));
+    }
 #endif
 
     if (rc == SOCKET_ERROR) {
         rc = wrapperGetLastError();
 
-        /* The specified port could bot be bound. */
+        /* The specified port could not be bound. */
         if ((rc == WRAPPER_EADDRINUSE) || (rc == WRAPPER_EACCES)) {
 
             /* Address in use, try looking at the next one. */
@@ -1279,7 +1436,7 @@ void protocolStartServerSocket() {
         protocolStopServer();
         wrapperData->exitRequested = TRUE;
         wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_NO;
-        return;
+        return TRUE;
     }
 
     /* If we got here, then we are bound to the port */
@@ -1287,7 +1444,7 @@ void protocolStartServerSocket() {
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_INFO, TEXT("port %d already in use, using port %d instead."), wrapperData->port, port);
     }
     wrapperData->actualPort = port;
-
+    
     if (wrapperData->isDebugging) {
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("server listening on port %d."), wrapperData->actualPort);
     }
@@ -1298,16 +1455,86 @@ void protocolStartServerSocket() {
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, TEXT("server socket listen failed. (%d)"), wrapperGetLastError());
         wrapperProtocolClose();
         protocolStopServer();
-        return;
+        return TRUE;
     }
+
+    return FALSE;
 }
 
+/**
+ * if backendType is 'auto', then it will try in this order:
+ *   - socket IPv4
+ *   - socket IPv6
+ *   - pipe
+ * if backendType is 'socket', then it will try in this order:
+ *   - socket IPv4
+ *   - socket IPv6
+ */
 void protocolStartServer() {
-    if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) {
-        protocolStartServerPipe();
-    } else {
-        protocolStartServerSocket();
+    int useFallbackAuto = FALSE;
+    int useFallbackSocket = FALSE;
+    int result;
+    
+    if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_AUTO) {
+        useFallbackAuto = TRUE;
     }
+
+    if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_SOCKET) {
+        useFallbackSocket = TRUE;
+    }
+
+    if (wrapperData->backendType & WRAPPER_BACKEND_TYPE_SOCKET_V4) {
+        result = protocolStartServerSocket(TRUE);
+        if (result == WRAPPER_BACKEND_ERROR_NEXT && (useFallbackAuto || useFallbackSocket)) {
+            /* we failed to use Ipv4, so lets try with IPv6 */
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Failed to start server using socket IPv4, will try with socket IPv6..."));
+        } else if (result == FALSE) {
+            /* success */
+            wrapperData->backendType = WRAPPER_BACKEND_TYPE_SOCKET_V4;
+            return;
+        } else {
+            /* error message should have already be printed in protocolStartServerSocket */
+        }
+    }
+
+    if (wrapperData->backendType & WRAPPER_BACKEND_TYPE_SOCKET_V6) {
+        result = protocolStartServerSocket(FALSE);
+        if (result == WRAPPER_BACKEND_ERROR_NEXT && useFallbackAuto) {
+            /* we failed to use Ipv6, so lets try with pipe */
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Failed to start server socket IPv6, will try with Pipe..."));
+        } else if (result == FALSE) {
+            /* success */
+            wrapperData->backendType = WRAPPER_BACKEND_TYPE_SOCKET_V6;
+            return;
+        } else {
+            /* error message should have already be printed in protocolStartServerSocket */
+        }
+    }
+
+    if ( wrapperData->backendType & WRAPPER_BACKEND_TYPE_PIPE) {
+        result = protocolStartServerPipe();
+        if (result == WRAPPER_BACKEND_ERROR_NEXT && useFallbackAuto) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Failed to start server socket when trying with socket (IPv4 and IPv6) and pipe..."));
+        } else if (result == FALSE) {
+            /* success */
+            wrapperData->backendType = WRAPPER_BACKEND_TYPE_PIPE;
+            return;
+        } else {
+            /* error message should have already be printed in protocolStartServerPipe */
+        }
+    }
+
+    /* if we reach this code, it means we couldn't create a socket or a pipe */
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to start server socket."));
+    if (!useFallbackAuto) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("You can set wrapper.backend.type=AUTO, so the wrapper will try to connect to the JVM using ipv4, ipv6 and pipe."));
+
+        if (!useFallbackSocket) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("You can set wrapper.backend.type=SOCKET, so the wrapper will try to connect to the JVM using ipv4 and ipv6."));
+        }
+    }
+    
+    return;
 }
 
 /* this functions connects the pipes once the other end is there */
@@ -1357,9 +1584,15 @@ void protocolOpenPipe() {
     protocolActiveServerPipeConnected = TRUE;
 }
 
-void protocolOpenSocket() {
-    struct sockaddr_in addr_srv;
+/**
+ * @param IPv4 if true then we use IPv4, otherwise we use IPv6
+ */
+void protocolOpenSocket(int IPv4) {
+    struct sockaddr_in6 addr_srv6;
+    struct sockaddr_in  addr_srv4;
     int rc;
+    TCHAR* socketSource;
+    int req;
 #if defined(WIN32)
     u_long dwNoBlock = TRUE;
     u_long addr_srv_len;
@@ -1370,6 +1603,9 @@ void protocolOpenSocket() {
 #endif
     SOCKET newBackendSD = INVALID_SOCKET;
 
+    char  straddr[256] = {0};
+    int port;
+
     /* Is the server socket open? */
     if (protocolActiveServerSD == INVALID_SOCKET) {
         /* can't do anything yet. */
@@ -1377,12 +1613,26 @@ void protocolOpenSocket() {
     }
 
     /* Try accepting a socket. */
-    addr_srv_len = sizeof(addr_srv);
+    if (IPv4) {
+        addr_srv_len = sizeof(addr_srv4);
+    } else {
+        addr_srv_len = sizeof(addr_srv6);
+    }
+
 #ifdef WIN32
-    newBackendSD = accept(protocolActiveServerSD, (struct sockaddr FAR *)&addr_srv, &addr_srv_len);
+    if (IPv4) {
+        newBackendSD = accept(protocolActiveServerSD, (struct sockaddr FAR *)&addr_srv4, &addr_srv_len);
+    } else {
+        newBackendSD = accept(protocolActiveServerSD, (struct sockaddr FAR *)&addr_srv6, &addr_srv_len);
+    }
 #else /* UNIX */
-    newBackendSD = accept(protocolActiveServerSD, (struct sockaddr *)&addr_srv, &addr_srv_len);
+    if (IPv4) {
+        newBackendSD = accept(protocolActiveServerSD, (struct sockaddr *)&addr_srv4, &addr_srv_len);
+    } else {
+        newBackendSD = accept(protocolActiveServerSD, (struct sockaddr *)&addr_srv6, &addr_srv_len);
+    }
 #endif
+
     if (newBackendSD == INVALID_SOCKET) {
         rc = wrapperGetLastError();
         /* EWOULDBLOCK != EAGAIN on some platforms. */
@@ -1398,10 +1648,54 @@ void protocolOpenSocket() {
         }
     }
 
+    /* get a human readable version of the address */
+    if (IPv4) {
+        inet_ntop(AF_INET, &addr_srv4.sin_addr, straddr, sizeof(straddr));
+    } else {
+        inet_ntop(AF_INET6, &addr_srv6.sin6_addr, straddr, sizeof(straddr));
+    }
+
+    /* convert the address */
+#ifdef WIN32
+    req = MultiByteToWideChar(CP_OEMCP, 0, straddr, -1, NULL, 0);
+    if (req <= 0) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                TEXT("Invalid multibyte sequence in protocol message: %s"), getLastErrorText());
+        return;
+    }
+    socketSource = malloc(sizeof(TCHAR) * (req + 1));
+    if (!socketSource) {
+        outOfMemory(TEXT("PO"), 1);
+        return;
+    }
+    MultiByteToWideChar(CP_OEMCP, 0, straddr, -1, socketSource, req + 1);
+#else
+    req = mbstowcs(NULL, straddr, MBSTOWCS_QUERY_LENGTH);
+    if (req == (size_t)-1) {
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
+                TEXT("Invalid multibyte sequence in protocol message: %s"), getLastErrorText());
+        return;
+    }
+    socketSource = malloc(sizeof(TCHAR) * (req + 1));
+    if (!socketSource) {
+        outOfMemory(TEXT("PO"), 2);
+        return;
+    }
+    mbstowcs(socketSource, straddr, req + 1);
+    socketSource[req] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
+#endif
+
+
     /* Is it already open? */
     if (protocolActiveBackendSD != INVALID_SOCKET) {
-        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN, TEXT("Ignoring unexpected backend socket connection from %s on port %d"),
-                 (char *)inet_ntoa(addr_srv.sin_addr), ntohs(addr_srv.sin_port));
+        if (IPv4) {
+            port = ntohs(addr_srv4.sin_port);
+        } else {
+            port = ntohs(addr_srv6.sin6_port);
+        }
+
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN, TEXT("Ignoring unexpected backend socket connection from %s on port %d"), socketSource, port);
+        free(socketSource);
 #ifdef WIN32
         rc = closesocket(newBackendSD);
 #else /* UNIX */
@@ -1419,48 +1713,16 @@ void protocolOpenSocket() {
     protocolActiveBackendSD = newBackendSD;
 
     if (wrapperData->isDebugging) {
-#ifdef UNICODE
-        TCHAR* socketSource;
-        int req;
-#ifdef WIN32
-        req = MultiByteToWideChar(CP_OEMCP, 0, inet_ntoa(addr_srv.sin_addr), -1, NULL, 0);
-        if (req <= 0) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                    TEXT("Invalid multibyte sequence in protocol message \"%s\" : %s"), inet_ntoa(addr_srv.sin_addr), getLastErrorText());
-            return;
+        if (IPv4) {
+            port = ntohs(addr_srv4.sin_port);
+        } else {
+            port = ntohs(addr_srv6.sin6_port);
         }
-        socketSource = malloc(sizeof(TCHAR) * (req + 1));
-        if (!socketSource) {
-            outOfMemory(TEXT("PO"), 1);
-            return;
-        }
-        MultiByteToWideChar(CP_OEMCP, 0, inet_ntoa(addr_srv.sin_addr), -1, socketSource, req + 1);
-#else
 
-        req = mbstowcs(NULL, inet_ntoa(addr_srv.sin_addr), MBSTOWCS_QUERY_LENGTH);
-        if (req == (size_t)-1) {
-            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
-                    TEXT("Invalid multibyte sequence in protocol message \"%s\" : %s"), inet_ntoa(addr_srv.sin_addr), getLastErrorText());
-            return;
-        }
-        socketSource = malloc(sizeof(TCHAR) * (req + 1));
-        if (!socketSource) {
-            outOfMemory(TEXT("PO"), 2);
-            return;
-        }
-        mbstowcs(socketSource, inet_ntoa(addr_srv.sin_addr), req + 1);
-        socketSource[req] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
-#endif
-        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("accepted a socket from %s on port %d"),
-                 socketSource, ntohs(addr_srv.sin_port));
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, TEXT("accepted a socket from %s on port %d"), socketSource, port);
         free(socketSource);
-
-#else
-        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("accepted a socket from %s on port %d"),
-                 inet_ntoa(addr_srv.sin_addr), ntohs(addr_srv.sin_port));
-#endif
     }
-
+    
     /* Make the socket non-blocking */
 #ifdef WIN32
     rc = ioctlsocket(protocolActiveBackendSD, FIONBIO, &dwNoBlock);
@@ -1475,7 +1737,7 @@ void protocolOpenSocket() {
         wrapperProtocolClose();
         return;
     }
-
+    
     /* We got an incoming connection, so close down the listener to prevent further connections. */
     protocolStopServer();
 }
@@ -1486,8 +1748,10 @@ void protocolOpenSocket() {
 void protocolOpen() {
     if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) {
         protocolOpenPipe();
+    } else if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_SOCKET_V6) {
+        protocolOpenSocket(FALSE);
     } else {
-        protocolOpenSocket();
+        protocolOpenSocket(TRUE);
     }
 }
 
@@ -1956,8 +2220,8 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
  * Returns TRUE if the backend is open and ready on return, FALSE if not.
  */
 int wrapperCheckServerBackend(int forceOpen) {
-    if (((wrapperData->backendType == WRAPPER_BACKEND_TYPE_SOCKET) && (protocolActiveServerSD == INVALID_SOCKET)) ||
-        ((wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) && (protocolActiveServerPipeStarted == FALSE))) {
+    if (((wrapperData->backendType & WRAPPER_BACKEND_TYPE_SOCKET) && (protocolActiveServerSD == INVALID_SOCKET)) ||
+        ((wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) && (protocolActiveServerPipeStarted == FALSE)) ) {
         /* The backend is not currently open and needs to be started,
          *  unless the JVM is DOWN or in a state where it is not needed. */
         if ((!forceOpen) &&
@@ -1975,8 +2239,8 @@ int wrapperCheckServerBackend(int forceOpen) {
         } else {
             /* The backend should be open, try doing so. */
             protocolStartServer();
-            if (((wrapperData->backendType == WRAPPER_BACKEND_TYPE_SOCKET) && (protocolActiveServerSD == INVALID_SOCKET)) ||
-                ((wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) && (protocolActiveServerPipeStarted == FALSE))) {
+            if ( ((wrapperData->backendType & WRAPPER_BACKEND_TYPE_SOCKET) && (protocolActiveServerSD == INVALID_SOCKET)) ||
+                 ((wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) && (protocolActiveServerPipeStarted == FALSE)) ) {
                 /* Failed. */
                 return FALSE;
 
@@ -2053,7 +2317,7 @@ int wrapperProtocolRead() {
         */
 
         /* If we have an open client backend, then use it. */
-        if (((wrapperData->backendType == WRAPPER_BACKEND_TYPE_SOCKET) && (protocolActiveBackendSD == INVALID_SOCKET)) ||
+        if (((wrapperData->backendType & WRAPPER_BACKEND_TYPE_SOCKET) && (protocolActiveBackendSD == INVALID_SOCKET)) ||
             ((wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) && (protocolActiveServerPipeConnected == FALSE))) {
             /* A Client backend is not open */
             /* Is the server backend open? */
@@ -2063,14 +2327,15 @@ int wrapperProtocolRead() {
             }
             /* Try accepting a connection */
             protocolOpen();
-            if (((wrapperData->backendType == WRAPPER_BACKEND_TYPE_SOCKET) && (protocolActiveBackendSD == INVALID_SOCKET)) ||
+            if (((wrapperData->backendType & WRAPPER_BACKEND_TYPE_SOCKET) && (protocolActiveBackendSD == INVALID_SOCKET)) ||
                 ((wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) && (protocolActiveServerPipeConnected == FALSE))) {
                 return 0;
             }
         }
 
-        if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_SOCKET) {
+        if (wrapperData->backendType & WRAPPER_BACKEND_TYPE_SOCKET) {
             /* Try receiving a packet code */
+            
             len = recv(protocolActiveBackendSD, (void*) &c, 1, 0);
             if (len == SOCKET_ERROR) {
                 err = wrapperGetLastError();
@@ -2089,6 +2354,7 @@ int wrapperProtocolRead() {
                 wrapperProtocolClose();
                 return 0;
             }
+
             code = (char)c;
 
             /* Read in any message */
@@ -2107,6 +2373,7 @@ int wrapperProtocolRead() {
                     len = 0;
                 }
             } while (len == 1);
+
             /* terminate the string; */
             packetBuffer[pos] = TEXT('\0');
         } else if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) {
@@ -2185,6 +2452,7 @@ int wrapperProtocolRead() {
             packetBuffer[pos] = TEXT('\0');
 #endif
         } else {
+            /* Should not reach this part because wrapperData->backendType should always have a valid value */
             return 0;
         }
 
@@ -6152,6 +6420,31 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         }
         index++;
     } else {
+
+        /* default is socket ipv4, so we have to specify ipv6 if it's the case */
+        if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_SOCKET_V6) {
+            if (strings) {
+                strings[index] = malloc(sizeof(TCHAR) * (29 + 1));
+                if (!strings[index]) {
+                    outOfMemory(TEXT("WBJCAI"), 261);
+                    return -1;
+                }
+                _sntprintf(strings[index], 29 + 1, TEXT("-Dwrapper.backend=socket_ipv6"));
+            }
+            index++;
+
+            /* specify to the JVM to change the preference and use IPv6 addresses over IPv4 ones where possible. */
+            if (strings) {
+                strings[index] = malloc(sizeof(TCHAR) * (35 + 1));
+                if (!strings[index]) {
+                    outOfMemory(TEXT("WBJCAI"), 262);
+                    return -1;
+                }
+                _sntprintf(strings[index], 35 + 1, TEXT("-Djava.net.preferIPv6Addresses=TRUE"));
+            }
+            index++;
+        }
+
         /* Store the Wrapper server port */
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (15 + 5 + 1));  /* Port up to 5 characters */
@@ -7361,8 +7654,14 @@ int loadConfigurationTriggers() {
 int getBackendTypeForName(const TCHAR *typeName) {
     if (strcmpIgnoreCase(typeName, TEXT("SOCKET")) == 0) {
         return WRAPPER_BACKEND_TYPE_SOCKET;
+    } else if (strcmpIgnoreCase(typeName, TEXT("SOCKET_IPv4")) == 0) {
+        return WRAPPER_BACKEND_TYPE_SOCKET_V4;
+    } else if (strcmpIgnoreCase(typeName, TEXT("SOCKET_IPv6")) == 0) {
+        return WRAPPER_BACKEND_TYPE_SOCKET_V6;
     } else if (strcmpIgnoreCase(typeName, TEXT("PIPE")) == 0) {
         return WRAPPER_BACKEND_TYPE_PIPE;
+    } else if (strcmpIgnoreCase(typeName, TEXT("AUTO")) == 0) {
+        return WRAPPER_BACKEND_TYPE_AUTO;
     } else {
         return WRAPPER_BACKEND_TYPE_UNKNOWN;
     }
@@ -7378,10 +7677,12 @@ int loadConfiguration() {
 
     wrapperLoadLoggingProperties(FALSE);
 
-    /* Decide on the backend type to use. */
-    wrapperData->backendType = getBackendTypeForName(getStringProperty(properties, TEXT("wrapper.backend.type"), TEXT("SOCKET")));
+    /* Decide on the backend type to use. */    
+    val = getStringProperty(properties, TEXT("wrapper.backend.type"), TEXT("AUTO"));
+    wrapperData->backendType = getBackendTypeForName(val);
     if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_UNKNOWN) {
-        wrapperData->backendType = WRAPPER_BACKEND_TYPE_SOCKET;
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unknown value for wrapper.backend.type: %s. Setting it to AUTO."), val);
+        wrapperData->backendType = WRAPPER_BACKEND_TYPE_AUTO;
     }
 
     /* Decide whether the classpath should be passed via the environment. */
