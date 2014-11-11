@@ -58,6 +58,10 @@ Java Service Wrapper Revision History.
   to correctly compare versions '10.10' to '10.5.0'.  This was leading to the
   script thinking that only 32-bit binaries could be run.  This was only an
   issue if the delta pack naming of the wrapper binaries was being used.
+* Add a new wrapper.java.classpath.missing.loglevel property which makes it
+  possible to control how the Wrapper logs warnings about missing classpath
+  elements.  Previously this was always logged as debug output and could not
+  be disabled.
   
 3.5.25
 * (Professional) Improve the wrapper.timer.<n>.interval property so it is now

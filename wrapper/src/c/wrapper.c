@@ -5922,6 +5922,7 @@ int wrapperBuildJavaClasspath(TCHAR **classpath) {
     long unsigned int *propertyIndices;
     TCHAR **files;
     int cnt;
+    int missingLogLevel;
 
     /* Build a classpath */
     cpLen = 0;
@@ -5937,6 +5938,9 @@ int wrapperBuildJavaClasspath(TCHAR **classpath) {
         /* Failed */
         return -1;
     }
+    
+    /* Get the loglevel to display warnings about missing classpath elements. */
+    missingLogLevel = getLogLevelForName(getStringProperty(properties, TEXT("wrapper.java.classpath.missing.loglevel"), TEXT("DEBUG")));
 
     i = 0;
     j = 0;
@@ -6032,7 +6036,7 @@ int wrapperBuildJavaClasspath(TCHAR **classpath) {
                 if (_tstat(propBaseDir, &statBuffer)) {
                     /* Encountered an error of some kind. */
                     if ((errno == ENOENT) || (errno == 3)) {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT(
+                        log_printf(WRAPPER_SOURCE_WRAPPER, missingLogLevel, TEXT(
                             "Classpath element, %s, does not exist: %s"), propertyNames[i], propStripped);
                     } else {
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
