@@ -349,26 +349,6 @@ compareVersions () {
         done
     fi
 }
-#@ MODIFY-BLOCK:BEGIN:LINE:is.coreSrc@
-# Test Cases
-compareVersions "1.10.3" "1.10.3"
-echo "1.10.3 ? 1.10.3 = $? = 1"
-
-compareVersions "1.2.3" "1.10.3"
-echo "1.2.3 ? 1.10.3 = $? = 0"
-
-compareVersions "1.12.3" "1.10.3"
-echo "1.12.3 ? 1.10.3 = $? = 2"
-
-compareVersions "1.12.3" "1.12.03"
-echo "1.12.3 ? 1.12.03 = $? = 1"
-
-compareVersions "1.12.3.0.0.1" "1.12.03"
-echo "1.12.3.0.0.1 ? 1.12.03 = $? = 2"
-
-compareVersions "1.12.3" "1.12.03.00.0.1"
-echo "1.12.3 ? 1.12.03.00.0.1 = $? = 0"
-#@ MODIFY-BLOCK:END@
 
 # Resolve the architecture
 if [ "$DIST_OS" = "macosx" ]
