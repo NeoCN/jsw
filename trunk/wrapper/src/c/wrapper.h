@@ -802,8 +802,10 @@ extern void wrapperPauseBeforeExecute();
 
 /**
  * Launches a JVM process and store it internally
+ *
+ * @return TRUE if there were any problems.  When this happens the Wrapper will not try to restart.
  */
-extern void wrapperExecute();
+extern int wrapperExecute();
 
 /**
  * Returns a tick count that can be used in combination with the

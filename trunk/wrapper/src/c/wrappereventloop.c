@@ -1350,16 +1350,21 @@ void jStateLaunch(TICKS nowTicks, int nextSleep) {
 
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Launching a JVM..."));
 
-        wrapperExecute();
-
-        /* The JVM was launched.  We still do not know whether the
-         *  launch will be successful.  Allow <startupTimeout> seconds before giving up.
-         *  This can take quite a while if the system is heavily loaded.
-         *  (At startup for example) */
-        if (wrapperData->startupTimeout > 0) {
-            wrapperSetJavaState(WRAPPER_JSTATE_LAUNCHING, nowTicks, wrapperData->startupTimeout);
+        if (wrapperExecute()) {
+            /* We know that there was a problem launching the JVM process.
+             *  If we fail at this level, assume it is a critical problem and don't bother trying to restart later.
+             *  A message should have already been logged. */
+            wrapperSetJavaState(WRAPPER_JSTATE_DOWN_CLEAN, nowTicks, -1);
         } else {
-            wrapperSetJavaState(WRAPPER_JSTATE_LAUNCHING, nowTicks, -1);
+            /* The JVM was launched.  We still do not know whether the
+             *  launch will be successful.  Allow <startupTimeout> seconds before giving up.
+             *  This can take quite a while if the system is heavily loaded.
+             *  (At startup for example) */
+            if (wrapperData->startupTimeout > 0) {
+                wrapperSetJavaState(WRAPPER_JSTATE_LAUNCHING, nowTicks, wrapperData->startupTimeout);
+            } else {
+                wrapperSetJavaState(WRAPPER_JSTATE_LAUNCHING, nowTicks, -1);
+            }
         }
     } else {
         /* The wrapper is shutting down, pausing or paused.  Switch to the down clean state because the JVM was never launched. */
@@ -1789,7 +1794,7 @@ void jStateKill(TICKS nowTicks, int nextSleep) {
  */
 void jStateKillConfirm(TICKS nowTicks, int nextSleep) {
     if (nextSleep && (wrapperGetProcessStatus(nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
-    /* The process is gone. (Handled and logged) */
+        /* The process is gone. (Handled and logged) */
     } else {
         if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAgeSeconds(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
             if (wrapperData->restartRequested != WRAPPER_RESTART_REQUESTED_NO) {

@@ -63,6 +63,9 @@
 #include "logger.h"
 #include "wrapper_file.h"
 
+/* The largest possible command line length on Windows. */
+#define MAX_COMMAND_LINE_LEN 32767
+
 
 #define ENCODING (X509_ASN_ENCODING | PKCS_7_ASN_ENCODING)
 
@@ -1593,8 +1596,9 @@ int wrapperGetProcessStatus(TICKS nowTicks, int sigChild) {
 
     default:
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-            TEXT("Critical error: wait for JVM process failed"));
+            TEXT("Critical error: wait for JVM process failed: %s"), getLastErrorText());
         appExit(1);
+        break;
     }
 
     return res;
@@ -1602,8 +1606,10 @@ int wrapperGetProcessStatus(TICKS nowTicks, int sigChild) {
 
 /**
  * Launches a JVM process and store it internally
+ *
+ * @return TRUE if there were any problems.  When this happens the Wrapper will not try to restart.
  */
-void wrapperExecute() {
+int wrapperExecute() {
     SECURITY_ATTRIBUTES process_attributes;
     STARTUPINFO startup_info;
     PROCESS_INFORMATION process_info;
@@ -1621,6 +1627,7 @@ void wrapperExecute() {
     /* Show a console for the new process */
     /*int processflags=CREATE_NEW_PROCESS_GROUP | CREATE_NEW_CONSOLE; */
 
+    size_t len;
     TCHAR *commandline=NULL;
     TCHAR *environment=NULL;
     TCHAR *binparam=NULL;
@@ -1642,6 +1649,26 @@ void wrapperExecute() {
     /* Add the priority class of the new process to the processflags */
     processflags = processflags | wrapperData->ntServicePriorityClass;
 
+    /* Update the CLASSPATH in the environment if requested so the JVM can access it. */ 
+    if (wrapperData->environmentClasspath) {
+        if (setEnv(TEXT("CLASSPATH"), wrapperData->classpath, ENV_SOURCE_APPLICATION)) {
+            /* This can happen if the classpath is too long on Windows. */
+            wrapperData->javaProcess = NULL;
+            return TRUE;
+        }
+    }
+    
+    /* Make sure the classpath is not too long. */
+    len = _tcslen(wrapperData->jvmCommand);
+    if (len > MAX_COMMAND_LINE_LEN) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("The generated Java command line has a length of %d, which is longer than the Windows maximum of %d characters."), len, MAX_COMMAND_LINE_LEN);
+        if (!wrapperData->environmentClasspath) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  You may be able to shorten your command line by setting wrapper.java.classpath.use_environment."));
+        }
+        wrapperData->javaProcess = NULL;
+        return TRUE;
+    }
+
     /* Log the Java commands. */
     
     /* If the JVM version printout is requested then log its command line first. */
@@ -1662,11 +1689,6 @@ void wrapperExecute() {
             log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel,
                 TEXT("  Classpath in Environment : %s"), wrapperData->classpath);
         }
-    }
-
-    /* Update the CLASSPATH in the environment if requested so the JVM can access it. */ 
-    if (wrapperData->environmentClasspath) {
-        setEnv(TEXT("CLASSPATH"), wrapperData->classpath, ENV_SOURCE_APPLICATION);
     }
 
     /* Setup environment. Use parent's for now */
@@ -1756,12 +1778,12 @@ void wrapperExecute() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to launch %s -%s"),
                      wrapperData->serviceDisplayName, getLastErrorText());
         wrapperData->javaProcess = NULL;
-        return;
+        return TRUE;
     } else if ((usedLen == _MAX_PATH) || (getLastError() == ERROR_INSUFFICIENT_BUFFER)) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to launch %s -%s"),
                      wrapperData->serviceDisplayName, TEXT("Path to Wrapper binary too long."));
         wrapperData->javaProcess = NULL;
-        return;
+        return TRUE;
     }
     c = _tcsrchr(szPath, TEXT('\\'));
     if (c == NULL) {
@@ -1869,8 +1891,9 @@ void wrapperExecute() {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("") );
                 }
             }
-
-            return;
+            
+            /* This is always a permanent problem. */
+            return TRUE;
         }
     }
 
@@ -1878,7 +1901,7 @@ void wrapperExecute() {
     if (process_info.hProcess == NULL) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("can not execute \"%s\""), commandline);
         wrapperData->javaProcess = NULL;
-        return;
+        return TRUE;
     }
 
     if (hideConsole) {
@@ -1921,6 +1944,8 @@ void wrapperExecute() {
                 TEXT("Unable to write the Java Id file: %s"), wrapperData->javaIdFilename);
         }
     }
+    
+    return FALSE;
 }
 
 /**

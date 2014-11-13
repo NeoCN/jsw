@@ -58,6 +58,9 @@
 
 #define MAX_INCLUDE_DEPTH 10
 
+/* The largest possible "name+'='+value" property pair length on Windows. */
+#define MAX_ENV_PAIR_LEN 32767
+
 EnvSrc *baseEnvSrc = NULL;
 
 /** Stores the time that the property file began to be loaded. */
@@ -682,7 +685,7 @@ int setEnvInner(const TCHAR *name, const TCHAR *value) {
 #ifdef WIN32
  #if defined(WRAPPER_USE_PUTENV_S)
             if (_tputenv_s(name, TEXT("")) == EINVAL) {
-                _tprintf(TEXT("Unable to clear environment variable: %s\n"), name);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to clear the '%s' environment variable."), name);
                 result = TRUE;
             }
  #else
@@ -695,7 +698,7 @@ int setEnvInner(const TCHAR *name, const TCHAR *value) {
                 _sntprintf(envBuf, len, TEXT("%s="), name);
                 /* The memory pointed to by envBuf should only be freed if this is UNICODE. */
                 if (_tputenv(envBuf)) { 	 
-                    _tprintf(TEXT("Unable to clear environment variable: %s\n"), name); 	 
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to clear the '%s' environment variable."), name);
                     result = TRUE; 	 
                 }
             }
@@ -711,8 +714,8 @@ int setEnvInner(const TCHAR *name, const TCHAR *value) {
                 _sntprintf(envBuf, len, TEXT("%s="), name);
                 /* The memory pointed to by envBuf should only be freed if this is UNICODE. */
                 if (_tputenv(envBuf)) { 	 
-                    _tprintf(TEXT("Unable to clear environment variable: %s\n"), name); 	 
-                    result = TRUE; 	 
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to clear the '%s' environment variable."), name);
+                    result = TRUE;
                 }
   #ifdef UNICODE
                 free(envBuf);
@@ -729,21 +732,26 @@ int setEnvInner(const TCHAR *name, const TCHAR *value) {
 #ifdef WIN32
  #if defined(WRAPPER_USE_PUTENV_S)
             if (_tputenv_s(name, value) == EINVAL) {
-                _tprintf(TEXT("Unable to set environment variable: %s=%s\n"), name, value);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to set '%s% environment variable to: %s"), name, value);
                 result = TRUE;
             }
  #else
             len = _tcslen(name) + 1 + _tcslen(value) + 1;
-            envBuf = malloc(sizeof(TCHAR) * len);
-            if (!envBuf) {
-                outOfMemory(TEXT("SEI"), 2); 	 
+            if (len > MAX_ENV_PAIR_LEN) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to set the '%s' environment variable because total pair length of %d is longer than maximim %d."), name, len,  MAX_ENV_PAIR_LEN);
                 result = TRUE;
             } else {
-                _sntprintf(envBuf, len, TEXT("%s=%s"), name, value);
-                /* The memory pointed to by envBuf should only be freed if this is UNICODE. */
-                if (_tputenv(envBuf)) { 	 
-                    _tprintf(TEXT("Unable to set environment variable: %s=%s\n"), name, value); 	 
-                    result = TRUE; 	 
+                envBuf = malloc(sizeof(TCHAR) * len);
+                if (!envBuf) {
+                    outOfMemory(TEXT("SEI"), 2); 	 
+                    result = TRUE;
+                } else {
+                    _sntprintf(envBuf, len, TEXT("%s=%s"), name, value);
+                    /* The memory pointed to by envBuf should only be freed if this is UNICODE. */
+                    if (_tputenv(envBuf)) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to set environment variable: %s=%s"), name, value);
+                        result = TRUE; 	 
+                    }
                 }
             }
  #endif
@@ -758,8 +766,8 @@ int setEnvInner(const TCHAR *name, const TCHAR *value) {
                 _sntprintf(envBuf, len, TEXT("%s=%s"), name, value);
                 /* The memory pointed to by envBuf should only be freed if this is UNICODE. */
                 if (_tputenv(envBuf)) { 	 
-                    _tprintf(TEXT("Unable to set environment variable: %s=%s\n"), name, value); 	 
-                    result = TRUE; 	 
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to set the '%s' environment variable to: %s"), name, value);
+                    result = TRUE;
                 }
   #ifdef UNICODE
                 free(envBuf);
@@ -767,7 +775,7 @@ int setEnvInner(const TCHAR *name, const TCHAR *value) {
             }
  #else
             if (_tsetenv(name, value, TRUE)) {
-                _tprintf(TEXT("Unable to set environment variable: %s=%s\n"), name, value);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to set the '%s' environment variable to: %s"), name, value);
                 result = TRUE;
             }
  #endif

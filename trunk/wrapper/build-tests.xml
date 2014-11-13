@@ -503,6 +503,100 @@ wrapper.java.additional.2=-Dwrapper.logFinalizers=TRUE]]></replacevalue>
         <replace file="${test.dir}/memory.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.Memory" />
+        
+        <!-- Huge Classpath Test -->
+        <delete file="${test.dir}/hugeclasspath.conf"/>
+        <filter token="app.name"          value="hugeclasspath"/>
+        <filter token="app.long.name"     value="Huge Classpath Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/hugeclasspath.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/hugeclasspath.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.QuickComplete" />
+        <echo file="${test.dir}/hugeclasspath-path.conf" append="false" message="#encoding=UTF-8${line.separator}"/>
+        <script language="javascript">
+            importClass(java.io.File)
+            echo = project.createTask("echo");
+            echo.setFile(new File(project.getProperty("test.dir"), "hugeclasspath-path.conf"));
+            echo.setAppend(true);
+            for (var i = 1000; i &lt; 2343; i++) {
+                echo.setMessage("wrapper.java.classpath." + i + "=../lib/no-file-" + i + ".jar\n");
+                echo.perform();
+            }
+        </script>
+        <replace file="${test.dir}/hugeclasspath.conf">
+            <replacetoken>wrapper.java.classpath.2=../lib/wrapper.jar</replacetoken>
+            <replacevalue><![CDATA[wrapper.java.classpath.2=../lib/wrapper.jar
+#include ../test/hugeclasspath-path.conf
+wrapper.java.classpath.use_environment=TRUE
+wrapper.java.classpath.missing.loglevel=NONE
+wrapper.debug=true]]></replacevalue>
+        </replace>
+        
+        <!-- Huge Classpath Env Max Size Test -->
+        <delete file="${test.dir}/hugeclasspathenvmaxsize.conf"/>
+        <filter token="app.name"          value="hugeclasspathenvmaxsize"/>
+        <filter token="app.long.name"     value="Huge Classpath Env Max Size Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/hugeclasspathenvmaxsize.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/hugeclasspathenvmaxsize.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.QuickComplete" />
+        <echo file="${test.dir}/hugeclasspathenvmaxsize-path.conf" append="false" message="#encoding=UTF-8${line.separator}"/>
+        <script language="javascript">
+            importClass(java.io.File)
+            echo = project.createTask("echo");
+            echo.setFile(new File(project.getProperty("test.dir"), "hugeclasspathenvmaxsize-path.conf"));
+            echo.setAppend(true);
+            for (var i = 1000; i &lt; 2362; i++) {
+                echo.setMessage("wrapper.java.classpath." + i + "=../lib/no-file-" + i + ".jar\n");
+                echo.perform();
+            }
+            echo.setMessage("wrapper.java.classpath.2363=../lib/no-file-2363abc.jar\n");
+            echo.perform();
+        </script>
+        <replace file="${test.dir}/hugeclasspathenvmaxsize.conf">
+            <replacetoken>wrapper.java.classpath.2=../lib/wrapper.jar</replacetoken>
+            <replacevalue><![CDATA[wrapper.java.classpath.2=../lib/wrapper.jar
+#include ../test/hugeclasspathenvmaxsize-path.conf
+wrapper.java.classpath.use_environment=TRUE
+wrapper.java.classpath.missing.loglevel=NONE
+wrapper.debug=true]]></replacevalue>
+        </replace>
+        
+        <!-- Huge Classpath Env Over Size Test -->
+        <delete file="${test.dir}/hugeclasspathenvoversize.conf"/>
+        <filter token="app.name"          value="hugeclasspathenvoversize"/>
+        <filter token="app.long.name"     value="Huge Classpath Env Over Size Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/hugeclasspathenvoversize.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/hugeclasspathenvoversize.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.QuickComplete" />
+        <echo file="${test.dir}/hugeclasspathenvoversize-path.conf" append="false" message="#encoding=UTF-8${line.separator}"/>
+        <script language="javascript">
+            importClass(java.io.File)
+            echo = project.createTask("echo");
+            echo.setFile(new File(project.getProperty("test.dir"), "hugeclasspathenvoversize-path.conf"));
+            echo.setAppend(true);
+            for (var i = 1000; i &lt; 2362; i++) {
+                echo.setMessage("wrapper.java.classpath." + i + "=../lib/no-file-" + i + ".jar\n");
+                echo.perform();
+            }
+            echo.setMessage("wrapper.java.classpath.2363=../lib/no-file-2363abcd.jar\n");
+            echo.perform();
+        </script>
+        <replace file="${test.dir}/hugeclasspathenvoversize.conf">
+            <replacetoken>wrapper.java.classpath.2=../lib/wrapper.jar</replacetoken>
+            <replacevalue><![CDATA[wrapper.java.classpath.2=../lib/wrapper.jar
+#include ../test/hugeclasspathenvoversize-path.conf
+wrapper.java.classpath.use_environment=TRUE
+wrapper.java.classpath.missing.loglevel=NONE
+wrapper.debug=true]]></replacevalue>
+        </replace>
 
         <!-- Filter Test -->
         <delete file="${test.dir}/filter.conf"/>
@@ -1394,6 +1488,42 @@ set ENV_VAR_4=d]]></replacevalue>
                  token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
                  value='set _WRAPPER_CONF_DEFAULT=../test/memory.conf' />
         
+        <!-- Huge Classpath Test -->
+        <delete file="${test.dir}/TestHugeClasspath.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestHugeClasspath.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestHugeClasspath.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestHugeClasspath.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/hugeclasspath.conf' />
+        
+        <!-- Huge Classpath Env Max Size Test -->
+        <delete file="${test.dir}/TestHugeClasspathEnvMaxSize.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestHugeClasspathEnvMaxSize.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestHugeClasspathEnvMaxSize.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestHugeClasspathEnvMaxSize.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/hugeclasspathenvmaxsize.conf' />
+        
+        <!-- Huge Classpath Env Over Size Test -->
+        <delete file="${test.dir}/TestHugeClasspathEnvOverSize.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestHugeClasspathEnvOverSize.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestHugeClasspathEnvOverSize.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestHugeClasspathEnvOverSize.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/hugeclasspathenvoversize.conf' />
+        
         <!-- Filter Test -->
         <delete file="${test.dir}/TestFilter.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
@@ -1986,6 +2116,30 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/memory"
               filtering="on"/>
         <chmod file="${test.dir}/memory" perm="+x"/>
+        
+        <!-- Huge Classpath Test -->
+        <filter token="app.name"          value="hugeclasspath"/>
+        <filter token="app.long.name"     value="Huge Classpath Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/hugeclasspath"
+              filtering="on"/>
+        <chmod file="${test.dir}/hugeclasspath" perm="+x"/>
+        
+        <!-- Huge Classpath Env Max Size Test -->
+        <filter token="app.name"          value="hugeclasspathenvmaxsize"/>
+        <filter token="app.long.name"     value="Huge Classpath Env Max Size Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/hugeclasspathenvmaxsize"
+              filtering="on"/>
+        <chmod file="${test.dir}/hugeclasspathenvmaxsize" perm="+x"/>
+        
+        <!-- Huge Classpath Env Over Size Test -->
+        <filter token="app.name"          value="hugeclasspathenvoversize"/>
+        <filter token="app.long.name"     value="Huge Classpath Env Over Size Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/hugeclasspathenvoversize"
+              filtering="on"/>
+        <chmod file="${test.dir}/hugeclasspathenvoversize" perm="+x"/>
         
         <!-- Filter Test -->
         <filter token="app.name"          value="filter"/>
