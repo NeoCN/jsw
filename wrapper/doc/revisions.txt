@@ -62,6 +62,18 @@ Java Service Wrapper Revision History.
   possible to control how the Wrapper logs warnings about missing classpath
   elements.  Previously this was always logged as debug output and could not
   be disabled.
+* If there are any low level problems launching the Java process that are not
+  related to configuration or the JVM itself, the Wrapper will no longer try
+  again as such retries were meaningless.
+* Windows system APIs have a problem that cause a process to crash if it
+  attempts to set an environment variable over 32767 characters in length.
+  The Wrapper now checks for this and logs an error rather than setting the
+  variable.  This was a problem if very large classpaths were used when the
+  wrapper.java.classpath.use_environment property was TRUE.
+* Windows does not allow a command line to be longer than 32767 characters in
+  length.  Different versions of Windows handle it differently when such a
+  long command is provided.  The Wrapper now does its own check and shows an
+  error in a consistent way.
   
 3.5.25
 * (Professional) Improve the wrapper.timer.<n>.interval property so it is now

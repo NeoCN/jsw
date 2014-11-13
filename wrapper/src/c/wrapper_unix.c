@@ -1155,8 +1155,10 @@ int wrapperBuildJavaCommand() {
 
 /**
  * Launches a JVM process and stores it internally.
+ *
+ * @return TRUE if there were any problems.  When this happens the Wrapper will not try to restart.
  */
-void wrapperExecute() {
+int wrapperExecute() {
     int i;
     pid_t proc;
 
@@ -1164,7 +1166,7 @@ void wrapperExecute() {
     if (pipe(pipedes) < 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                    TEXT("Could not init pipe: %s"), getLastErrorText());
-        return;
+        return TRUE;
     }
     
     /* Log the Java commands. */
@@ -1223,7 +1225,7 @@ void wrapperExecute() {
                    TEXT("Could not spawn JVM process: %s"), getLastErrorText());
 
         /* The pipedes array is global so do not close the pipes. */
-
+        return TRUE;
     } else {
         /* Reset the exit code when we launch a new JVM. */
         wrapperData->exitCode = 0;
@@ -1247,14 +1249,18 @@ void wrapperExecute() {
             if (dup2(pipedes[PIPE_WRITE_END], STDOUT_FILENO) < 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                     TEXT("%sUnable to set JVM's stdout: %s"), LOG_FORK_MARKER, getLastErrorText());
-                return;
+                /* This process needs to end. */
+                exit(1);
+                return TRUE; /* Will not get here. */
             }
 
             /* Send errors to the pipe by dupicating the pipe fd and setting the copy as the stderr fd. */
             if (dup2(pipedes[PIPE_WRITE_END], STDERR_FILENO) < 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                     TEXT("%sUnable to set JVM's stderr: %s"), LOG_FORK_MARKER, getLastErrorText());
-                return;
+                /* This process needs to end. */
+                exit(1);
+                return TRUE; /* Will not get here. */
             }
             
             /* Close both ends of the pipe as we have already duplicated the Write end for our purposes. */
@@ -1307,8 +1313,9 @@ void wrapperExecute() {
 
             /* This process needs to end. */
             exit(1);
+            return TRUE; /* Will not get here. */
         } else {
-            /* We are the parent side. */
+            /* We are the parent side and need to assume that at this point the JVM is up. */
             wrapperData->javaPID = proc;
             
             /* Close the write end as it is not used. */
@@ -1348,6 +1355,8 @@ void wrapperExecute() {
                         TEXT("Unable to write the Java Id file: %s"), wrapperData->javaIdFilename);
                 }
             }
+            
+            return FALSE;
         }
     }
 }
