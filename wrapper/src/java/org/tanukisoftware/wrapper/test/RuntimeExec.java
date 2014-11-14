@@ -68,7 +68,7 @@ public class RuntimeExec
                     {
                         while ( ( line = br.readLine() ) != null )
                         {
-                            System.out.println( label + ": " + line );
+                            System.out.println( label + " " + line );
                         }
                     }
                     finally
@@ -85,78 +85,623 @@ public class RuntimeExec
         runner.start();
     }
     
-    private static void handleJavaProcessInner( Process process )
+    private static void handleJavaProcessInner( String testId, Process process )
         throws IOException, InterruptedException
     {
         try
         {
-            handleInputStream( process.getInputStream(), c_encoding, "stdout" );
-            handleInputStream( process.getErrorStream(), c_encoding, "stderr" );
+            handleInputStream( process.getInputStream(), c_encoding, testId + "stdout:" );
+            handleInputStream( process.getErrorStream(), c_encoding, testId + "stderr:" );
         }
         finally
         {
             int exitCode = process.waitFor();
-            System.out.println( "exitCode: " + exitCode );
+            System.out.println( Main.getRes().getString( "{0}exitCode: {1}", testId, new Integer( exitCode ) ) );
         }
     }
     
-    private static void handleJavaProcess( String command )
+    private static void handleJavaProcess( String testId, String command )
         throws IOException, InterruptedException
     {
-        handleJavaProcessInner( Runtime.getRuntime().exec( command ) );
+        System.out.println( Main.getRes().getString( "{0}Runtime.exec command: {1}", testId, command ) );
+        handleJavaProcessInner( testId, Runtime.getRuntime().exec( command ) );
     }
     
-    private static void handleJavaProcess( String[] command )
+    private static void handleJavaProcess( String testId, String[] command )
         throws IOException, InterruptedException
     {
-        handleJavaProcessInner( Runtime.getRuntime().exec( command ) );
+        System.out.println( Main.getRes().getString( "{0}Runtime.exec command: {1}", testId, toString( command ) ) );
+        handleJavaProcessInner( testId, Runtime.getRuntime().exec( command ) );
     }
 
-    private static void handleWrapperProcessInner( WrapperProcess process, long timeoutMS )
+    static final int WAIT_MODE_NONE = 0;
+    static final int WAIT_MODE_API = 1;
+    static final int WAIT_MODE_MANUAL = 2;
+    
+    private static void handleWrapperProcessInner( String testId, WrapperProcess process, long timeoutMS, boolean handleOutErr, boolean closeStdOutErr, boolean closeStdIn, int waitMode )
         throws IOException, InterruptedException
     {
         try
         {
-            handleInputStream( process.getInputStream(), c_encoding, "stdout" );
-            handleInputStream( process.getErrorStream(), c_encoding, "stderr" );
-            
-            if ( timeoutMS > 0 )
+            if ( handleOutErr )
             {
-                long start = System.currentTimeMillis();
-                while ( process.isAlive() && ( System.currentTimeMillis() - start < timeoutMS ) )
+                handleInputStream( process.getStdOut(), c_encoding, testId + "stdout:" );
+                handleInputStream( process.getStdErr(), c_encoding, testId + "stderr:" );
+            }
+            else if ( closeStdOutErr )
+            {
+                process.getStdOut().close();
+                process.getStdErr().close();
+            }
+            
+            if ( closeStdIn )
+            {
+                process.getStdIn().close();
+            }
+            
+            if ( waitMode == WAIT_MODE_API )
+            {
+                // We always call waitFor later.
+            }
+            else if ( waitMode == WAIT_MODE_MANUAL )
+            {
+                if ( timeoutMS > 0 )
                 {
-                    try
+                    long start = System.currentTimeMillis();
+                    while ( process.isAlive() && ( System.currentTimeMillis() - start < timeoutMS ) )
                     {
-                        Thread.sleep( 100 );
+                        try
+                        {
+                            Thread.sleep( 100 );
+                        }
+                        catch ( InterruptedException e )
+                        {
+                        }
                     }
-                    catch ( InterruptedException e )
+                    if ( process.isAlive() )
                     {
+                        System.out.println( Main.getRes().getString( "{0}Timed out waiting for child.  Destroying.", testId ) );
+                        process.destroy();
                     }
-                }
-                if ( process.isAlive() )
-                {
-                    System.out.println( "Timed out waiting for child.  Destroying." );
-                    process.destroy();
                 }
             }
         }
         finally
         {
-            int exitCode = process.waitFor();
-            System.out.println( "exitCode: " + exitCode );
+            if ( ( waitMode == WAIT_MODE_API ) || ( waitMode == WAIT_MODE_MANUAL ) )
+            {
+                int exitCode = process.waitFor();
+                System.out.println( Main.getRes().getString( "{0}exitCode: {1}", testId, new Integer( exitCode ) ) );
+            }
+            else
+            {
+                System.out.println( Main.getRes().getString( "{0}leave running...", testId ) );
+            }
         }
     }
 
-    private static void handleWrapperProcess( String command, long timeoutMS )
+    private static void handleWrapperProcess( String testId, String command, WrapperProcessConfig config, long timeoutMS, boolean handleOutErr, boolean closeStdOutErr, boolean closeStdIn, int waitMode )
         throws IOException, InterruptedException
     {
-        handleWrapperProcessInner( WrapperManager.exec( command ), timeoutMS );
+        System.out.println( Main.getRes().getString( "{0}WrapperManager.exec command: {1}", testId, command ) );
+        if ( config == null )
+        {
+            handleWrapperProcessInner( testId, WrapperManager.exec( command ), timeoutMS, handleOutErr, closeStdOutErr, closeStdIn, waitMode );
+        }
+        else
+        {
+            handleWrapperProcessInner( testId, WrapperManager.exec( command, config ), timeoutMS, handleOutErr, closeStdOutErr, closeStdIn, waitMode );
+        }
+    }
+    private static void handleWrapperProcess( String testId, String command )
+        throws IOException, InterruptedException
+    {
+        handleWrapperProcess( testId, command, null, 0, true, false, false, WAIT_MODE_MANUAL );
     }
 
-    private static void handleWrapperProcess( String[] command, long timeoutMS )
+    private static void handleWrapperProcess( String testId, String[] command, WrapperProcessConfig config, long timeoutMS, boolean handleOutErr, boolean closeStdOutErr, boolean closeStdIn, int waitMode )
         throws IOException, InterruptedException
     {
-        handleWrapperProcessInner( WrapperManager.exec( command ), timeoutMS );
+        System.out.println( Main.getRes().getString( "{0}WrapperManager.exec command: {1}", testId, toString( command ) ) );
+        if ( config == null )
+        {
+            handleWrapperProcessInner( testId, WrapperManager.exec( command ), timeoutMS, handleOutErr, closeStdOutErr, closeStdIn, waitMode );
+        }
+        else
+        {
+            handleWrapperProcessInner( testId, WrapperManager.exec( command, config ), timeoutMS, handleOutErr, closeStdOutErr, closeStdIn, waitMode );
+        }
+    }
+    private static void handleWrapperProcess( String testId, String[] command )
+        throws IOException, InterruptedException
+    {
+        handleWrapperProcess( testId, command, null, 0, true, false, false, WAIT_MODE_MANUAL );
+    }
+    
+    private static void beginCase( String testId )
+    {
+        System.out.println();
+        System.out.println( Main.getRes().getString( "{0}BEGIN ----------------------------------------", testId ) );
+    }
+    
+    private static void endCase( String testId )
+    {
+        // Try to keep all output form the test within the the BEGIN/END block.
+        try
+        {
+            Thread.sleep( 1000 );
+        }
+        catch ( InterruptedException e )
+        {
+        }
+        System.out.println( Main.getRes().getString( "{0}END   ----------------------------------------", testId ) );
+    }
+    
+    private static String toString( String[] command )
+    {
+        StringBuffer sb = new StringBuffer();
+        sb.append( "{" );
+        for ( int i = 0; i < command.length; i++ )
+        {
+            String arg = command[i];
+            if ( i > 0 )
+            {
+                sb.append( ", " );
+            }
+            sb.append( "\"" );
+            sb.append( arg );
+            sb.append( "\"" );
+        }
+        sb.append( "}" );
+        
+        return sb.toString();
+    }
+    
+    private static void caseSimpleTestJava( final String simplewaiter )
+    {
+        String testId = "Simple Java : ";
+        beginCase( testId );
+        try
+        {
+            try
+            {
+                String command = simplewaiter + " -v \"test 123\" test 123 \"\\\"test\\\"";
+                handleJavaProcess( testId, command );
+            }
+            catch ( Exception e )
+            {
+                e.printStackTrace();
+            }
+        }
+        finally
+        {
+            endCase( testId );
+        }
+    }
+    
+    private static void caseSimpleTestWrapper( final String simplewaiter )
+    {
+        String testId = "Simple Wrapper : ";
+        beginCase( testId );
+        try
+        {
+            try
+            {
+                String command = simplewaiter + " -v \"test 123\" test 123 \"\\\"test\\\"";
+                handleWrapperProcess( testId, command );
+            }
+            catch ( Exception e )
+            {
+                e.printStackTrace();
+            }
+        }
+        finally
+        {
+            endCase( testId );
+        }
+    }
+    
+    private static void caseSimpleTestJavaAry( final String simplewaiter )
+    {
+        String testId = "Simple Java (Array) : ";
+        beginCase( testId );
+        try
+        {
+            try
+            {
+                String[] command = { simplewaiter, "-v", "\"test 123\"", "test 123", "\"\\\"test\\\"\"" };
+                handleJavaProcess( testId, command );
+            }
+            catch ( Exception e )
+            {
+                e.printStackTrace();
+            }
+        }
+        finally
+        {
+            endCase( testId );
+        }
+    }
+    
+    private static void caseSimpleTestWrapperAry( final String simplewaiter )
+    {
+        String testId = "Simple Wrapper (Array) : ";
+        beginCase( testId );
+        try
+        {
+            try
+            {
+                String[] command = { simplewaiter, "-v", "\"test 123\"", "test 123", "\"\\\"test\\\"\"" };
+                handleWrapperProcess( testId, command );
+            }
+            catch ( Exception e )
+            {
+                e.printStackTrace();
+            }
+        }
+        finally
+        {
+            endCase( testId );
+        }
+    }
+    
+    private static void caseWaitFor( final String simplewaiter )
+    {
+        String testId = "WaitFor : ";
+        beginCase( testId );
+        try
+        {
+            try
+            {
+                String command = simplewaiter + " 1 10";
+                handleWrapperProcess( testId, command, null, 0, true, false, false, WAIT_MODE_API );
+            }
+            catch ( Exception e )
+            {
+                e.printStackTrace();
+            }
+        }
+        finally
+        {
+            endCase( testId );
+        }
+    }
+    
+    private static void caseSmallChildProcess( final String simplewaiter )
+    {
+        String testId = "Simple Wrapper (Array) : ";
+        beginCase( testId );
+        try
+        {
+            try
+            {
+                String command = simplewaiter + " 65 1";
+                handleWrapperProcess( testId, command, null, 0, false, false, true, WAIT_MODE_MANUAL );
+            }
+            catch ( InterruptedException e )
+            {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            catch ( Exception e )
+            {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+        finally
+        {
+            endCase( testId );
+        }
+    }
+    
+    private static void caseVFork( final String simplewaiter )
+    {
+        String testId = "VFork : ";
+        beginCase( testId );
+        try
+        {
+            if ( !WrapperProcessConfig.isSupported( WrapperProcessConfig.VFORK_EXEC ) ) 
+            {
+                System.out.println( Main.getRes().getString( "{0}vfork not supported", testId ) );
+            }
+            else
+            {
+                System.out.println( Main.getRes().getString( "{0}vfork is supported", testId ) );
+                try
+                {
+                    String command = simplewaiter + " 20 10";
+                    handleWrapperProcess( testId, command, new WrapperProcessConfig().setStartType( WrapperProcessConfig.VFORK_EXEC ), 0, true, false, false, WAIT_MODE_MANUAL );
+                }
+                catch ( Exception e )
+                {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+        }
+        finally
+        {
+            endCase( testId );
+        }
+    }
+    
+    private static void casePosixSpawn( final String simplewaiter )
+    {
+        String testId = "PosixSpawn : ";
+        beginCase( testId );
+        try
+        {
+            if ( !WrapperProcessConfig.isSupported( WrapperProcessConfig.POSIX_SPAWN ) ) 
+            {
+                System.out.println( Main.getRes().getString( "{0}posix spawn not supported", testId ) );
+            }
+            else
+            {
+                System.out.println( Main.getRes().getString( "{0}posix spawn is supported", testId ) );
+                try
+                {
+                    String command = simplewaiter + " 20 10";
+                    handleWrapperProcess( testId, command, new WrapperProcessConfig().setStartType( WrapperProcessConfig.POSIX_SPAWN ), 0, true, false, false, WAIT_MODE_MANUAL );
+                }
+                catch ( Exception e )
+                {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+        }
+        finally
+        {
+            endCase( testId );
+        }
+    }
+    
+    private static void caseEnvSmall( final String simplewaiter )
+    {
+        String testId = "Environment Small : ";
+        beginCase( testId );
+        try
+        {
+            try
+            {
+                WrapperProcessConfig config = new WrapperProcessConfig();
+                java.util.Map environment = config.getEnvironment();
+                environment.clear();
+                environment.put( "TEST", "TEST123" );
+                System.out.println( Main.getRes().getString( "{0}size of Environment map = {1}", testId, new Integer( environment.size() ) ) );
+                
+                String command = simplewaiter + " 10 3";
+                handleWrapperProcess( testId, command, config, 0, true, false, false, WAIT_MODE_MANUAL );
+            }
+            catch ( Exception e )
+            {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+        finally
+        {
+            endCase( testId );
+        }
+    }
+    
+    private static void caseWorkingDir( final String simplewaiter )
+    {
+        String testId = "Change Working Dir : ";
+        beginCase( testId );
+        try
+        {
+            if ( WrapperProcessConfig.isSupported( WrapperProcessConfig.FORK_EXEC ) || WrapperProcessConfig.isSupported( WrapperProcessConfig.VFORK_EXEC ) )
+            {
+                System.out.println( Main.getRes().getString( "{0}changing the working directory is supported", testId ) );
+                try
+                {
+                    WrapperProcessConfig config = new WrapperProcessConfig();
+                    config.setStartType( WrapperProcessConfig.isSupported( WrapperProcessConfig.FORK_EXEC ) ? WrapperProcessConfig.FORK_EXEC : WrapperProcessConfig.VFORK_EXEC );
+                    config.setWorkingDirectory( new File("..") );
+                    
+                    String command;
+                    if ( WrapperManager.isWindows() )
+                    {
+                        command = "cmd.exe /c dir";
+                    }
+                    else
+                    {
+                        command = "ls -l";
+                    }
+                    handleWrapperProcess( testId, command, config, 0, true, false, false, WAIT_MODE_MANUAL );
+                }
+                catch ( Exception e )
+                {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+            else
+            {
+                System.out.println( Main.getRes().getString( "{0}changing the working directory is not supported", testId ) );
+            }
+        }
+        finally
+        {
+            endCase( testId );
+        }
+    }
+    
+    /**
+     * Test a short WrapperManager.exec process whose entire lifespan is while another Runtime.exec process is running.
+     */
+    private static void caseWrapperDuringJava( final String simplewaiter )
+    {
+        String testId = "Wrapper During Java : ";
+        beginCase( testId );
+        try
+        {
+            try
+            {
+                String javaCommand = simplewaiter + " 5 10";
+                String wrapperCommand = simplewaiter + " 6 5";
+                
+                Process javaProcess = Runtime.getRuntime().exec( javaCommand );
+                handleInputStream( javaProcess.getInputStream(), c_encoding, testId + "Runtime.exec stdout:" );
+                handleInputStream( javaProcess.getErrorStream(), c_encoding, testId + "Runtime.exec stderr:" );
+                
+                WrapperProcess wrapperProcess = WrapperManager.exec( wrapperCommand );
+                handleInputStream( wrapperProcess.getStdOut(), c_encoding, testId + "WrapperManager.exec stdout:" );
+                handleInputStream( wrapperProcess.getStdErr(), c_encoding, testId + "WrapperManager.exec stderr:" );
+
+                System.out.println( Main.getRes().getString( "{0}WrapperManager.exec exitCode: {1}", testId, new Integer( wrapperProcess.waitFor() ) ) );
+                
+                System.out.println( Main.getRes().getString( "{0}Runtime.exec exitCode: {1}", testId, new Integer( javaProcess.waitFor() ) ) );
+            }
+            catch ( Exception e )
+            {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+        finally
+        {
+            endCase( testId );
+        }
+    }
+    
+    /**
+     * Test a short Runtime.exec process whose entire lifespan is while another WrapperManager.exec process is running.
+     */
+    private static void caseJavaDuringWrapper( final String simplewaiter )
+    {
+        String testId = "Java During Wrapper : ";
+        beginCase( testId );
+        try
+        {
+            try
+            {
+                String wrapperCommand = simplewaiter + " 5 10";
+                String javaCommand = simplewaiter + " 6 5";
+                
+                WrapperProcess wrapperProcess = WrapperManager.exec( wrapperCommand );
+                handleInputStream( wrapperProcess.getStdOut(), c_encoding, testId + "WrapperManager.exec stdout:" );
+                handleInputStream( wrapperProcess.getStdErr(), c_encoding, testId + "WrapperManager.exec stderr:" );
+
+                Process javaProcess = Runtime.getRuntime().exec( javaCommand );
+                handleInputStream( javaProcess.getInputStream(), c_encoding, testId + "Runtime.exec stdout:" );
+                handleInputStream( javaProcess.getErrorStream(), c_encoding, testId + "Runtime.exec stderr:" );
+                
+                System.out.println( Main.getRes().getString( "{0}Runtime.exec exitCode: {1}", testId, new Integer( javaProcess.waitFor() ) ) );
+                
+                System.out.println( Main.getRes().getString( "{0}WrapperManager.exec exitCode: {1}", testId, new Integer( wrapperProcess.waitFor() ) ) );
+            }
+            catch ( Exception e )
+            {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+        finally
+        {
+            endCase( testId );
+        }
+    }
+    
+    private static void caseInvalid( final String simplewaiter )
+    {
+        String testId = "Invalid : ";
+        beginCase( testId );
+        try
+        {
+            try
+            {
+                String command = "invalid";
+                handleWrapperProcess( testId, command, null, 0, true, false, false, WAIT_MODE_MANUAL );
+                System.out.println( Main.getRes().getString( "{0}ERROR! Did not fail as expected.", testId ) );
+            }
+            catch ( Exception e )
+            {
+                System.out.println( Main.getRes().getString( "{0}Failed as expected.", testId ) );
+            }
+        }
+        finally
+        {
+            endCase( testId );
+        }
+    }
+    
+    private static void caseTimeoutShort( final String simplewaiter )
+    {
+        String testId = "Timeout Short : ";
+        beginCase( testId );
+        try
+        {
+            try
+            {
+                String command = simplewaiter + " 0 5";
+                handleWrapperProcess( testId, command, null, 10000, true, false, false, WAIT_MODE_MANUAL );
+            }
+            catch ( Exception e )
+            {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+        finally
+        {
+            endCase( testId );
+        }
+    }
+    
+    private static void caseTimeoutLong( final String simplewaiter )
+    {
+        String testId = "Timeout Long : ";
+        beginCase( testId );
+        try
+        {
+            try
+            {
+                String command = simplewaiter + " 0 30";
+                handleWrapperProcess( testId, command, null, 10000, true, false, false, WAIT_MODE_MANUAL );
+            }
+            catch ( Exception e )
+            {
+                
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+        finally
+        {
+            endCase( testId );
+        }
+    }
+    
+    private static boolean caseLeaveRunning( final String simplewaiter )
+    {
+        String testId = "Leave Running : ";
+        beginCase( testId );
+        try
+        {
+            try
+            {
+                String command = simplewaiter + " 1 600";
+                handleWrapperProcess( testId, command, null, 0, true, false, false, WAIT_MODE_NONE );
+                return false;
+            }
+            catch ( WrapperJNIError e )
+            {
+                System.out.println( Main.getRes().getString( "{0}Unable to launch child process because JNI library unavailable. Normal on shutdown.", testId ) );
+                return true;
+            }
+            catch ( Exception e )
+            {
+                e.printStackTrace();
+                return true;
+            }
+        }
+        finally
+        {
+            endCase( testId );
+        }
     }
     
     /*---------------------------------------------------------------
@@ -182,337 +727,32 @@ public class RuntimeExec
         System.out.println( Main.getRes().getString( "Is VFORK_EXEC supported? A:" ) + WrapperProcessConfig.isSupported( WrapperProcessConfig.VFORK_EXEC ) );
         System.out.println( Main.getRes().getString( "Is POSIX_SPAWN supported? A:" ) + WrapperProcessConfig.isSupported( WrapperProcessConfig.POSIX_SPAWN ) );
 
-        try
-        {
-            // Simple Test (String)
-            System.out.println();
-            System.out.println( "Verifying correct parsing of the command:" );
-            System.out.println( "First a single command line: " + simplewaiter  + " -v \"test 123\" test 123 \"\\\"test\\\"\"" );
-            
-            String s = simplewaiter + " -v \"test 123\" test 123 \"\\\"test\\\"";
-            
-            System.out.println( "Runtime.exec:" );
-            handleJavaProcess( s );
-            
-            System.out.println( "Now WrapperManager.exec:" );
-            handleWrapperProcess( s, 0 );
-            
-            System.out.println( "First test finished. " );
-            
-            
-            // Simple Test (String[])
-            System.out.println();
-            System.out.println( "Next a pass the command as array: " + simplewaiter + " -v \"test 123\" test 123 \"\\\"test\\\"\"" );
-            String s2[] = { simplewaiter, "-v", "\"test 123\"", "test 123", "\"\\\"test\\\"\"" };
-            
-            System.out.println( "Runtime.exec:" );
-            handleJavaProcess( s2 );
-
-            System.out.println( "Now WrapperManager.exec:" );
-            handleWrapperProcess( s2, 0 );
-            
-            System.out.println( "Second test finished. " );
-        }
-        catch ( Exception e )
-        {
-            e.printStackTrace();
-        }
-
-        int i = 0;
-        System.out.println();
-        System.out.println( i + Main.getRes().getString( " start a small child process, dont care about output but call waitfor..." ) );
-        try
-        {
-            WrapperProcess proc = WrapperManager.exec( simplewaiter + " 65 1" );
-            proc.getOutputStream().close();
-            System.out.println( Main.getRes().getString( "{0} small child process {1} is alive {2}",  new Object[] { Integer.toString( i ), Integer.toString( proc.getPID() ) , Boolean.toString( proc.isAlive() ) } ) );
-            System.out.println( Main.getRes().getString( "{0} child process (PID= {1}) finished with code {2}", new Object[] { Integer.toString( i ), Integer.toString ( proc.getPID() ), Integer.toString( proc.waitFor() ) } ) );
-        }
-        catch ( InterruptedException e )
-        {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        catch ( IOException e )
-        {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        caseSimpleTestJava( simplewaiter );
+        caseSimpleTestWrapper( simplewaiter );
+        caseSimpleTestJavaAry( simplewaiter );
+        caseSimpleTestWrapperAry( simplewaiter );
         
-        i++;
-        System.out.println();
-        System.out.println( i + Main.getRes().getString( " start longrunning child process dont wait..." ) );
-        try
-        {
-            WrapperProcess proc;
-            System.out.println( i + Main.getRes().getString( " first, try to vfork..." ) ); 
-            if ( WrapperProcessConfig.isSupported( WrapperProcessConfig.VFORK_EXEC ) ) 
-            {
-                System.out.println( i + Main.getRes().getString( " vfork is supported" ) ); 
-                proc = WrapperManager.exec( simplewaiter + " " + ( rand.nextInt( 200 ) + 1 ) + " " + rand.nextInt( 30 ), new WrapperProcessConfig().setStartType(WrapperProcessConfig.VFORK_EXEC) );                    	
-            }
-            else
-            {
-                System.out.println( i + Main.getRes().getString( " vfork is not supported" ) ); 
-                proc = WrapperManager.exec( simplewaiter + " " + ( rand.nextInt( 200 ) + 1 ) + " " + rand.nextInt( 30 ) );
-            }
-            
-            System.out.println( i + Main.getRes().getString( " longrunning child process {0} is alive {1}" , new Object[]{ Integer.toString( proc.getPID() ), Boolean.toString( proc.isAlive() ) } ) );
-            // System.out.println( i + " process ( PID= " + proc.getPID() + " ) finished with code " + proc.waitFor() );
-        }
-        catch ( IOException e )
-        {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        caseWaitFor( simplewaiter );
         
-        i++;
-        System.out.println();
-        System.out.println( i + Main.getRes().getString( " spawn a small child process..." ) );
-        try
-        {
-            WrapperProcess p;
-            if ( WrapperProcessConfig.isSupported( WrapperProcessConfig.POSIX_SPAWN ) )
-            {
-                System.out.println( i + Main.getRes().getString( " posix_spawn is supported." ) );
-                p = WrapperManager.exec( simplewaiter + " 0 15", new WrapperProcessConfig().setStartType( WrapperProcessConfig.POSIX_SPAWN) );
-            }
-            else
-            {
-                System.out.println( i + Main.getRes().getString( " spawn is not supported." ) );
-                p = WrapperManager.exec( simplewaiter + " 0 15" );
-            }
-            // System.out.println(i + " " + p.toString() + " exit " + p.waitFor());
-            BufferedReader br = new BufferedReader( new InputStreamReader( p.getInputStream(), c_encoding ) );
-            try
-            {
-                String line = "";
-                while ( ( line = br.readLine() ) != null )
-                {
-                    System.out.println( i + " out..:" +  line );
-                }
-            }
-            finally
-            {
-                br.close();
-            }
-        }
-        catch ( Exception e )
-        {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        caseSmallChildProcess( simplewaiter );
         
-        i++;
-        System.out.println();
-        System.out.println( i + Main.getRes().getString( " start a small child process, change the environment and read output..." ) );
-        try
-        {
-            WrapperProcessConfig wpm = new WrapperProcessConfig();
-            java.util.Map environment = wpm.getEnvironment();
-            System.out.println( i + Main.getRes().getString( " size of Environment map (before calling clear()) = " ) + environment.size() );
-            environment.clear();
-            environment.put( "TEST", "TEST123" );
-            System.out.println( i + Main.getRes().getString( " size of Environment map = " ) + environment.size() );
-            WrapperProcess proc = WrapperManager.exec( simplewaiter + " "+ rand.nextInt(200) +" 3", wpm );
-            proc.getOutputStream().close();
-
-            System.out.println( i + Main.getRes().getString( " small child process {0} is alive {1}" , new Object[]{ Integer.toString( proc.getPID() ), Boolean.toString( proc.isAlive() ) } ) );
-            BufferedReader br = new BufferedReader( new InputStreamReader( proc.getInputStream(), c_encoding ) );
-            try
-            {
-                String line = "";
-                while ( ( line = br.readLine() ) != null )
-                {
-                    System.out.println( i + " out..:" +  line );
-                }
-            }
-            finally
-            {
-                br.close();
-            }
-
-            br = new BufferedReader( new InputStreamReader( proc.getErrorStream(), c_encoding ) );
-            try
-            {
-                String line = "";
-                while ((line = br.readLine()) != null )
-                {
-                    System.out.println( line );
-                }
-            }
-            finally
-            {
-                br.close();
-            }
-        }
-        catch ( IOException e )
-        {
-           
-            e.printStackTrace();
-        }
+        caseVFork( simplewaiter );
+        casePosixSpawn( simplewaiter );
         
-        i++;
-        System.out.println();
-        System.out.println( i + Main.getRes().getString( " start longrunning child process, change working dir, call waitFor and finally read output..." ) );
-        try
-        {
-            WrapperProcessConfig wpm = new WrapperProcessConfig();
-            if ( WrapperProcessConfig.isSupported( WrapperProcessConfig.FORK_EXEC ) || WrapperProcessConfig.isSupported( WrapperProcessConfig.VFORK_EXEC ) )
-            {
-                wpm.setStartType( WrapperProcessConfig.isSupported( WrapperProcessConfig.FORK_EXEC ) ? WrapperProcessConfig.FORK_EXEC : WrapperProcessConfig.VFORK_EXEC );
-                System.out.println( i + Main.getRes().getString( " changing the working directory is supported" ) );
-                wpm.setWorkingDirectory( new File("..") );
-            }
-            else
-            {
-                System.out.println( i + Main.getRes().getString( " changing the working directory is not supported" ) );
-            }
-            WrapperProcess proc;
-            try
-            {
-                System.out.println( i + Main.getRes().getString( " try to call dir" ) ); 
-                proc = WrapperManager.exec( "cmd.exe /c dir", wpm );
-            }
-            catch ( IOException e )
-            {
-                System.out.println( i + Main.getRes().getString(  " dir failed. most likely we are not on Windows, try ls -l before giving up." ) );
-                proc = WrapperManager.exec( "ls -l", wpm );
-            }
-
-            System.out.println( i + " PID = " + proc.getPID() );
-            System.out.println( i + Main.getRes().getString( " child process (PID= {0}) finished with code " , Integer.toString( proc.getPID() ) ) +  proc.waitFor() );
-
-            System.out.println( i + Main.getRes().getString( " now read the output" ) );
-            BufferedReader br = new BufferedReader( new InputStreamReader( proc.getInputStream(), c_encoding ) );
-            try
-            {
-                String line = "";
-                while ( ( line = br.readLine() ) != null )
-                {
-                    System.out.println( i + " out..:" + line );
-                }
-            }
-            finally
-            {
-                br.close();
-            }
-        }
-        catch ( InterruptedException e )
-        {
-            e.printStackTrace();
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        caseEnvSmall( simplewaiter );
         
-        i++;
-        System.out.println();
-        System.out.println( i + Main.getRes().getString( " start a small child process by Runtime.exec and put a wrapperexec in between.." ) );
-        try
-        {
-            Process p = Runtime.getRuntime().exec( simplewaiter + " " + ( rand.nextInt( 200 ) + 1 ) + " " + ( rand.nextInt( 20 ) + 1 ));
-            
-            WrapperProcess proc = WrapperManager.exec( simplewaiter + " 4 4" );
-            proc.getOutputStream().close();
-            System.out.println( i + Main.getRes().getString( " small child process {0} is alive {1}" , new Object[]{ Integer.toString( proc.getPID() ), Boolean.toString( proc.isAlive() ) } ) );
-            // System.out.println(i + " Main.getRes (PID= " + proc.getPID() + " ) finished with code " + proc.waitFor() );
-            BufferedReader br = new BufferedReader( new InputStreamReader( proc.getInputStream(), c_encoding ) );
-            try
-            {
-                String line = "";
-                while ((line = br.readLine()) != null )
-                {
-                    System.out.println( i + " out..:" + line );
-                }
-            }
-            finally
-            {
-                br.close();
-            }
-
-            System.out.println( i + " " + p.toString() + Main.getRes().getString( " Runtime.exec exit " ) + p.waitFor() );
-        }
-        catch ( IOException e )
-        {
-            e.printStackTrace();
-        }
-        catch ( InterruptedException e )
-        {
-            e.printStackTrace();
-        }
+        caseWorkingDir( simplewaiter );
         
-        i++;
-        System.out.println();
-        System.out.println( i + Main.getRes().getString(  " start invalid child process..." ) );
-        try
-        {
-            WrapperProcess proc = WrapperManager.exec( "invalid" );
-            System.out.println( i + Main.getRes().getString( " invalid child process is alive "  )+ proc.isAlive() );
-        }
-        catch ( IOException e )
-        {
-            System.out.println( i + Main.getRes().getString( " caught an invalid child process..." ) );
-        }
+        caseWrapperDuringJava( simplewaiter );
+        caseJavaDuringWrapper( simplewaiter );
         
-        i++;
-        System.out.println();
-        System.out.println( i + Main.getRes().getString(  " slow child process..." ) );
-        try
-        {
-            String command = simplewaiter + " 0 5";
-            handleWrapperProcess( command, 10000 );
-        }
-        catch ( InterruptedException e )
-        {
-            e.printStackTrace();
-        }
-        catch ( IOException e )
-        {
-            e.printStackTrace();
-        }
+        caseInvalid( simplewaiter );
         
-        i++;
-        System.out.println();
-        System.out.println( i + Main.getRes().getString(  " abort child process..." ) );
-        try
-        {
-            String command = simplewaiter + " 0 30";
-            handleWrapperProcess( command, 10000 );
-        }
-        catch ( InterruptedException e )
-        {
-            e.printStackTrace();
-        }
-        catch ( IOException e )
-        {
-            e.printStackTrace();
-        }
+        caseTimeoutShort( simplewaiter );
+        caseTimeoutLong( simplewaiter );
         
-        System.out.println();
-        System.out.println( Main.getRes().getString( "finally start a long-running child process attached to the wrapper, the wrapper will shut down soon, so the child process should get killed by the wrapper..." ) );
-        try {
-            WrapperProcess p = WrapperManager.exec( simplewaiter + " 2 1000" , new WrapperProcessConfig().setDetached(false));
-        } catch (SecurityException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (NullPointerException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IllegalArgumentException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (WrapperJNIError e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (WrapperLicenseError e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        // This test should be the last as it relies on the Wrapper shutting it down.
+        caseLeaveRunning( simplewaiter );
         
         System.out.println();
         if ( WrapperManager.getJVMId() == 1 )
@@ -539,21 +779,8 @@ public class RuntimeExec
                     {
                         if ( !failed )
                         {
-                            try
-                            {
-                                WrapperProcess proc = WrapperManager.exec( simplewaiter + " 0 25" );
-                                System.out.println( Main.getRes().getString( "Launched child...") );
-                            }
-                            catch ( WrapperJNIError e )
-                            {
-                                System.out.println( Main.getRes().getString( "Unable to launch child process because JNI library unavailable. Normal on shutdown.") );
-                                failed = true;
-                            }
-                            catch ( IOException e )
-                            {
-                                System.out.println( Main.getRes().getString( "Unexpected problem launching child process: {0}", e.toString() ) );
-                                failed = true;
-                            }
+                            failed = caseLeaveRunning( simplewaiter );
+                            System.out.println( Main.getRes().getString( "Launched child...") );
                         }
                         
                         try
