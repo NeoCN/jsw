@@ -74,6 +74,9 @@ Java Service Wrapper Revision History.
   length.  Different versions of Windows handle it differently when such a
   long command is provided.  The Wrapper now does its own check and shows an
   error in a consistent way.
+* Added getStdOut(), getStdErr(), and getStdIn() methods to the WrapperProcess
+  class as aliases to the getInputStream(), getErrorStream(), and
+  getOutputStream() methods to help avoid confusion.
   
 3.5.25
 * (Professional) Improve the wrapper.timer.<n>.interval property so it is now

@@ -90,6 +90,8 @@ public class WrapperProcess
      *  from the standard output stream of the process represented by this
      *  WrapperProcess object.
      * <p>
+     * This is an alias of the getStdOut() method.
+     * <p>
      * Implementation note: It is a good idea for the input stream to be
      *  buffered.
      * 
@@ -105,9 +107,32 @@ public class WrapperProcess
     }
 
     /**
+     * Gets the input stream of the subprocess. The stream obtains data piped
+     *  from the standard output stream of the process represented by this
+     *  WrapperProcess object.
+     * <p>
+     * This is an alias of the getInputStream() method.
+     * <p>
+     * Implementation note: It is a good idea for the input stream to be
+     *  buffered.
+     * 
+     * @return The input stream connected to the normal output of the
+     *         subprocess.
+     *
+     * @throws IOException If we are unable to access the stream.
+     */
+    public InputStream getStdOut()
+        throws IOException
+    {
+        return m_wpos;
+    }
+
+    /**
      * Gets the error stream of the subprocess. The stream obtains data piped
      *  from the error output stream of the process represented by this
      *  WrapperProcess object.
+     * <p>
+     * This is an alias of the getStdErr() method.
      * <p>
      * Implementation note: It is a good idea for the input stream to be
      *  buffered.
@@ -124,9 +149,32 @@ public class WrapperProcess
     }
 
     /**
+     * Gets the error stream of the subprocess. The stream obtains data piped
+     *  from the error output stream of the process represented by this
+     *  WrapperProcess object.
+     * <p>
+     * This is an alias of the getErrorStream() method.
+     * <p>
+     * Implementation note: It is a good idea for the input stream to be
+     *  buffered.
+     * 
+     * @return The input stream connected to the error stream of the
+     *         subprocess.
+     *
+     * @throws IOException If we are unable to access the stream.
+     */
+    public InputStream getStdErr()
+        throws IOException
+    {
+        return m_wpes;
+    }
+
+    /**
      * Gets the output stream of the subprocess. Output to the stream is piped
      *  into the standard input stream of the process represented by this
      *  WrapperProcess object.
+     * <p>
+     * This is an alias of the getStdIn() method.
      * <p>
      * Implementation note: It is a good idea for the output stream to be
      *  buffered.
@@ -142,6 +190,26 @@ public class WrapperProcess
         return m_wpis;
     }
 
+    /**
+     * Gets the output stream of the subprocess. Output to the stream is piped
+     *  into the standard input stream of the process represented by this
+     *  WrapperProcess object.
+     * <p>
+     * This is an alias of the getOutputStream() method.
+     * <p>
+     * Implementation note: It is a good idea for the output stream to be
+     *  buffered.
+     * 
+     * @return The output stream connected to the normal input of the
+     *         subprocess.
+     *
+     * @throws IOException If we are unable to access the stream.
+     */
+    public OutputStream getStdIn()
+        throws IOException
+    {
+        return m_wpis;
+    }
 
     /**
      * Causes the current thread to wait, if necessary, until the process
