@@ -2659,11 +2659,9 @@ void sendLoginfoMessage( int source_id, int level, const TCHAR *szBuff ) {
 
 #ifdef WIN32
  #define CONSOLE_BLOCK_SIZE 1024
-/* The following is an initial (max) size in characters to try and write at once to the console.
- *  The buffer is less than 64KB, so 32K chars is a good max.  The actual buffer size will be
- *  smaller than this so this massages the size reduction code whenever strings around this size
- *  are encountered. */
-size_t vWriteToConsoleMaxHeapBufferSize = 32000;
+/* The following is an initial (max) size for the number of characters to try writing to WriteConsole at once.
+ *  See notes on the WriteConsole function below for details. */
+size_t vWriteToConsoleMaxHeapBufferSize = 30000;
 size_t vWriteToConsoleBufferSize = 0;
 TCHAR *vWriteToConsoleBuffer = NULL;
 /**
@@ -2762,7 +2760,9 @@ int writeToConsole(HANDLE hdl, TCHAR *lpszFmt, ...) {
     /* The WriteConsole API is a nasty little beast.
      *  It can accept a buffer that is up to 64KB in size, but they can't tell us exactly how much before hand.
      *  The size on tests on a 64-bit XP system appear to be around 25000 characters.
+     *  Windows 7 returns success, but starts writing garbled characters after around 31397 characters.  (Not sure if this number is system specific however.)
      *  The problem is that this is highly dependent on the current system state.
+     *  We used to start with 32000, but now use 30000 to avoid problems on Windows 7.  (Not sure if this is small enough to avoid the issue on all systems.)
      *  Start with a large size for efficiency, but then reduce it automatically in a sticky way in 5% increments to get to a size that works. */
     fullLen = _tcslen(vWriteToConsoleBuffer);
     remainLen = fullLen;
@@ -2773,6 +2773,9 @@ int writeToConsole(HANDLE hdl, TCHAR *lpszFmt, ...) {
         _tprintf(TEXT("writeToConsole write %d of %d characters\n"), thisLen, fullLen);
  #endif
         if (WriteConsole(hdl, &(vWriteToConsoleBuffer[offset]), (DWORD)thisLen, &wrote, NULL)) {
+ #ifdef DEBUG_CONSOLE_OUTPUT
+            _tprintf(TEXT("\nwriteToConsole (WriteConsole wrote %d of requested %d characters)\n"), wrote, thisLen);
+ #endif
             /* Success. */
             offset += thisLen;
             remainLen -= thisLen;
@@ -2784,6 +2787,9 @@ int writeToConsole(HANDLE hdl, TCHAR *lpszFmt, ...) {
  #endif
         } else {
             /* Failed. */
+ #ifdef DEBUG_CONSOLE_OUTPUT
+            _tprintf(TEXT("\nwriteToConsole (Fail WriteConsole wrote %d of requested %d characters)\n"), wrote, thisLen);
+ #endif
             switch (getLastError()) {
             case ERROR_NOT_ENOUGH_MEMORY:
                 /* This means that the max heap buffer size is too large and needs to be reduced. */

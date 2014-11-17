@@ -83,6 +83,12 @@ Java Service Wrapper Revision History.
 * Added getStdOut(), getStdErr(), and getStdIn() methods to the WrapperProcess
   class as aliases to the getInputStream(), getErrorStream(), and
   getOutputStream() methods to help avoid confusion.
+* Fix a problem on Windows 7 where long log lines got corrupted after 31397
+  characters when wrapper.console.direct was true.  This seems to be a problem
+  with the underlying Windows API and was only a display issue.  Reduced the
+  maximum number of characters that can be written with a single API call to
+  30000 to work around the issue.  This change is internal and there is still
+  no limit on the length of logged lines.
   
 3.5.25
 * (Professional) Improve the wrapper.timer.<n>.interval property so it is now
