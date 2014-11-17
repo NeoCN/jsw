@@ -364,7 +364,6 @@ public class RuntimeExec
                 // Make the last character a y so we can verify that it is included correctly.
                 sb.append( "y" );
                 String command = sb.toString();
-                System.out.println( "Length=" + command.length() );
                 
                 handleWrapperProcess( testId, command );
                 if ( expectFailure )
