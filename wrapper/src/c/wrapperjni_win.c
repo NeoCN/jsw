@@ -45,6 +45,9 @@ barf
 #include "loggerjni.h"
 #include "wrapperjni.h"
 
+/* The largest possible command line length on Windows. */
+#define MAX_COMMAND_LINE_LEN 32766
+
 /* MS Visual Studio 8 went and deprecated the POXIX names for functions.
  *  Fixing them all would be a big headache for UNIX versions. */
 #pragma warning(disable : 4996)

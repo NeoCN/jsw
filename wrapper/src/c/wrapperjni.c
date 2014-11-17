@@ -43,6 +43,9 @@
 #include "wrapperjni.h"
 #include "wrapperinfo.h"
 
+/* The largest possible "name+'='+value" property pair length on Windows. */
+#define MAX_ENV_PAIR_LEN 32767
+
 int wrapperJNIDebugging = JNI_FALSE;
 
 #define CONTROL_EVENT_QUEUE_SIZE 10

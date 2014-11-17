@@ -64,7 +64,7 @@
 #include "wrapper_file.h"
 
 /* The largest possible command line length on Windows. */
-#define MAX_COMMAND_LINE_LEN 32767
+#define MAX_COMMAND_LINE_LEN 32766
 
 
 #define ENCODING (X509_ASN_ENCODING | PKCS_7_ASN_ENCODING)
@@ -571,6 +571,13 @@ int wrapperBuildJavaCommand() {
     size_t commandLen2;
     TCHAR **strings;
     int length, i;
+    TCHAR *pos1;
+    TCHAR *pos2;
+    size_t commandLenLen;
+    TCHAR commandLenBuffer[7];
+    size_t fillerLen;
+    TCHAR *tempCommand;
+    size_t index;
 
     /* If this is not the first time through, then dispose the old command */
     if (wrapperData->jvmCommand) {
@@ -647,6 +654,48 @@ int wrapperBuildJavaCommand() {
         commandLen += _tcslen(strings[i]);
     }
     wrapperData->jvmCommand[commandLen++] = TEXT('\0');
+    
+    /* If the special WRAPPER_COMMAND_FILLER_N environment variable is being used then expand it.
+     *  This is mainly used for testing. */
+    pos1 = _tcsstr(wrapperData->jvmCommand, TEXT("%WRAPPER_COMMAND_FILLER_"));
+    if (pos1 != NULL) {
+        pos2 = _tcsstr(pos1 + 1, TEXT("%"));
+        if (pos2 != NULL) {
+            /* commandLen includes the '\0'.  Strip if off for our purposes. */
+            commandLen--;
+            commandLenLen = pos2 - pos1 - 24;
+            if (commandLenLen < 7) {
+                memcpy(commandLenBuffer, pos1 + 24, sizeof(TCHAR) * commandLenLen);
+                commandLenBuffer[commandLenLen] = TEXT('\0');
+                commandLen2 = __max(commandLen - commandLenLen - 25, __min(_ttoi(commandLenBuffer), 100000));
+                
+                fillerLen = commandLen2 - commandLen + commandLenLen + 25;
+                
+                tempCommand = malloc(sizeof(TCHAR) * (commandLen - commandLenLen - 25 + fillerLen + 1));
+                if (!tempCommand) {
+                    outOfMemory(TEXT("WBJC"), 3);
+                    return TRUE;
+                }
+                memcpy(tempCommand, wrapperData->jvmCommand, (pos1 - wrapperData->jvmCommand) * sizeof(TCHAR));
+                index = pos1 - wrapperData->jvmCommand;
+                if (fillerLen > 11) {
+                    _sntprintf(&(tempCommand[index]), commandLen2 + 1 - index, TEXT("FILL-%d-"), fillerLen);
+                    fillerLen -= _tcslen(&tempCommand[index]);
+                    index += _tcslen(&tempCommand[index]);
+                }
+                while (fillerLen > 0) {
+                    tempCommand[index] = TEXT('X');
+                    index++;
+                    fillerLen--;
+                }
+                memcpy(&(tempCommand[index]), pos2 + 1, sizeof(TCHAR) * _tcslen(pos2 + 1));
+                tempCommand[commandLen2] = TEXT('\0');
+                
+                free(wrapperData->jvmCommand);
+                wrapperData->jvmCommand = tempCommand;
+            }
+        }
+    }
 
     /* Free up the temporary command array */
     wrapperFreeJavaCommandArray(strings, length);
@@ -1628,7 +1677,6 @@ int wrapperExecute() {
     /*int processflags=CREATE_NEW_PROCESS_GROUP | CREATE_NEW_CONSOLE; */
 
     size_t len;
-    TCHAR *commandline=NULL;
     TCHAR *environment=NULL;
     TCHAR *binparam=NULL;
     int char_block_size = 8196;
@@ -1660,6 +1708,7 @@ int wrapperExecute() {
     
     /* Make sure the classpath is not too long. */
     len = _tcslen(wrapperData->jvmCommand);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Java command line length=%d"), len); 
     if (len > MAX_COMMAND_LINE_LEN) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("The generated Java command line has a length of %d, which is longer than the Windows maximum of %d characters."), len, MAX_COMMAND_LINE_LEN);
         if (!wrapperData->environmentClasspath) {
@@ -1680,10 +1729,9 @@ int wrapperExecute() {
     }
     
     /* Log ghe application java command line */
-    commandline = wrapperData->jvmCommand;
     if (wrapperData->commandLogLevel != LEVEL_NONE) {
         log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel, TEXT("Java Command Line:"));
-        log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel, TEXT("  Command: %s"), commandline);
+        log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel, TEXT("  Command: %s"), wrapperData->jvmCommand);
 
         if (wrapperData->environmentClasspath) {
             log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel,
@@ -1830,7 +1878,7 @@ int wrapperExecute() {
 
     /* Create the new process */
     ret=CreateProcess(NULL,
-                      commandline,    /* the command line to start */
+                      wrapperData->jvmCommand, /* the command line to start */
                       NULL,           /* process security attributes */
                       NULL,           /* primary thread security attributes */
                       TRUE,           /* handles are inherited */
@@ -1853,7 +1901,7 @@ int wrapperExecute() {
         if (err!=NO_ERROR) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 TEXT("Unable to execute Java command.  %s"), getLastErrorText());
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("    %s"), commandline);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("    %s"), wrapperData->jvmCommand);
             wrapperData->javaProcess = NULL;
 
             if ((err == ERROR_FILE_NOT_FOUND) || (err == ERROR_PATH_NOT_FOUND)) {
@@ -1899,7 +1947,7 @@ int wrapperExecute() {
 
     /* Now check if we have a process handle again for the Swedish WinNT bug */
     if (process_info.hProcess == NULL) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("can not execute \"%s\""), commandline);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("can not execute \"%s\""), wrapperData->jvmCommand);
         wrapperData->javaProcess = NULL;
         return TRUE;
     }

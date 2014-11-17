@@ -738,7 +738,7 @@ int setEnvInner(const TCHAR *name, const TCHAR *value) {
  #else
             len = _tcslen(name) + 1 + _tcslen(value) + 1;
             if (len > MAX_ENV_PAIR_LEN) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to set the '%s' environment variable because total pair length of %d is longer than maximim %d."), name, len,  MAX_ENV_PAIR_LEN);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to set the '%s' environment variable because total pair length of %d is longer than maximum for the OS of %d."), name, len,  MAX_ENV_PAIR_LEN);
                 result = TRUE;
             } else {
                 envBuf = malloc(sizeof(TCHAR) * len);
