@@ -345,6 +345,51 @@ public class RuntimeExec
         }
     }
     
+    private static void caseLongCommand( final String simplewaiter, int len, boolean expectFailure )
+    {
+        
+        String testId = "Long Command " + len + ": ";
+        beginCase( testId );
+        try
+        {
+            try
+            {
+                StringBuffer sb = new StringBuffer();
+                sb.append( simplewaiter );
+                sb.append( " -v " );
+                while ( sb.length() < len - 1 )
+                {
+                    sb.append( "x" );
+                }
+                // Make the last character a y so we can verify that it is included correctly.
+                sb.append( "y" );
+                String command = sb.toString();
+                System.out.println( "Length=" + command.length() );
+                
+                handleWrapperProcess( testId, command );
+                if ( expectFailure )
+                {
+                    System.out.println( Main.getRes().getString( "{0}Did not fail as expected.", testId ) );
+                }
+            }
+            catch ( Exception e )
+            {
+                if ( expectFailure )
+                {
+                    System.out.println( Main.getRes().getString( "{0}Failed as expected: {1}", testId, e.toString() ) );
+                }
+                else
+                {
+                    e.printStackTrace();
+                }
+            }
+        }
+        finally
+        {
+            endCase( testId );
+        }
+    }
+    
     private static void caseWaitFor( final String simplewaiter )
     {
         String testId = "WaitFor : ";
@@ -380,12 +425,10 @@ public class RuntimeExec
             }
             catch ( InterruptedException e )
             {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
             catch ( Exception e )
             {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }
@@ -415,7 +458,6 @@ public class RuntimeExec
                 }
                 catch ( Exception e )
                 {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
             }
@@ -446,7 +488,6 @@ public class RuntimeExec
                 }
                 catch ( Exception e )
                 {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
             }
@@ -471,13 +512,60 @@ public class RuntimeExec
                 environment.put( "TEST", "TEST123" );
                 System.out.println( Main.getRes().getString( "{0}size of Environment map = {1}", testId, new Integer( environment.size() ) ) );
                 
-                String command = simplewaiter + " 10 3";
+                String command = simplewaiter + " -e TEST";
                 handleWrapperProcess( testId, command, config, 0, true, false, false, WAIT_MODE_MANUAL );
             }
             catch ( Exception e )
             {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
+            }
+        }
+        finally
+        {
+            endCase( testId );
+        }
+    }
+    
+    private static void caseEnvLarge( final String simplewaiter, int len, boolean expectFailure )
+    {
+        String testId = "Environment Large " + len + ": ";
+        beginCase( testId );
+        try
+        {
+            try
+            {
+                int valueLen = len - 4 - 1; // "TEST="
+                StringBuffer sb = new StringBuffer();
+                for ( int i = 0; i < valueLen - 1; i++ )
+                {
+                    sb.append( "X" );
+                }
+                sb.append( "Y" ); // Make it so we can see the last value.
+                String value = sb.toString();
+                
+                WrapperProcessConfig config = new WrapperProcessConfig();
+                java.util.Map environment = config.getEnvironment();
+                environment.clear();
+                environment.put( "TEST", value );
+                System.out.println( Main.getRes().getString( "{0}size of Environment map = {1}", testId, new Integer( environment.size() ) ) );
+                
+                String command = simplewaiter + " -e TEST";
+                handleWrapperProcess( testId, command, config, 0, true, false, false, WAIT_MODE_MANUAL );
+                if ( expectFailure )
+                {
+                    System.out.println( Main.getRes().getString( "{0}Did not fail as expected.", testId ) );
+                }
+            }
+            catch ( Exception e )
+            {
+                if ( expectFailure )
+                {
+                    System.out.println( Main.getRes().getString( "{0}Failed as expected: {1}", testId, e.toString() ) );
+                }
+                else
+                {
+                    e.printStackTrace();
+                }
             }
         }
         finally
@@ -514,7 +602,6 @@ public class RuntimeExec
                 }
                 catch ( Exception e )
                 {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
             }
@@ -557,7 +644,6 @@ public class RuntimeExec
             }
             catch ( Exception e )
             {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }
@@ -595,7 +681,6 @@ public class RuntimeExec
             }
             catch ( Exception e )
             {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }
@@ -641,7 +726,6 @@ public class RuntimeExec
             }
             catch ( Exception e )
             {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }
@@ -665,7 +749,6 @@ public class RuntimeExec
             catch ( Exception e )
             {
                 
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }
@@ -732,6 +815,9 @@ public class RuntimeExec
         caseSimpleTestJavaAry( simplewaiter );
         caseSimpleTestWrapperAry( simplewaiter );
         
+        caseLongCommand( simplewaiter, 32766, false );
+        caseLongCommand( simplewaiter, 32767, true );
+        
         caseWaitFor( simplewaiter );
         
         caseSmallChildProcess( simplewaiter );
@@ -740,6 +826,8 @@ public class RuntimeExec
         casePosixSpawn( simplewaiter );
         
         caseEnvSmall( simplewaiter );
+        caseEnvLarge( simplewaiter, 32767, false );
+        caseEnvLarge( simplewaiter, 32768, true );
         
         caseWorkingDir( simplewaiter );
         

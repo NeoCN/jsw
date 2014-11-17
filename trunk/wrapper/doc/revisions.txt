@@ -70,10 +70,16 @@ Java Service Wrapper Revision History.
   The Wrapper now checks for this and logs an error rather than setting the
   variable.  This was a problem if very large classpaths were used when the
   wrapper.java.classpath.use_environment property was TRUE.
-* Windows does not allow a command line to be longer than 32767 characters in
+* Windows does not allow a command line to be longer than 32766 characters in
   length.  Different versions of Windows handle it differently when such a
   long command is provided.  The Wrapper now does its own check and shows an
   error in a consistent way.
+* (Professional) Add checks to the WrapperManager.exec() methods on Windows
+  for the maximum command line length of 32766, and maximum environment
+  variable name-value pair length of 32767.
+* (Professional) Fix a problem where a free of a NULL pointer was being done
+  as part of the cleanup process of a WrapperManager.exec() call.  This is not
+  known to have caused any issues.
 * Added getStdOut(), getStdErr(), and getStdIn() methods to the WrapperProcess
   class as aliases to the getInputStream(), getErrorStream(), and
   getOutputStream() methods to help avoid confusion.
