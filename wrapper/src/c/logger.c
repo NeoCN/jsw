@@ -2649,6 +2649,8 @@ void sendLoginfoMessage( int source_id, int level, const TCHAR *szBuff ) {
         default:
             eventType = LOG_DEBUG;
     }
+    
+    /* openlog, closelog, and syslog all return void. */
     openlog( loginfoSourceName, LOG_PID | LOG_NDELAY, currentLogfacilityLevel );
     _tsyslog( eventType, szBuff );
     closelog( );
