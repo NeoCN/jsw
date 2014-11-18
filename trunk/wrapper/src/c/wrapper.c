@@ -3393,6 +3393,88 @@ int wildcardMatchInner(const TCHAR *text, size_t textLen, const TCHAR *pattern, 
 }
     
 /**
+ * Does any necessary post processing on the command string.
+ *  This function assumes that command has been malloced.  It will either return
+ *  the string as is, or return a modified string.  When a modified string is
+ *  returned the orignal command buffer will always be freed.
+ *
+ * 1) Replace the first instance of the %WRAPPER_COMMAND_FILLER_N% environment
+ *    variable so that the total command length will be equal to or greater than
+ *    the length specified by N.  The padding will be the length plus a series of
+ *    Xs terminated by a single Y.  This is mainly for testing.
+ *
+ * @param command The original command.
+ *
+ * @return The modifed command.
+ */
+TCHAR *wrapperPostProcessCommandElement(TCHAR *command) {
+    TCHAR *pos1;
+    TCHAR *pos2;
+    size_t commandLen;
+    size_t commandLen2;
+    size_t commandLenLen;
+    TCHAR commandLenBuffer[7];
+    size_t fillerLen;
+    TCHAR *tempCommand;
+    size_t index;
+    
+    /* If the special WRAPPER_COMMAND_FILLER_N environment variable is being used then expand it.
+     *  This is mainly used for testing. */
+    pos1 = _tcsstr(command, TEXT("%WRAPPER_COMMAND_FILLER_"));
+    if (pos1 == NULL) {
+        return command;
+    }
+    
+    pos2 = _tcsstr(pos1 + 1, TEXT("%"));
+    if (pos2 == NULL) {
+        return command;
+    }
+    
+    commandLen = _tcslen(command);
+    commandLenLen = pos2 - pos1 - 24;
+    if (commandLenLen >= 7) {
+        /* Too long. invalid. */
+        return command;
+    }
+
+    memcpy(commandLenBuffer, pos1 + 24, sizeof(TCHAR) * commandLenLen);
+    commandLenBuffer[commandLenLen] = TEXT('\0');
+    commandLen2 = __max(commandLen - commandLenLen - 25, __min(_ttoi(commandLenBuffer), 100000));
+    
+    fillerLen = commandLen2 - commandLen + commandLenLen + 25;
+    
+    tempCommand = malloc(sizeof(TCHAR) * (commandLen - commandLenLen - 25 + fillerLen + 1));
+    if (!tempCommand) {
+        outOfMemory(TEXT("WBJC"), 3);
+        return command;
+    }
+    
+    memcpy(tempCommand, command, (pos1 - command) * sizeof(TCHAR));
+    index = pos1 - command;
+    if (fillerLen > 11) {
+        _sntprintf(&(tempCommand[index]), commandLen2 + 1 - index, TEXT("FILL-%d-"), fillerLen);
+        fillerLen -= _tcslen(&tempCommand[index]);
+        index += _tcslen(&tempCommand[index]);
+    }
+    while (fillerLen > 1) {
+        tempCommand[index] = TEXT('X');
+        index++;
+        fillerLen--;
+    }
+    if (fillerLen > 0) {
+        tempCommand[index] = TEXT('Y');
+        index++;
+        fillerLen--;
+    }
+    memcpy(&(tempCommand[index]), pos2 + 1, sizeof(TCHAR) * _tcslen(pos2 + 1));
+    tempCommand[commandLen2] = TEXT('\0');
+    
+    free(command);
+    
+    return tempCommand;
+}
+
+/**
  * Test function to pause the current thread for the specified amount of time.
  *  This is used to test how the rest of the Wrapper behaves when a particular
  *  thread blocks for any reason.

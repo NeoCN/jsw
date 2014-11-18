@@ -530,6 +530,24 @@ extern int wrapperProtocolRead();
 /******************************************************************************
  * Utility Functions
  *****************************************************************************/
+
+/**
+ * Does any necessary post processing on the command string.
+ *  This function assumes that command has been malloced.  It will either return
+ *  the string as is, or return a modified string.  When a modified string is
+ *  returned the orignal command buffer will always be freed.
+ *
+ * 1) Replace the first instance of the %WRAPPER_COMMAND_FILLER_N% environment
+ *    variable so that the total command length will be equal to or greater than
+ *    the length specified by N.  The padding will be the length plus a series of
+ *    Xs terminated by a single Y.  This is mainly for testing.
+ *
+ * @param command The original command.
+ *
+ * @return The modifed command.
+ */
+extern TCHAR *wrapperPostProcessCommandElement(TCHAR *command);
+
 /**
  * Test function to pause the current thread for the specified amount of time.
  *  This is used to test how the rest of the Wrapper behaves when a particular

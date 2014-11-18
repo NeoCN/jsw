@@ -570,14 +570,8 @@ int wrapperBuildJavaCommand() {
     size_t commandLen;
     size_t commandLen2;
     TCHAR **strings;
-    int length, i;
-    TCHAR *pos1;
-    TCHAR *pos2;
-    size_t commandLenLen;
-    TCHAR commandLenBuffer[7];
-    size_t fillerLen;
-    TCHAR *tempCommand;
-    size_t index;
+    int length;
+    int i;
 
     /* If this is not the first time through, then dispose the old command */
     if (wrapperData->jvmCommand) {
@@ -655,48 +649,8 @@ int wrapperBuildJavaCommand() {
     }
     wrapperData->jvmCommand[commandLen++] = TEXT('\0');
     
-    /* If the special WRAPPER_COMMAND_FILLER_N environment variable is being used then expand it.
-     *  This is mainly used for testing. */
-    pos1 = _tcsstr(wrapperData->jvmCommand, TEXT("%WRAPPER_COMMAND_FILLER_"));
-    if (pos1 != NULL) {
-        pos2 = _tcsstr(pos1 + 1, TEXT("%"));
-        if (pos2 != NULL) {
-            /* commandLen includes the '\0'.  Strip if off for our purposes. */
-            commandLen--;
-            commandLenLen = pos2 - pos1 - 24;
-            if (commandLenLen < 7) {
-                memcpy(commandLenBuffer, pos1 + 24, sizeof(TCHAR) * commandLenLen);
-                commandLenBuffer[commandLenLen] = TEXT('\0');
-                commandLen2 = __max(commandLen - commandLenLen - 25, __min(_ttoi(commandLenBuffer), 100000));
-                
-                fillerLen = commandLen2 - commandLen + commandLenLen + 25;
-                
-                tempCommand = malloc(sizeof(TCHAR) * (commandLen - commandLenLen - 25 + fillerLen + 1));
-                if (!tempCommand) {
-                    outOfMemory(TEXT("WBJC"), 3);
-                    return TRUE;
-                }
-                memcpy(tempCommand, wrapperData->jvmCommand, (pos1 - wrapperData->jvmCommand) * sizeof(TCHAR));
-                index = pos1 - wrapperData->jvmCommand;
-                if (fillerLen > 11) {
-                    _sntprintf(&(tempCommand[index]), commandLen2 + 1 - index, TEXT("FILL-%d-"), fillerLen);
-                    fillerLen -= _tcslen(&tempCommand[index]);
-                    index += _tcslen(&tempCommand[index]);
-                }
-                while (fillerLen > 0) {
-                    tempCommand[index] = TEXT('X');
-                    index++;
-                    fillerLen--;
-                }
-                memcpy(&(tempCommand[index]), pos2 + 1, sizeof(TCHAR) * _tcslen(pos2 + 1));
-                tempCommand[commandLen2] = TEXT('\0');
-                
-                free(wrapperData->jvmCommand);
-                wrapperData->jvmCommand = tempCommand;
-            }
-        }
-    }
-
+    wrapperData->jvmCommand = wrapperPostProcessCommandElement(wrapperData->jvmCommand);
+    
     /* Free up the temporary command array */
     wrapperFreeJavaCommandArray(strings, length);
 

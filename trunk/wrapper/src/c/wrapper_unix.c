@@ -1142,6 +1142,8 @@ int wrapperBuildJavaCommand() {
                 return TRUE;
             }
             _tcsncpy(wrapperData->jvmCommand[i], strings[i], _tcslen(strings[i]) + 1);
+            
+            wrapperData->jvmCommand[i] = wrapperPostProcessCommandElement(wrapperData->jvmCommand[i]);
         } else {
             wrapperData->jvmCommand[i] = NULL;
         }
