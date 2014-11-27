@@ -89,6 +89,15 @@ Java Service Wrapper Revision History.
   maximum number of characters that can be written with a single API call to
   30000 to work around the issue.  This change is internal and there is still
   no limit on the length of logged lines.
+* Fix a deadlock if the Wrapper failed to write to the backend when the
+  wrapper.backend.type property was PIPE.  Found by code review and is not
+  known to have actually happened.
+* From Mac OSX 10.5.0, the script file will use the key 'KeepAlive' in the 
+  launchctl configuration file. Prior versions of Mac OSX will continue to use
+  the same key 'OnDemand'. Thanks to Robin for pointing this out.
+* (Standard, Professional) Disallow the use of hostids tied to Apple Bluetooth
+  devices when running on a virtualized Windows system hosted on an OS X
+  system.
   
 3.5.25
 * (Professional) Improve the wrapper.timer.<n>.interval property so it is now
@@ -96,14 +105,15 @@ Java Service Wrapper Revision History.
   interval values to more precisely control when timers are fired.
 * (Professional) Fix a problem with the wrapper.timer.<n>.interval property
   where timers would not fire during an interval the system time was set back.
-  Also fixed a problem where timers would stop firing permanently if the system
-  time was set forward by more than the value of the wrapper.timer.max_catchup
-  property and a timer had been scheduled to be fired during that interval.
-  Both of these issues were most likely during daylight savings time.
+  Also fixed a problem where timers would stop firing permanently if the
+  system time was set forward by more than the value of the
+  wrapper.timer.max_catchup property and a timer had been scheduled to be
+  fired during that interval.  Both of these issues were most likely during
+  daylight savings time.
 * Fix a problem where signals received by the JVM were not being logged in
-  debug output correctly if the wrapper.ignore_signals property is set to true.
-  We now also log debug output even if a user event listener consumes the
-  signal event.
+  debug output correctly if the wrapper.ignore_signals property is set to
+  true.  We now also log debug output even if a user event listener consumes
+  the signal event.
 * Fix a problem on Gentoo Linux where the shell script was not correctly
   detecting the system architecture.  This may also be a problem on other
   distributions whose 'uname -p' returns a detailed architecture.
