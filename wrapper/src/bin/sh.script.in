@@ -359,7 +359,9 @@ then
     if [[ $? < 1 ]]
     then
         DIST_BITS="32"
+        KEY_KEEP_ALIVE="OnDemand"
     else
+        KEY_KEEP_ALIVE="KeepAlive"
         if [ "X`/usr/sbin/sysctl -n hw.cpu64bit_capable`" == "X1" ]  
         then
             DIST_BITS="64"
@@ -1533,7 +1535,7 @@ installdaemon() {
                 echo "            <string>${REALPATH}</string>" >> "/Library/LaunchDaemons/${APP_PLIST}"
                 echo "            <string>launchdinternal</string>" >> "/Library/LaunchDaemons/${APP_PLIST}"
                 echo "        </array>" >> "/Library/LaunchDaemons/${APP_PLIST}"
-                echo "        <key>OnDemand</key>" >> "/Library/LaunchDaemons/${APP_PLIST}"
+                echo "        <key>${KEY_KEEP_ALIVE}</key>" >> "/Library/LaunchDaemons/${APP_PLIST}"
                 echo "        <true/>" >> "/Library/LaunchDaemons/${APP_PLIST}"
                 echo "        <key>RunAtLoad</key>" >> "/Library/LaunchDaemons/${APP_PLIST}"
                 echo "        <true/>" >> "/Library/LaunchDaemons/${APP_PLIST}"
