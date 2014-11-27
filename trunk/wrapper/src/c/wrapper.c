@@ -2497,7 +2497,7 @@ int wrapperProtocolRead() {
             packetBufferW[0] = TEXT('\0');
         }
 #else
-        req = mbstowcs(packetBufferMB, packetBufferW, MAX_LOG_SIZE + 1);
+        req = mbstowcs(packetBufferW, packetBufferMB, MAX_LOG_SIZE + 1);
         if (req == (size_t)-1) {
             log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
                     TEXT("Invalid multibyte sequence in %s: %s"), TEXT("protocol message"), getLastErrorText());
