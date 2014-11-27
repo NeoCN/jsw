@@ -5373,6 +5373,7 @@ public final class WrapperManager
                     byte code = is.readByte();
                     
                     // Always read from the buffer until a null '\0' is encountered.
+                    //  A multi-byte string will never have a 0 as part of another character so this should be safe for all encodings.
                     byte b;
                     int i = 0;
                     do
@@ -5392,6 +5393,7 @@ public final class WrapperManager
                     }
                     while ( b != 0 );
                     
+                    // The message should be multi-byte string in the system encoding.
                     String msg = new String( m_backendReadBuffer, 0, i );
                     
                     if ( m_appearHung )
@@ -5409,7 +5411,7 @@ public final class WrapperManager
                                 // The property values are very large and distracting in the log.
                                 //  Plus if any triggers are defined, then logging them will fire
                                 //  the trigger.
-                                logMsg = getRes().getString( "(Property Values)" );
+                                logMsg = getRes().getString( "(Property Values, Size={0})", Integer.toString( i ) );
                             }
                             else
                             {

@@ -412,7 +412,7 @@ TCHAR** loggerFileGetFiles(const TCHAR* pattern, int sortMode) {
             return NULL;
         }
     }
-#else
+#else /* Unix */
 
 #ifdef UNICODE
     char* cPattern;
@@ -486,7 +486,7 @@ TCHAR** loggerFileGetFiles(const TCHAR* pattern, int sortMode) {
                     }
                 }
 #ifdef WRAPPER_FILE_DEBUG
-                printf("  files[%d]=%s, %ld\n", cnt, files[cnt], fileTimes[cnt]);
+                _tprintf(TEXT("  files[%d]=%s, %ld\n"), cnt, files[cnt], fileTimes[cnt]);
 #endif
                 cnt++;
             }

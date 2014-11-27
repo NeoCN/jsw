@@ -98,6 +98,11 @@ Java Service Wrapper Revision History.
 * (Standard, Professional) Disallow the use of hostids tied to Apple Bluetooth
   devices when running on a virtualized Windows system hosted on an OS X
   system.
+* Fix a problem where WrapperManager.log() was not working correctly when
+  multi-byte messages were logged.
+* In the debug output the full configuration properties packet is suppressed
+  from the log output because it is huge and can contain sensitive data.
+  Add a size to the abbreviated output to assist with debugging.
   
 3.5.25
 * (Professional) Improve the wrapper.timer.<n>.interval property so it is now

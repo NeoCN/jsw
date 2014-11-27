@@ -129,7 +129,8 @@ extern char** environ;
 #endif
 
 WrapperConfig *wrapperData;
-TCHAR         packetBuffer[MAX_LOG_SIZE + 1];
+char          packetBufferMB[MAX_LOG_SIZE + 1];
+TCHAR         packetBufferW[MAX_LOG_SIZE + 1];
 TCHAR         *keyChars = TEXT("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-");
 
 /* Properties structure loaded in from the configuration file. */
@@ -1660,7 +1661,7 @@ void protocolOpenSocket(int IPv4) {
     req = MultiByteToWideChar(CP_OEMCP, 0, straddr, -1, NULL, 0);
     if (req <= 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                TEXT("Invalid multibyte sequence in protocol message: %s"), getLastErrorText());
+                TEXT("Invalid multibyte sequence in %s: %s"), TEXT("network address"), getLastErrorText());
         return;
     }
     socketSource = malloc(sizeof(TCHAR) * (req + 1));
@@ -1673,7 +1674,7 @@ void protocolOpenSocket(int IPv4) {
     req = mbstowcs(NULL, straddr, MBSTOWCS_QUERY_LENGTH);
     if (req == (size_t)-1) {
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
-                TEXT("Invalid multibyte sequence in protocol message: %s"), getLastErrorText());
+                TEXT("Invalid multibyte sequence in %s: %s"), TEXT("network address"), getLastErrorText());
         return;
     }
     socketSource = malloc(sizeof(TCHAR) * (req + 1));
@@ -2026,10 +2027,17 @@ char *protocolSendBuffer = NULL;
  * @return TRUE if there were any problems.
  */
 int wrapperProtocolFunction(char function, const TCHAR *messageW) {
+#ifdef UNICODE
+ #ifdef WIN32
+    TCHAR buffer[16];
+    UINT cp;
+ #endif
+#endif
     int rc;
     int cnt, inWritten;
     size_t len;
-    const TCHAR *logMsgW;
+    TCHAR *logMsgW;
+    const TCHAR *messageTemplate;
     char *messageMB = NULL;
     int returnVal = FALSE;
     int ok = TRUE;
@@ -2039,28 +2047,23 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
         return TRUE;
     }
 
-    /* We don't want to show the full properties log message.  It is quite long and distracting. */
-    if (function == WRAPPER_MSG_PROPERTIES) {
-        logMsgW = TEXT("(Property Values)");
-    } else {
-        logMsgW = messageW;
-    }
-
     if (ok) {
         /* We will be trasmitting a MultiByte string of characters.  So we need to convert the messageW. */
         if (messageW) {
 #ifdef UNICODE
  #ifdef WIN32
+            GetLocaleInfo(GetThreadLocale(), LOCALE_IDEFAULTANSICODEPAGE, buffer, sizeof(buffer));
+            cp = _ttoi(buffer);
             len = WideCharToMultiByte(CP_OEMCP, 0, messageW, -1, NULL, 0, NULL, NULL);
             if (len <= 0) {
                 log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
-                    TEXT("Invalid multibyte sequence in protocol message \"%s\" : %s"), messageW, getLastErrorText());
+                    TEXT("Invalid multibyte sequence in %s \"%s\" : %s"), TEXT("protocol message"), messageW, getLastErrorText());
                 returnVal = TRUE;
                 ok = FALSE;
             } else {
                 messageMB = malloc(len);
                 if (!messageMB) {
-                    outOfMemory(TEXT("WPF"), 1);
+                    outOfMemory(TEXT("WPF"), 2);
                     returnVal = TRUE;
                     ok = FALSE;
                 } else {
@@ -2071,13 +2074,13 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
             len = wcstombs(NULL, messageW, 0);
             if (len == (size_t)-1) {
                 log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
-                    TEXT("Invalid multibyte sequence in protocol message \"%s\" : %s"), messageW, getLastErrorText());
+                    TEXT("Invalid multibyte sequence in %s \"%s\" : %s"), TEXT("protocol message"), messageW, getLastErrorText());
                 returnVal = TRUE;
                 ok = FALSE;
             } else {
                 messageMB = malloc(len + 1);
                 if (!messageMB) {
-                    outOfMemory(TEXT("WPF"), 2);
+                    outOfMemory(TEXT("WPF"), 3);
                     returnVal = TRUE;
                     ok = FALSE;
                 } else {
@@ -2089,7 +2092,7 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
             len = _tscslen(messageW) + 1;
             messageMB = malloc(len);
             if (!messageMB) {
-                outOfMemory(TEXT("WPF"), 3);
+                outOfMemory(TEXT("WPF"), 4);
                 returnVal = TRUE;
                 ok = FALSE;
             } else {
@@ -2099,6 +2102,22 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
         } else {
             messageMB = NULL;
         }
+    }
+
+    /* We don't want to show the full properties log message.  It is quite long and distracting. */
+    if (function == WRAPPER_MSG_PROPERTIES) {
+        messageTemplate = TEXT("(Property Values, Size=%d)");
+        len = _tcslen(messageTemplate) + 16 + 1;
+        logMsgW = malloc(sizeof(TCHAR) * len);
+        if (!logMsgW) {
+            outOfMemory(TEXT("WPF"), 1);
+            /* Fallback to raw message.  Not ideal but Ok. */
+            logMsgW = (TCHAR*)messageW; /* Strip the const, but will never be modified. */
+        } else {
+            _sntprintf(logMsgW, len, messageTemplate, strlen(messageMB));
+        }
+    } else {
+        logMsgW = (TCHAR*)messageW; /* Strip the const, but will never be modified. */
     }
 
     if (ok) {
@@ -2164,7 +2183,7 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
                 if ((inWritten = write(protocolActiveServerPipeOut, protocolSendBuffer, sizeof(char) * (int)len)) == -1) { 
 #endif
                     log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_FATAL, TEXT("Writing to the backend pipe failed (%d): %s"), wrapperGetLastError(), getLastErrorText());
-                    return FALSE;
+                    returnVal = TRUE;
                 }
             } else {
                 cnt = 0;
@@ -2199,6 +2218,11 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
                 }
             }
         }
+    }
+    
+    /* Free up the logMsgW if we allocated it. */
+    if (logMsgW != messageW) {
+        free(logMsgW);
     }
 
     /* Always make sure the mutex is released. */
@@ -2303,6 +2327,11 @@ int wrapperProtocolRead() {
     time_t now;
     int nowMillis;
     time_t durr;
+#ifdef WIN32
+    TCHAR cpBuffer[16];
+    UINT cp;
+#endif
+    size_t req;
 
     wrapperGetCurrentTime(&timeBuffer);
     startTime = now = timeBuffer.time;
@@ -2366,7 +2395,7 @@ int wrapperProtocolRead() {
                         /* End of string */
                         len = 0;
                     } else if (pos < MAX_LOG_SIZE) {
-                        packetBuffer[pos] = c;
+                        packetBufferMB[pos] = c;
                         pos++;
                     }
                 } else {
@@ -2375,7 +2404,7 @@ int wrapperProtocolRead() {
             } while (len == 1);
 
             /* terminate the string; */
-            packetBuffer[pos] = TEXT('\0');
+            packetBufferMB[pos] = '\0';
         } else if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) {
 #ifdef WIN32
             err = PeekNamedPipe(protocolActiveServerPipeIn, NULL, 0, NULL, &maxlen, NULL);
@@ -2398,14 +2427,14 @@ int wrapperProtocolRead() {
                             /* End of string */
                             len = 0;
                         } else if (pos < MAX_LOG_SIZE) {
-                            packetBuffer[pos] = c;
+                            packetBufferMB[pos] = c;
                             pos++;
                         }
                     } else {
                         len = 0;
                     }
                 } while (len == 1 && maxlen-- >= 0);
-                packetBuffer[pos] = TEXT('\0');
+                packetBufferMB[pos] = '\0';
             } else {
                 if (GetLastError() == ERROR_INVALID_HANDLE) {
                     return 0;
@@ -2441,7 +2470,7 @@ int wrapperProtocolRead() {
                         /* End of string */
                         len = 0;
                     } else if (pos < MAX_LOG_SIZE) {
-                        packetBuffer[pos] = c;
+                        packetBufferMB[pos] = c;
                         pos++;
                     }
                 } else {
@@ -2449,28 +2478,48 @@ int wrapperProtocolRead() {
                 }
             } while (len == 1);
             /* terminate the string; */
-            packetBuffer[pos] = TEXT('\0');
+            packetBufferMB[pos] = '\0';
 #endif
         } else {
             /* Should not reach this part because wrapperData->backendType should always have a valid value */
             return 0;
         }
+        
+        /* Convert the multi-byte packetBufferMB buffer into a wide-character string. */
+        /* Source message is always smaller than the MAX_LOG_SIZE so the output will be as well. */
+#ifdef WIN32
+        GetLocaleInfo(GetThreadLocale(), LOCALE_IDEFAULTANSICODEPAGE, cpBuffer, sizeof(cpBuffer));
+        cp = _ttoi(cpBuffer);
+        req = MultiByteToWideChar(cp, 0, packetBufferMB, -1, packetBufferW, MAX_LOG_SIZE + 1);
+        if (req <= 0) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                    TEXT("Invalid multibyte sequence in %s: %s"), TEXT("protocol message"), getLastErrorText());
+            packetBufferW[0] = TEXT('\0');
+        }
+#else
+        req = mbstowcs(packetBufferMB, packetBufferW, MAX_LOG_SIZE + 1);
+        if (req == (size_t)-1) {
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
+                    TEXT("Invalid multibyte sequence in %s: %s"), TEXT("protocol message"), getLastErrorText());
+            packetBufferW[0] = TEXT('\0');
+        }
+#endif
 
         if (wrapperData->isDebugging) {
-            if ((code == WRAPPER_MSG_PING) && (_tcsstr(packetBuffer, TEXT("silent")) == packetBuffer)) {
+            if ((code == WRAPPER_MSG_PING) && (_tcsstr(packetBufferW, TEXT("silent")) == packetBufferW)) {
                 /*
                 log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("read a silent ping packet %s : %s"),
-                    wrapperProtocolGetCodeName(code), packetBuffer);
+                    wrapperProtocolGetCodeName(code), packetBufferW);
                 */
             } else {
                 log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("read a packet %s : %s"),
-                    wrapperProtocolGetCodeName(code), packetBuffer);
+                    wrapperProtocolGetCodeName(code), packetBufferW);
             }
         }
 
         switch (code) {
         case WRAPPER_MSG_STOP:
-            wrapperStopRequested(_ttoi(packetBuffer));
+            wrapperStopRequested(_ttoi(packetBufferW));
             break;
 
         case WRAPPER_MSG_RESTART:
@@ -2479,7 +2528,7 @@ int wrapperProtocolRead() {
 
         case WRAPPER_MSG_PING:
             /* Because all versions of the wrapper.jar simply bounce back the ping message, the pingSendTicks should always exist. */
-            tc = _tcschr(packetBuffer, TEXT(' '));
+            tc = _tcschr(packetBufferW, TEXT(' '));
             if (tc) {
                 /* A pingSendTicks should exist. Parse the id following the space. It will be in the format 0xffffffff. */
                 wrapperPingResponded(hexToTICKS(&tc[1]), TRUE);
@@ -2490,7 +2539,7 @@ int wrapperProtocolRead() {
             break;
 
         case WRAPPER_MSG_STOP_PENDING:
-            wrapperStopPendingSignaled(_ttoi(packetBuffer));
+            wrapperStopPendingSignaled(_ttoi(packetBufferW));
             break;
 
         case WRAPPER_MSG_STOPPED:
@@ -2498,7 +2547,7 @@ int wrapperProtocolRead() {
             break;
 
         case WRAPPER_MSG_START_PENDING:
-            wrapperStartPendingSignaled(_ttoi(packetBuffer));
+            wrapperStartPendingSignaled(_ttoi(packetBufferW));
             break;
 
         case WRAPPER_MSG_STARTED:
@@ -2506,7 +2555,7 @@ int wrapperProtocolRead() {
             break;
 
         case WRAPPER_MSG_KEY:
-            wrapperKeyRegistered(packetBuffer);
+            wrapperKeyRegistered(packetBufferW);
             break;
 
         case WRAPPER_MSG_LOG + LEVEL_DEBUG:
@@ -2515,7 +2564,7 @@ int wrapperProtocolRead() {
         case WRAPPER_MSG_LOG + LEVEL_WARN:
         case WRAPPER_MSG_LOG + LEVEL_ERROR:
         case WRAPPER_MSG_LOG + LEVEL_FATAL:
-            wrapperLogSignaled(code - WRAPPER_MSG_LOG, packetBuffer);
+            wrapperLogSignaled(code - WRAPPER_MSG_LOG, packetBufferW);
             break;
 
         case WRAPPER_MSG_APPEAR_ORPHAN:
@@ -2524,7 +2573,7 @@ int wrapperProtocolRead() {
 
         default:
             if (wrapperData->isDebugging) {
-                log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("received unknown packet (%d:%s)"), code, packetBuffer);
+                log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("received unknown packet (%d:%s)"), code, packetBufferW);
             }
             break;
         }
@@ -3630,7 +3679,7 @@ void logChildOutput(const char* log) {
     size = MultiByteToWideChar(cp, 0, log, -1 , NULL, 0);
     if (size <= 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                    TEXT("Invalid multibyte sequence in protocol message \"%s\" : %s"), log, getLastErrorText());
+                    TEXT("Invalid multibyte sequence in %s: %s"), TEXT("JVM console output"), getLastErrorText());
         return;
     }
 
@@ -3639,12 +3688,12 @@ void logChildOutput(const char* log) {
         outOfMemory(TEXT("WLCO"), 1);
         return;
     }
-    MultiByteToWideChar(cp, 0, log, -1, (TCHAR*)tlog, size + 1);
+    MultiByteToWideChar(cp, 0, log, -1, tlog, size + 1);
  #else
     size = mbstowcs(NULL, log, MBSTOWCS_QUERY_LENGTH);
     if (size == (size_t)-1) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                    TEXT("Invalid multibyte sequence in protocol message \"%s\" : %s"), log, getLastErrorText());
+                    TEXT("Invalid multibyte sequence in %s: %s"), TEXT("JVM console output"), getLastErrorText());
         return;
     }
     tlog = malloc(sizeof(TCHAR) * (size + 1));

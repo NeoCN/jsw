@@ -90,6 +90,8 @@ public class LogOutput {
         for (int i = 0; i < 100; i++) {
             WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO, sa);
         }
+        
+        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO, Main.getRes().getString( "Japanese \u300c\u65e5\u672c\u8a9e\u306e\u8a66\u9a13 \u30a2\u30a4\u30a6\u30a8\u30aa\u30ab\u30ad\u30af\u30b1\u30b3\u300d Test" ) );
     }
 }
 
