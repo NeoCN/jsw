@@ -74,6 +74,10 @@ Java Service Wrapper Revision History.
   length.  Different versions of Windows handle it differently when such a
   long command is provided.  The Wrapper now does its own check and shows an
   error in a consistent way.
+* Improve the error message on UNIX platforms when the command line is longer
+  than the system maximum.  This maximum varies greatly by platform and
+  environment and is difficult to calculate reliably, so the maximum length
+  is not currently shown in the message.
 * (Professional) Add checks to the WrapperManager.exec() methods on Windows
   for the maximum command line length of 32766, and maximum environment
   variable name-value pair length of 32767.

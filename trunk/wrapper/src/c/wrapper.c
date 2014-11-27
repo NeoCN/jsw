@@ -2484,7 +2484,7 @@ int wrapperProtocolRead() {
             /* Should not reach this part because wrapperData->backendType should always have a valid value */
             return 0;
         }
-        
+
         /* Convert the multi-byte packetBufferMB buffer into a wide-character string. */
         /* Source message is always smaller than the MAX_LOG_SIZE so the output will be as well. */
 #ifdef WIN32
@@ -3462,7 +3462,7 @@ TCHAR *wrapperPostProcessCommandElement(TCHAR *command) {
     size_t commandLen;
     size_t commandLen2;
     size_t commandLenLen;
-    TCHAR commandLenBuffer[7];
+    TCHAR commandLenBuffer[8];
     size_t fillerLen;
     TCHAR *tempCommand;
     size_t index;
@@ -3481,14 +3481,14 @@ TCHAR *wrapperPostProcessCommandElement(TCHAR *command) {
     
     commandLen = _tcslen(command);
     commandLenLen = pos2 - pos1 - 24;
-    if (commandLenLen >= 7) {
+    if (commandLenLen >= 8) {
         /* Too long. invalid. */
         return command;
     }
 
     memcpy(commandLenBuffer, pos1 + 24, sizeof(TCHAR) * commandLenLen);
     commandLenBuffer[commandLenLen] = TEXT('\0');
-    commandLen2 = __max(commandLen - commandLenLen - 25, __min(_ttoi(commandLenBuffer), 100000));
+    commandLen2 = __max(commandLen - commandLenLen - 25, __min(_ttoi(commandLenBuffer), 9999999));
     
     fillerLen = commandLen2 - commandLen + commandLenLen + 25;
     
