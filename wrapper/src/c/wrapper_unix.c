@@ -35,6 +35,7 @@
 
 #ifndef WIN32
 
+#include <linux/limits.h>
 #include <wchar.h>
 #include <netdb.h>
 #include <stdio.h>
@@ -1156,6 +1157,35 @@ int wrapperBuildJavaCommand() {
 }
 
 /**
+ * Calculate the total length of the environment assuming that they are separated by spaces.
+ */
+size_t wrapperCalculateEnvironmentLength() {
+    /* The compiler won't let us reverence environ directly in the for loop on OSX because it is actually a function. */
+    char **environment = environ;
+    size_t i;
+    size_t len;
+    size_t lenTotal;
+    
+    i = 0;
+    lenTotal = 0;
+    while (environment[i]) {
+        /* All we need is the length so we don't actually have to convert them. */
+        len = mbstowcs(NULL, environment[i], MBSTOWCS_QUERY_LENGTH);
+        if (len == (size_t)-1) {
+            /* Invalid string.  Skip. */
+        } else {
+            /* Add length of variable + null + pointer to next element */
+            lenTotal += len + 1 + sizeof(char *);
+        }
+        i++;
+    }
+    /* Null termination of the list. */
+    lenTotal += sizeof(char *) + sizeof(char *);
+    
+    return lenTotal;
+}
+
+/**
  * Launches a JVM process and stores it internally.
  *
  * @return TRUE if there were any problems.  When this happens the Wrapper will not try to restart.
@@ -1163,6 +1193,9 @@ int wrapperBuildJavaCommand() {
 int wrapperExecute() {
     int i;
     pid_t proc;
+    int execErrno;
+    size_t lenCmd;
+    size_t lenEnv;
 
     /* Create the pipe. */
     if (pipe(pipedes) < 0) {
@@ -1287,10 +1320,26 @@ int wrapperExecute() {
             /* The pipedes array is global so do not close the pipes. */
             /* Child process: execute the JVM. */
             _texecvp(wrapperData->jvmCommand[0], wrapperData->jvmCommand);
+            execErrno = errno;
 
             /* We reached this point...meaning we were unable to start. */
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                TEXT("%sUnable to start JVM: %s (%d)"), LOG_FORK_MARKER, getLastErrorText(), errno);
+                TEXT("%sUnable to start JVM: %s (%d)"), LOG_FORK_MARKER, getLastErrorText(), execErrno);
+            if (execErrno == E2BIG) {
+                /* Command line too long. */
+                /* Calculate the total length of the command line. */
+                lenCmd = 0;
+                for (i = 0; wrapperData->jvmCommand[i] != NULL; i++) {
+                    lenCmd += _tcslen(wrapperData->jvmCommand[i]) + 1;
+                }
+                lenEnv = wrapperCalculateEnvironmentLength();
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("%s  The generated command line plus the environment was larger than the maximum allowed."), LOG_FORK_MARKER);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("%s  The current length is %d bytes of which %d is the command line, and %d is the environment."), LOG_FORK_MARKER, lenCmd + lenEnv + 1, lenCmd, lenEnv); 
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("%s  It is not possible to calculate an exact maximum length as it depends on a number of factors for each system."), LOG_FORK_MARKER);
+
+                /* TODO: Figure out a way to inform the Wrapper not to restart and try again as repeatedly doing this is meaningless. */
+            }
+
 
             if (wrapperData->isAdviserEnabled) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("%s"), LOG_FORK_MARKER );

@@ -2144,7 +2144,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <chmod file="${test.dir}/memory" perm="+x"/>
         
         <!-- Huge Classpath Max Size Test -->
-        <filter token="app.name"          value="hugeclasspath"/>
+        <filter token="app.name"          value="hugeclasspathmaxsize"/>
         <filter token="app.long.name"     value="Huge Classpath Max Size Case" />
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/hugeclasspathmaxsize"
@@ -2152,7 +2152,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <chmod file="${test.dir}/hugeclasspathmaxsize" perm="+x"/>
         
         <!-- Huge Classpath Over Size Test -->
-        <filter token="app.name"          value="hugeclasspath"/>
+        <filter token="app.name"          value="hugeclasspathoversize"/>
         <filter token="app.long.name"     value="Huge Classpath Over Size Case" />
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/hugeclasspathoversize"
