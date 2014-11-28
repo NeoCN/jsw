@@ -24,8 +24,9 @@ Java Service Wrapper Revision History.
   service with launchctl on Mac OS X.
 * Add missing support in the shell script for restarting/stopping the Wrapper 
   service with Upstart.
-* Add the possibility set the path to 'su' and to add optional parameters in 
-  the shell script using SU_PATH and SU_OPTS.
+* Add the ability to set the path of the 'su' command as well as the ability
+  to specifiy additional options in the Wrapper shell script using new SU_BIN
+  and SU_OPTS variables.
 * Fix a problem in the WrapperSimpleApp, WrapperStartStopApp, and
   WrapperJarApp helper classes where command line problems that resulted in
   the JVM exiting on startup looked like unexpected exits.  This meant that

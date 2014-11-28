@@ -91,10 +91,11 @@ WAIT_FOR_STARTED_TIMEOUT=120
 #  port needs to be allocated prior to the user being changed.
 #RUN_AS_USER=
 
-# Set path to 'su' (substitute user).
-# NOTE - in case 'su' is not in the path, you can set the path here, for example
+# Set the full path to the 'su' command (substitute user).
+# NOTE - In case 'su' is not in the PATH, you can set the absolute path here,
+#  for example:
 #  SU_BIN=/bin/su
-# NOTE - for Red Hat, the script will use '/sbin/runuser' if it is present and 
+# NOTE - For Red Hat, the script will use '/sbin/runuser' if it is present and 
 #  ignore the value of SU_BIN.
 SU_BIN=su
 
@@ -266,14 +267,14 @@ LOCKFILE="$LOCKDIR/$APP_NAME"
 pid=""
 
 # Resolve the location of the 'ps' command
-PSEXE="/usr/ucb/ps"
-    if [ ! -x "$PSEXE" ]
+PS_BIN="/usr/ucb/ps"
+    if [ ! -x "$PS_BIN" ]
     then
-        PSEXE="/usr/bin/ps"
-        if [ ! -x "$PSEXE" ]
+        PS_BIN="/usr/bin/ps"
+        if [ ! -x "$PS_BIN" ]
         then
-            PSEXE="/bin/ps"
-            if [ ! -x "$PSEXE" ]
+            PS_BIN="/bin/ps"
+            if [ ! -x "$PS_BIN" ]
             then
                 eval echo `gettext 'Unable to locate "ps".'`
                 eval echo `gettext 'Please report this message along with the location of the command on your system.'`
@@ -282,11 +283,11 @@ PSEXE="/usr/ucb/ps"
         fi
     fi
 
-TREXE="/usr/bin/tr"
-if [ ! -x "$TREXE" ]
+TR_BIN="/usr/bin/tr"
+if [ ! -x "$TR_BIN" ]
 then
-    TREXE="/bin/tr"
-    if [ ! -x "$TREXE" ]
+    TR_BIN="/bin/tr"
+    if [ ! -x "$TR_BIN" ]
     then
         eval echo `gettext 'Unable to locate "tr".'`
         eval echo `gettext 'Please report this message along with the location of the command on your system.'`
@@ -294,7 +295,7 @@ then
     fi
 fi
 # Resolve the os
-DIST_OS=`uname -s | $TREXE "[A-Z]" "[a-z]" | $TREXE -d ' '`
+DIST_OS=`uname -s | $TR_BIN "[A-Z]" "[a-z]" | $TR_BIN -d ' '`
 case "$DIST_OS" in
     'sunos')
         DIST_OS="solaris"
@@ -376,7 +377,7 @@ else
     then
         DIST_ARCH=
     else
-        DIST_ARCH=`uname -p 2>/dev/null | $TREXE "[A-Z]" "[a-z]" | $TREXE -d ' '`
+        DIST_ARCH=`uname -p 2>/dev/null | $TR_BIN "[A-Z]" "[a-z]" | $TR_BIN -d ' '`
     fi
     if [ "X$DIST_ARCH" = "X" ]
     then
@@ -384,7 +385,7 @@ else
     fi
     if [ "$DIST_ARCH" = "unknown" ]
     then
-        DIST_ARCH=`uname -m 2>/dev/null | $TREXE "[A-Z]" "[a-z]" | $TREXE -d ' '`
+        DIST_ARCH=`uname -m 2>/dev/null | $TR_BIN "[A-Z]" "[a-z]" | $TR_BIN -d ' '`
     fi
     case "$DIST_ARCH" in
         'athlon' | 'i386' | 'i486' | 'i586' | 'i686')
@@ -668,11 +669,11 @@ checkUser() {
     if [ "X$RUN_AS_USER" != "X" ]
     then
         # Resolve the location of the 'id' command
-        IDEXE="/usr/xpg4/bin/id"
-        if [ ! -x "$IDEXE" ]
+        ID_BIN="/usr/xpg4/bin/id"
+        if [ ! -x "$ID_BIN" ]
         then
-            IDEXE="/usr/bin/id"
-            if [ ! -x "$IDEXE" ]
+            ID_BIN="/usr/bin/id"
+            if [ ! -x "$ID_BIN" ]
             then
                 eval echo `gettext 'Unable to locate "id".'`
                 eval echo `gettext 'Please report this message along with the location of the command on your system.'`
@@ -680,7 +681,7 @@ checkUser() {
             fi
         fi
 
-        if [ "`$IDEXE -u -n`" = "$RUN_AS_USER" ]
+        if [ "`$ID_BIN -u -n`" = "$RUN_AS_USER" ]
         then
             # Already running as the configured user.  Avoid password prompts by not calling su.
             RUN_AS_USER=""
@@ -688,7 +689,7 @@ checkUser() {
     fi
     if [ "X$RUN_AS_USER" != "X" ]
     then
-        if [ "`$IDEXE -u -n "$RUN_AS_USER" 2>/dev/null`" != "$RUN_AS_USER" ]
+        if [ "`$ID_BIN -u -n "$RUN_AS_USER" 2>/dev/null`" != "$RUN_AS_USER" ]
         then
             eval echo `gettext 'User $RUN_AS_USER does not exist.'`
             exit 1
@@ -781,76 +782,76 @@ getpid() {
                     #  the pid.  If it is not found then the pid file is considered to be stale.
                     case "$DIST_OS" in
                         'freebsd')
-                            pidtest=`$PSEXE -p $pid -o args | tail -1`
+                            pidtest=`$PS_BIN -p $pid -o args | tail -1`
                             if [ "X$pidtest" = "XCOMMAND" ]
                             then 
                                 pidtest=""
                             fi
                             ;;
                         'macosx')
-                            pidtest=`$PSEXE -ww -p $pid -o command | grep -F "$WRAPPER_CMD" | tail -1`
+                            pidtest=`$PS_BIN -ww -p $pid -o command | grep -F "$WRAPPER_CMD" | tail -1`
                             ;;
                         'solaris')
                             if [ -f "/usr/bin/pargs" ]
                             then
                                 pidtest=`pargs $pid | fgrep "$WRAPPER_CMD" | tail -1`
                             else
-                                case "$PSEXE" in
+                                case "$PS_BIN" in
                                     '/usr/ucb/ps')
-                                        pidtest=`$PSEXE -auxww $pid | fgrep "$WRAPPER_CMD" | tail -1`
+                                        pidtest=`$PS_BIN -auxww $pid | fgrep "$WRAPPER_CMD" | tail -1`
                                         ;;
                                     '/usr/bin/ps')
-                                        TRUNCATED_CMD=`$PSEXE -o comm -p $pid | tail -1`
+                                        TRUNCATED_CMD=`$PS_BIN -o comm -p $pid | tail -1`
                                         COUNT=`echo $TRUNCATED_CMD | wc -m`
                                         COUNT=`echo ${COUNT}`
                                         COUNT=`expr $COUNT - 1`
                                         TRUNCATED_CMD=`echo $WRAPPER_CMD | cut -c1-$COUNT`
-                                        pidtest=`$PSEXE -o comm -p $pid | fgrep "$TRUNCATED_CMD" | tail -1`
+                                        pidtest=`$PS_BIN -o comm -p $pid | fgrep "$TRUNCATED_CMD" | tail -1`
                                         ;;
                                     '/bin/ps')
-                                        TRUNCATED_CMD=`$PSEXE -o comm -p $pid | tail -1`
+                                        TRUNCATED_CMD=`$PS_BIN -o comm -p $pid | tail -1`
                                         COUNT=`echo $TRUNCATED_CMD | wc -m`
                                         COUNT=`echo ${COUNT}`
                                         COUNT=`expr $COUNT - 1`
                                         TRUNCATED_CMD=`echo $WRAPPER_CMD | cut -c1-$COUNT`
-                                        pidtest=`$PSEXE -o comm -p $pid | fgrep "$TRUNCATED_CMD" | tail -1`
+                                        pidtest=`$PS_BIN -o comm -p $pid | fgrep "$TRUNCATED_CMD" | tail -1`
                                         ;;
                                     *)
-                                        echo "Unsupported ps command $PSEXE"
+                                        echo "Unsupported ps command $PS_BIN"
                                         exit 1
                                         ;;
                                 esac
                             fi
                             ;;
                         'hpux')
-                            pidtest=`$PSEXE -p $pid -x -o args | grep -F "$WRAPPER_CMD" | tail -1`
+                            pidtest=`$PS_BIN -p $pid -x -o args | grep -F "$WRAPPER_CMD" | tail -1`
                             ;;
                         *)
-                            pidtest=`$PSEXE -p $pid -o args | grep -F "$WRAPPER_CMD" | tail -1`
+                            pidtest=`$PS_BIN -p $pid -o args | grep -F "$WRAPPER_CMD" | tail -1`
                             ;;
                     esac
                 else
                     # Check to see whether the pid exists as a running process, but in this mode, don't check what that pid is.
                     case "$DIST_OS" in
                         'solaris')
-                            case "$PSEXE" in
+                            case "$PS_BIN" in
                                 '/usr/ucb/ps')
-                                    pidtest=`$PSEXE $pid | grep "$pid" | awk '{print $1}' | tail -1`
+                                    pidtest=`$PS_BIN $pid | grep "$pid" | awk '{print $1}' | tail -1`
                                     ;;
                                 '/usr/bin/ps')
-                                    pidtest=`$PSEXE -p $pid -o pid | grep "$pid" | tail -1`
+                                    pidtest=`$PS_BIN -p $pid -o pid | grep "$pid" | tail -1`
                                     ;;
                                 '/bin/ps')
-                                    pidtest=`$PSEXE -p $pid -o pid | grep "$pid" | tail -1`
+                                    pidtest=`$PS_BIN -p $pid -o pid | grep "$pid" | tail -1`
                                     ;;
                                 *)
-                                    echo "Unsupported ps command $PSEXE"
+                                    echo "Unsupported ps command $PS_BIN"
                                     exit 1
                                     ;;
                             esac
                             ;;
                         *)
-                            pidtest=`$PSEXE -p $pid -o pid | grep "$pid" | tail -1`
+                            pidtest=`$PS_BIN -p $pid -o pid | grep "$pid" | tail -1`
                             ;;
                     esac
                 fi
@@ -901,24 +902,24 @@ getstatus() {
 testpid() {
     case "$DIST_OS" in
      'solaris')
-        case "$PSEXE" in
+        case "$PS_BIN" in
         '/usr/ucb/ps')
-            pid=`$PSEXE  $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
+            pid=`$PS_BIN  $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
             ;;
         '/usr/bin/ps')
-            pid=`$PSEXE -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
+            pid=`$PS_BIN -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
             ;;
         '/bin/ps')
-            pid=`$PSEXE -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
+            pid=`$PS_BIN -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
             ;;
         *)
-            echo "Unsupported ps command $PSEXE"
+            echo "Unsupported ps command $PS_BIN"
             exit 1
             ;;
         esac
         ;;
     *)
-        pid=`$PSEXE -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1` 2>/dev/null
+        pid=`$PS_BIN -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1` 2>/dev/null
         ;;
     esac
     if [ "X$pid" = "X" ]
@@ -1359,7 +1360,7 @@ installUpstart() {
 installdaemon() {
     mustBeRootOrExit
     
-    APP_NAME_LOWER=`echo "$APP_NAME" | $TREXE "[A-Z]" "[a-z]"`
+    APP_NAME_LOWER=`echo "$APP_NAME" | $TR_BIN "[A-Z]" "[a-z]"`
     if [ "$DIST_OS" = "solaris" ] ; then
         eval echo `gettext 'Detected Solaris:'`
         if [ -f "/etc/init.d/$APP_NAME" -o -L "/etc/init.d/$APP_NAME" ] ; then
@@ -1569,7 +1570,7 @@ installdaemon() {
 removedaemon() {
     mustBeRootOrExit
     
-    APP_NAME_LOWER=`echo "$APP_NAME" | $TREXE "[A-Z]" "[a-z]"`
+    APP_NAME_LOWER=`echo "$APP_NAME" | $TR_BIN "[A-Z]" "[a-z]"`
     if [ "$DIST_OS" = "solaris" ] ; then
         eval echo `gettext 'Detected Solaris:'`
         if [ -f "/etc/init.d/$APP_NAME" -o -L "/etc/init.d/$APP_NAME" ] ; then
