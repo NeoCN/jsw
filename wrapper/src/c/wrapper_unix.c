@@ -1803,10 +1803,6 @@ int main(int argc, char **argv) {
     size_t req;
     TCHAR **argv;
     
-    /* We need to always have an initial active locatlization data.*/
-    locData = newEmptyLocalizationData(TRUE);
-    /* The returned PLocalizationData does not need to be freed because it was made active. */
-
 #ifdef FREEBSD
     /* In the case of FreeBSD, we need to dynamically load and initialize the iconv library to work with all versions of FreeBSD. */
     if (loadIconvLibrary()) {

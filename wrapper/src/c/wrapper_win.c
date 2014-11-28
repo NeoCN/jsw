@@ -6116,10 +6116,6 @@ void _tmain(int argc, TCHAR **argv) {
      * the table; */
     SERVICE_TABLE_ENTRY serviceTable[2];
     
-    /* We need to always have an initial active locatlization data.*/
-    newEmptyLocalizationData(TRUE);
-    /* The returned PLocalizationData does not need to be freed because it was made active. */
-
     if (buildSystemPath()) {
         appExit(1);
         return; /* For clarity. */
