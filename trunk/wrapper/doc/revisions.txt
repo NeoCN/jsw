@@ -107,6 +107,8 @@ Java Service Wrapper Revision History.
 * In the debug output the full configuration properties packet is suppressed
   from the log output because it is huge and can contain sensitive data.
   Add a size to the abbreviated output to assist with debugging.
+* Fix a memory leak on UNIX platforms whenever an error message was reported.
+  This was only a problem if the message was logged repeatedly.
   
 3.5.25
 * (Professional) Improve the wrapper.timer.<n>.interval property so it is now

@@ -52,8 +52,18 @@
 /* * * Function predeclaration * * */
 #define strcmpIgnoreCase(str1, str2) _tcsicmp(str1, str2)
 
-extern TCHAR* getLastErrorText();
+/**
+ * Returns a textual error message of the last error encountered.
+ *
+ * @return The last error message.
+ */
+extern const TCHAR* getLastErrorText();
 
+/**
+ * Returns the last error number.
+ *
+ * @return The last error number.
+ */
 extern int getLastError();
 
 extern void outOfMemory(const TCHAR *context, int id);

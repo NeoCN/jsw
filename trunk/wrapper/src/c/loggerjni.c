@@ -28,69 +28,77 @@ void invalidMultiByteSequence(const TCHAR *context, int id) {
     _tprintf(TEXT("WrapperJNI Error: Invalid multibyte Sequence found in (%s%02d). %s"), context, id, getLastErrorText());fflush(NULL);
 }
 
+#define LAST_ERROR_TEXT_BUFFER_SIZE 1024
+/** Buffer holding the last error message.
+ *  TODO: This needs to be made thread safe, meaning that we need a buffer for each thread. */
+TCHAR lastErrorTextBufferW[LAST_ERROR_TEXT_BUFFER_SIZE];
+
 /**
- * Create an error message from GetLastError() using the
- *  FormatMessage API Call...
+ * Returns a textual error message of the last error encountered.
+ *
+ * @return The last error message.
  */
+const TCHAR* getLastErrorText() {
+    int errorNum;
 #ifdef WIN32
-TCHAR lastErrBuf[1024];
-TCHAR* getLastErrorText() {
     DWORD dwRet;
     TCHAR* lpszTemp = NULL;
+#else
+    char* lastErrorTextMB;
+    size_t req;
+#endif
 
-    dwRet = FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                           FORMAT_MESSAGE_FROM_SYSTEM |FORMAT_MESSAGE_ARGUMENT_ARRAY,
-                           NULL,
-                           GetLastError(),
-                           LANG_NEUTRAL,
-                           (TCHAR*)&lpszTemp,
-                           0,
-                           NULL);
+#ifdef WIN32
+    errorNum = GetLastError();
+    dwRet = FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY,
+                          NULL,
+                          GetLastError(),
+                          LANG_NEUTRAL,
+                          (TCHAR*)&lpszTemp,
+                          0,
+                          NULL);
 
     /* supplied buffer is not long enough */
-    if (!dwRet || ((long)1023 < (long)dwRet+14)) {
-        lastErrBuf[0] = TEXT('\0');
+    if ((!dwRet) || ((long)LAST_ERROR_TEXT_BUFFER_SIZE - 1 < (long)dwRet + 14)) {
+        _sntprintf(lastErrorTextBufferW, LAST_ERROR_TEXT_BUFFER_SIZE, TEXT("Error Message too large (Size %d) (Error 0x%x)"), dwRet, errorNum);
     } else {
         lpszTemp[lstrlen(lpszTemp)-2] = TEXT('\0');  /*remove cr and newline character */
-        _sntprintf( lastErrBuf, 1024, TEXT("%s (0x%x)"), lpszTemp, GetLastError());
+        _sntprintf(lastErrorTextBufferW, LAST_ERROR_TEXT_BUFFER_SIZE, TEXT("%s (0x%x)"), lpszTemp, errorNum);
     }
 
+    /* following the documentation of FormatMessage, LocalFree should be called to free the output buffer. */
     if (lpszTemp) {
-        GlobalFree((HGLOBAL) lpszTemp);
+        LocalFree(lpszTemp);
     }
-
-    return lastErrBuf;
-}
-int getLastError() {
-    return GetLastError();
-}
 #else
-TCHAR* getLastErrorText() {
-#ifdef UNICODE
-    char* c;
-    TCHAR* t;
-    size_t req;
-    c = strerror(errno);
-    req = mbstowcs(NULL, c, MBSTOWCS_QUERY_LENGTH);
+    errorNum = errno;
+    lastErrorTextMB = strerror(errorNum);
+    req = mbstowcs(NULL, lastErrorTextMB, MBSTOWCS_QUERY_LENGTH);
     if (req == (size_t)-1) {
         invalidMultiByteSequence(TEXT("GLET"), 1);
-        return NULL;
+        _sntprintf(lastErrorTextBufferW, LAST_ERROR_TEXT_BUFFER_SIZE, TEXT("Error Message could not be decoded (Error 0x%x)"), errorNum);
+    } else if (req >= LAST_ERROR_TEXT_BUFFER_SIZE) {
+        _sntprintf(lastErrorTextBufferW, LAST_ERROR_TEXT_BUFFER_SIZE, TEXT("Error Message too large (Size %d) (Error 0x%x)"), req, errorNum);
+    } else {
+        mbstowcs(lastErrorTextBufferW, lastErrorTextMB, LAST_ERROR_TEXT_BUFFER_SIZE);
     }
-    t = malloc(sizeof(TCHAR) * (req + 1));
-    
-    if (!t) {
-        _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("GLET1"));
-        return NULL;
-    }
-    mbstowcs(t, c, req + 1);
-    t[req] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
-    return t;
+#endif
+    /* Always reterminate the buffer just to be sure it is safe because badly encoded characters can cause issues. */
+    lastErrorTextBufferW[LAST_ERROR_TEXT_BUFFER_SIZE - 1] = TEXT('\0');
 
-#else
-    return strerror(errno);
-#endif
+    return lastErrorTextBufferW;
 }
+
+/**
+ * Returns the last error number.
+ *
+ * @return The last error number.
+ */
 int getLastError() {
+#ifdef WIN32
+    return GetLastError();
+#else
     return errno;
-}
 #endif
+}
+
