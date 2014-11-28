@@ -8974,9 +8974,12 @@ static void tsJAP_subTestJavaAdditionalParamSuite(int stripQuote, TCHAR *config,
 
     param.stripQuote = stripQuote;
     param.strings = (TCHAR **)malloc(sizeof(TCHAR *) * strings_len);
+    if (!param.strings) {
+        return;
+    }
+    
     param.index = 0;
     param.isJVMParam = isJVMParam;
-    CU_ASSERT(param.strings != NULL);
 
     ret = loadParameterFileCallback((void *)(&param), NULL, 0, config, FALSE);
     CU_ASSERT_TRUE(ret);
