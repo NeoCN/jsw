@@ -131,13 +131,13 @@ PHashMap newHashMap(int bucketCount) {
     
     hashMap->bucketCount = bucketCount;
     
-    hashMap->buckets = malloc(sizeof(HashBucket) * bucketCount);
+    hashMap->buckets = malloc(sizeof(PHashBucket) * bucketCount);
     if (!hashMap->buckets) {
         _tprintf(TEXT("Out of memory (%s)\n"), TEXT("NHM2"));
         freeHashMap(hashMap);
         return NULL;
     }
-    memset(hashMap->buckets, 0, sizeof(HashBucket) * bucketCount);
+    memset(hashMap->buckets, 0, sizeof(PHashBucket) * bucketCount);
     
     for (i = 0; i < hashMap->bucketCount; i++) {
         bucket = malloc(sizeof(HashBucket));

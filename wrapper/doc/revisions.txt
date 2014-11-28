@@ -109,6 +109,8 @@ Java Service Wrapper Revision History.
   Add a size to the abbreviated output to assist with debugging.
 * Fix a memory leak on UNIX platforms whenever an error message was reported.
   This was only a problem if the message was logged repeatedly.
+* Correct a couple other potential memory leaks found through code review.
+  Not known to have been causing any actual problems.
   
 3.5.25
 * (Professional) Improve the wrapper.timer.<n>.interval property so it is now
