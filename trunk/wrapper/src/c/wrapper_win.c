@@ -1662,7 +1662,6 @@ int wrapperExecute() {
     
     /* Make sure the classpath is not too long. */
     len = _tcslen(wrapperData->jvmCommand);
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Java command line length=%d"), len); 
     if (len > MAX_COMMAND_LINE_LEN) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("The generated Java command line has a length of %d, which is longer than the Windows maximum of %d characters."), len, MAX_COMMAND_LINE_LEN);
         if (!wrapperData->environmentClasspath) {
@@ -6116,6 +6115,10 @@ void _tmain(int argc, TCHAR **argv) {
      * members of the last entry are necessary to indicate the end of
      * the table; */
     SERVICE_TABLE_ENTRY serviceTable[2];
+    
+    /* We need to always have an initial active locatlization data.*/
+    newEmptyLocalizationData(TRUE);
+    /* The returned PLocalizationData does not need to be freed because it was made active. */
 
     if (buildSystemPath()) {
         appExit(1);
