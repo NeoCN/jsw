@@ -558,6 +558,7 @@ Properties* createProperties() {
     properties->last = NULL;
     properties->warnedVarMap = newHashMap(8);
     if (!properties->warnedVarMap) {
+        disposeProperties(properties);
         return NULL;
     }
     return properties;
@@ -1229,6 +1230,7 @@ Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum
         }
 
         if (property->value == NULL) {
+            free(propertyValueTrim);
             return NULL;
         }
         /* Store the final flag */

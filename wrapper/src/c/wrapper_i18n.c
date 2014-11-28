@@ -340,9 +340,9 @@ size_t _treadlink(TCHAR* exe, TCHAR* fullPath, size_t size) {
     cExe = malloc(req + 1);
     if (cExe) {
         wcstombs(cExe, exe, req + 1);
-        cFullPath = malloc (size);
+        cFullPath = malloc(size);
         if (cFullPath) {
-            req = readlink(cExe, cFullPath, size);
+            readlink(cExe, cFullPath, size);
             req = mbstowcs(fullPath, cFullPath, size);
             if (req == (size_t)-1) {
                 free(cFullPath);

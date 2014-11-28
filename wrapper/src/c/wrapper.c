@@ -1721,8 +1721,9 @@ void protocolOpenSocket(int IPv4) {
         }
 
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, TEXT("accepted a socket from %s on port %d"), socketSource, port);
-        free(socketSource);
     }
+    
+    free(socketSource);
     
     /* Make the socket non-blocking */
 #ifdef WIN32
@@ -2114,7 +2115,8 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
             /* Fallback to raw message.  Not ideal but Ok. */
             logMsgW = (TCHAR*)messageW; /* Strip the const, but will never be modified. */
         } else {
-            _sntprintf(logMsgW, len, messageTemplate, strlen(messageMB));
+            /* messageMB should never be NULL, but for code checker be careful. */
+            _sntprintf(logMsgW, len, messageTemplate, (messageMB ? strlen(messageMB) : 0));
         }
     } else {
         logMsgW = (TCHAR*)messageW; /* Strip the const, but will never be modified. */
@@ -3939,10 +3941,8 @@ int wrapperReadChildOutput(int maxTimeMS) {
  #endif
 #endif
                     logChildOutput(wrapperChildWorkBuffer + loggedOffset);
-                    /* We know we read everything. */
-                    loggedOffset = wrapperChildWorkBufferLen;
                     
-                    /* So we can safely reset the loggedOffset and clear the buffer. */
+                    /* We know we read everything so we can safely reset the loggedOffset and clear the buffer. */
                     wrapperChildWorkBuffer[0] = '\0';
                     wrapperChildWorkBufferLen = 0;
                     loggedOffset = 0;
@@ -6949,7 +6949,6 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     }
 
     /* Store the main class */
-    thisIsTestWrapper = FALSE;
     prop = getStringProperty(properties, TEXT("wrapper.java.mainclass"), TEXT("Main"));
     if (_tcscmp(prop, TEXT("org.tanukisoftware.wrapper.test.Main")) == 0) {
         thisIsTestWrapper = TRUE;
