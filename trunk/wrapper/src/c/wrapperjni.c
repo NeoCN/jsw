@@ -619,7 +619,6 @@ void throwThrowable(JNIEnv *env, char *throwableClassName, const TCHAR *lpszFmt,
             messageBuffer = (TCHAR*)malloc(messageBufferSize * sizeof(TCHAR));
             if (!messageBuffer) {
                 throwOutOfMemoryError(env, TEXT("TT2"));
-                messageBufferSize = 0;
                 return;
             }
 
@@ -794,6 +793,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_accessViolationInner(JNIEnv *env,
     /* Cause access violation */
     ptr = NULL;
     ptr[0] = L'\n';
+
 }
 
 

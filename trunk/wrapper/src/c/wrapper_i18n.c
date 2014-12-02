@@ -143,7 +143,7 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
     size_t nativeCharLen;
     size_t nativeCharLenCopy;
     size_t multiByteCharsLenStart;
-#if defined(FREEBSD) || defined (SOLARIS)
+#if defined(FREEBSD) || defined(SOLARIS) || defined(AIX)
     const char* multiByteCharsStart;
 #else
     char* multiByteCharsStart;
@@ -209,7 +209,11 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
             }
             
             multiByteCharsLenStart = multiByteCharsLen;
+#if defined(FREEBSD) || defined(SOLARIS) || defined(AIX)
+            multiByteCharsStart = multiByteChars;
+#else
             multiByteCharsStart = (char *)multiByteChars;
+#endif
             nativeCharStart = malloc(nativeCharLen);
             if (!nativeCharStart) {
                 /* Out of memory. */

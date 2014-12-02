@@ -35,7 +35,7 @@
 
 #ifndef WIN32
 
-#include <linux/limits.h>
+#include <limits.h>
 #include <wchar.h>
 #include <netdb.h>
 #include <stdio.h>

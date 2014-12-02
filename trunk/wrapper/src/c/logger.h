@@ -39,13 +39,6 @@
 /* If defined, output debug information about console output. */
 /*#define DEBUG_CONSOLE_OUTPUT*/
 
-#ifdef MACOSX
- #ifndef wcscasecmp
-extern inline int wcscasecmp(const wchar_t* s1, const wchar_t* s2);
-  #define MACOSX_ECSCASECMP
- #endif
-#endif
-
 #ifdef _DEBUG
  #define _DEBUG_QUEUE
 #endif
