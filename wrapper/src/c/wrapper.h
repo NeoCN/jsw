@@ -56,6 +56,18 @@
 
 #include "property.h"
 
+#ifndef WIN32
+ /*
+  * Mac OSX 10.5 does not define the environ variable.  This is work around for that.
+  */
+ #ifdef MACOSX
+  #include <crt_externs.h>
+  #define environ *_NSGetEnviron();
+ #endif
+
+extern char** environ;
+#endif
+
 /* The following define will enable debug output of the code to parse the JVM output. */
 /*#define DEBUG_CHILD_OUTPUT*/
 
