@@ -346,7 +346,7 @@ compareVersions () {
             then
                 return 2
             fi
-            i=$(($i+1))
+            i=`expr $i + 1`
         done
     fi
 }
