@@ -2199,12 +2199,12 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
                             break;
                         }
                     } else if (rc < 0) {
-                        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, TEXT("send unexpectedly returned %d"), rc);
+                        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, TEXT("Send unexpectedly returned %d"), rc);
                         break;
                     } else {
                         /* Wrote N characters. */
-                        if (((sent < len) || (sendCnt > 0)) && wrapperData->isDebugging) {
-                            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("  sent %d bytes, %d remaining."), rc, len - sent - rc );
+                        if (((sent + rc < len) || (sendCnt > 0)) && wrapperData->isDebugging) {
+                            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("  Sent %d bytes, %d remaining."), rc, len - sent - rc );
                         }
                         sent += rc;
                         sendCnt++;
