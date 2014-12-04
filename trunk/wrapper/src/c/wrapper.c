@@ -2026,13 +2026,16 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
  #endif
 #endif
     int rc;
-    int cnt, inWritten;
+    int cnt;
+    int sendCnt;
+    int inWritten;
     size_t len;
     TCHAR *logMsgW;
     const TCHAR *messageTemplate;
     char *messageMB = NULL;
     int returnVal = FALSE;
     int ok = TRUE;
+    size_t sent;
 
     /* It is important than there is never more than one thread allowed in here at a time. */
     if (lockProtocolMutex()) {
@@ -2179,32 +2182,52 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
                     returnVal = TRUE;
                 }
             } else {
+                sent = 0;
                 cnt = 0;
-                do {
+                sendCnt = 0;
+                rc = 0;
+                while ((sent < len) && (cnt < 200)) {
                     if (cnt > 0) {
                         wrapperSleep(10);
                     }
-                    rc = send(protocolActiveBackendSD, protocolSendBuffer, sizeof(char) * (int)len, 0);
+
+                    rc = send(protocolActiveBackendSD, protocolSendBuffer + sent, sizeof(char) * (int)(len - sent), 0);
+                    if (rc == SOCKET_ERROR) {
+                        if (wrapperGetLastError() == WRAPPER_EWOULDBLOCK) {
+                            /* The output buffer is simply full right now.  Try again in a bit. */
+                        } else {
+                            break;
+                        }
+                    } else if (rc < 0) {
+                        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, TEXT("send unexpectedly returned %d"), rc);
+                        break;
+                    } else {
+                        /* Wrote N characters. */
+                        if (((sent < len) || (sendCnt > 0)) && wrapperData->isDebugging) {
+                            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("  sent %d bytes, %d remaining."), rc, len - sent - rc );
+                        }
+                        sent += rc;
+                        sendCnt++;
+                    }
 
                     cnt++;
-                } while ((rc == SOCKET_ERROR) && (wrapperGetLastError() == WRAPPER_EWOULDBLOCK) && (cnt < 200));
+                }
                 if (rc == SOCKET_ERROR) {
                     if (wrapperGetLastError() == WRAPPER_EWOULDBLOCK) {
-                        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN, TEXT(
-                            "socket send failed.  Blocked for 2 seconds.  %s"),
-                            getLastErrorText());
+                        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN, TEXT("Socket send failed.  Blocked for 2 seconds.  %s"), getLastErrorText());
 #ifdef WIN32
                     } else if (wrapperGetLastError() == WSAECONNRESET) {
-                        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, TEXT(
-                            "socket send failed.  %s"), getLastErrorText());
+                        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, TEXT("Socket send failed.  %s"), getLastErrorText());
 #endif
                     } else {
                         if (wrapperData->isDebugging) {
-                            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT(
-                                "socket send failed.  %s"), getLastErrorText());
+                            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("Socket send failed.  %s"), getLastErrorText());
                         }
                     }
                     wrapperProtocolClose();
+                    returnVal = TRUE;
+                } else if (sent < len) {
+                    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, TEXT("Socket send failed.  Incomplete.  Sent %d of %d bytes."), sent, len);
                     returnVal = TRUE;
                 } else {
                     returnVal = FALSE;
