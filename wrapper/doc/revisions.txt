@@ -85,6 +85,10 @@ Java Service Wrapper Revision History.
   connection.  This would happen regardless of the backend type used.  The
   size of the configuration file that would cause a problem varied greatly
   based on the specific system.
+* Fix a problem on Windows platforms where a very large configuration file
+  would fail to be sent to the WrapperManager on startup when the
+  wrapper.backend.type property was set to PIPE.  The only problem was that
+  the WrapperManager.getProperties() method would be empty.
 * (Professional) Add checks to the WrapperManager.exec() methods on Windows
   for the maximum command line length of 32766, and maximum environment
   variable name-value pair length of 32767.

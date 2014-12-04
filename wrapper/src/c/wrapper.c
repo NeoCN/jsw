@@ -2153,7 +2153,7 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
             /* A socket was not opened */
             if (wrapperData->isDebugging) {
                 log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
-                    TEXT("socket not open, so packet not sent %s : %s"),
+                    TEXT("Socket not open, so packet not sent %s : %s"),
                     wrapperProtocolGetCodeName(function), (logMsgW == NULL ? TEXT("NULL") : logMsgW));
             }
             returnVal = TRUE;
@@ -2162,23 +2162,47 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
                 if ((function == WRAPPER_MSG_PING) && messageW && (_tcsstr(messageW, TEXT("silent")) == messageW)) {
                     /*
                     log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
-                        TEXT("send a silent ping packet %s : %s"),
+                        TEXT("Send a silent ping packet %s : %s"),
                         wrapperProtocolGetCodeName(function), (logMsgW == NULL ? TEXT("NULL") : logMsgW));
                     */
                 } else {
                     log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
-                        TEXT("send a packet %s : %s"),
+                        TEXT("Send a packet %s : %s"),
                         wrapperProtocolGetCodeName(function), (logMsgW == NULL ? TEXT("NULL") : logMsgW));
                 }
             }
 
             if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) {
+                sent = 0;
+                cnt = 0;
+                sendCnt = 0;
+                while ((sent < len) && (cnt < 200)) {
+                    if (cnt > 0) {
+                        wrapperSleep(10);
+                    }
+
 #ifdef WIN32
-                if (WriteFile(protocolActiveServerPipeOut, protocolSendBuffer, sizeof(char) * (int)len, &inWritten, NULL) == FALSE) {
+                    /* Send a maximum of 32000 characters per call as larger values appear to fail without error. */
+                    if (WriteFile(protocolActiveServerPipeOut, protocolSendBuffer + sent, __min(32000, sizeof(char) * (int)(len - sent)), &inWritten, NULL) == FALSE) {
 #else
-                if ((inWritten = write(protocolActiveServerPipeOut, protocolSendBuffer, sizeof(char) * (int)len)) == -1) { 
+                    if ((inWritten = write(protocolActiveServerPipeOut, protocolSendBuffer + sent, sizeof(char) * (int)(len - sent))) == -1) {
 #endif
-                    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_FATAL, TEXT("Writing to the backend pipe failed (%d): %s"), wrapperGetLastError(), getLastErrorText());
+                        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_FATAL, TEXT("Writing to the backend pipe failed (%d): %s"), wrapperGetLastError(), getLastErrorText());
+                        returnVal = TRUE;
+                        break;
+                    } else {
+                        /* Write N characters */
+                        if (((sent + inWritten < len) || (sendCnt > 0)) && wrapperData->isDebugging) {
+                            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("  Sent %d bytes, %d remaining."), inWritten, len - sent - inWritten );
+                        }
+                        sent += inWritten;
+                        sendCnt++;
+                    }
+                    
+                    cnt++;
+                }
+                if (sent < len) {
+                    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, TEXT("%s send failed.  Incomplete.  Sent %d of %d bytes."), TEXT("Pipe"), sent, len);
                     returnVal = TRUE;
                 }
             } else {
@@ -2227,7 +2251,7 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
                     wrapperProtocolClose();
                     returnVal = TRUE;
                 } else if (sent < len) {
-                    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, TEXT("Socket send failed.  Incomplete.  Sent %d of %d bytes."), sent, len);
+                    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, TEXT("%s send failed.  Incomplete.  Sent %d of %d bytes."), TEXT("Socket"), sent, len);
                     returnVal = TRUE;
                 } else {
                     returnVal = FALSE;
