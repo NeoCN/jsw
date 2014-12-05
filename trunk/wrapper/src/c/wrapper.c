@@ -2036,6 +2036,9 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
     int returnVal = FALSE;
     int ok = TRUE;
     size_t sent;
+#ifdef WIN32
+    int maxSendSize;
+#endif
 
     /* It is important than there is never more than one thread allowed in here at a time. */
     if (lockProtocolMutex()) {
@@ -2172,10 +2175,17 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
                 }
             }
 
+            /* When actually sending the packet, we need to be careful to make sure that the entire packet gets sent.
+             *  There isssues on both sockets and Pipes where the send will fail if the packet is too large.
+             *  In such cases, it needs to be broken up into multiple calls.
+             *  This is currently only an issue with the PROPERTIES packet. */
             if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) {
                 sent = 0;
                 cnt = 0;
                 sendCnt = 0;
+#ifdef WIN32
+                maxSendSize = 40000;
+#endif
                 while ((sent < len) && (cnt < 200)) {
                     if (cnt > 0) {
                         wrapperSleep(10);
@@ -2183,13 +2193,20 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
 
 #ifdef WIN32
                     /* Send a maximum of 32000 characters per call as larger values appear to fail without error. */
-                    if (WriteFile(protocolActiveServerPipeOut, protocolSendBuffer + sent, __min(32000, sizeof(char) * (int)(len - sent)), &inWritten, NULL) == FALSE) {
+                    if (WriteFile(protocolActiveServerPipeOut, protocolSendBuffer + sent, __min(maxSendSize, sizeof(char) * (int)(len - sent)), &inWritten, NULL) == FALSE) {
 #else
                     if ((inWritten = write(protocolActiveServerPipeOut, protocolSendBuffer + sent, sizeof(char) * (int)(len - sent))) == -1) {
 #endif
                         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_FATAL, TEXT("Writing to the backend pipe failed (%d): %s"), wrapperGetLastError(), getLastErrorText());
                         returnVal = TRUE;
                         break;
+#ifdef WIN32
+                    } else if (inWritten == 0) {
+                        /* Didn't write anything, but not an error.
+                         *  Have not found this documented anywhere, but it happens if the size is larger than some hidden limit. */
+                        maxSendSize = __max(512, (int)(maxSendSize * 0.90));
+                        sendCnt++;
+#endif
                     } else {
                         /* Write N characters */
                         if (((sent + inWritten < len) || (sendCnt > 0)) && wrapperData->isDebugging) {
