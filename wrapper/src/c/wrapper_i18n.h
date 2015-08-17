@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2014 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2015 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -127,7 +127,7 @@ extern int _tstat(const wchar_t* filename, struct stat *buf);
 #define _tstati64     _wstati64
 #define _tstrdate     _wstrdate
 #define _tcsdec       _wcsdec
-#define _tcsdup       _wcsdup
+#define _tcsdup       wcsdup   /* replaced _wcsdup by wcsdup - but both not supported on Zos */
 #define _tcsicmp      wcscasecmp
 /* Intentionally do not allow use of _trealpath because it does not specify a buffer length.
  * #define _trealpath
@@ -329,7 +329,7 @@ typedef unsigned char _TUCHAR;
 #define _tstati64     _stati64
 #define _tstrdate     _strdate
 #define _tcsdec       _strdec
-#define _tcsdup       _strdup
+#define _tcsdup       strdup    /* replaced _strdup by strdup */
 #define _tcsicmp      strcasecmp
 #define _tcsicoll     _stricoll
 #define _tcsinc       _strinc

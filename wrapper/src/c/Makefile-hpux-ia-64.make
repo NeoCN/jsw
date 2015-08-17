@@ -1,4 +1,4 @@
-# Copyright (c) 1999, 2014 Tanuki Software, Ltd.
+# Copyright (c) 1999, 2015 Tanuki Software, Ltd.
 # http://www.tanukisoftware.com
 # All rights reserved.
 #
@@ -8,7 +8,7 @@
 # http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
 
 
-COMPILE = cc +z +DD64 -O3 -DHPUX -DJSW64 -D_INCLUDE__STDC_A1_SOURCE -DUNICODE -D_UNICODE
+COMPILE = gcc -O3 -fpic -Wall --pedantic -mlp64 -L/usr/local/lib/hpux32 -liconv -DHPUX_IA -DHPUX -DJSW64 -D_INCLUDE__STDC_A1_SOURCE -DUNICODE -D_UNICODE
 
 INCLUDE=$(JAVA_HOME)/include
 
@@ -37,7 +37,7 @@ wrapper: $(wrapper_SOURCE)
 	$(COMPILE) $(wrapper_SOURCE) -lm -lpthread -o $(BIN)/wrapper
 
 libwrapper.so: $(libwrapper_so_SOURCE)
-	${COMPILE} ${DEFS} $(libwrapper_so_SOURCE) -b -lm -lpthread -o $(LIB)/libwrapper.so
+	${COMPILE} ${DEFS} $(libwrapper_so_SOURCE) -shared -lm -lpthread -o $(LIB)/libwrapper.so
 
 %.o: %.c
 	${COMPILE} -c ${DEFS} $<

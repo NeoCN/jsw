@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2014 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2015 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -263,6 +263,8 @@ struct WrapperConfig {
     int     commandLogLevel;        /* The log level to use when logging the java command. */
     int     printJVMVersion;        /* tells the Wrapper to create a temp JVM to query the version, before starting the java application */
 #ifdef WIN32
+    int     argc;                   /* argc params as originally received in the entry function */
+    TCHAR   **argv;                 /* argv params as originally received in the entry function */
     TCHAR   *jvmVersionCommand;     /* Command used to launch the JVM and request its version */
     TCHAR   *jvmCommand;            /* Command used to launch the JVM */
 #else /* UNIX */
@@ -466,6 +468,10 @@ struct WrapperConfig {
 #endif
 };
 
+
+
+
+
 #define WRAPPER_SIGNAL_MODE_IGNORE   (char)100
 #define WRAPPER_SIGNAL_MODE_RESTART  (char)101
 #define WRAPPER_SIGNAL_MODE_SHUTDOWN (char)102
@@ -495,6 +501,9 @@ struct WrapperConfig {
 
 #define WRAPPER_PROCESS_DOWN      200
 #define WRAPPER_PROCESS_UP        201
+
+/* default timeout (in second) when executing child process to print java version */
+#define DEFAULT_JAVA_VERSION_TIMEOUT    10
 
 extern WrapperConfig *wrapperData;
 extern Properties    *properties;
@@ -596,11 +605,40 @@ extern int wrapperWildcardMatch(const TCHAR *text, const TCHAR *pattern, size_t 
 extern size_t wrapperGetMinimumTextLengthForPattern(const TCHAR *pattern);
 
 /**
+ * Function that copies an array of strings.
+ *  The output will be pointer to a NULL terminated array even though the source does not end with a NULL value.
+ *
+ * @param arrOut Array with copied strings
+ * @param arrIn  Array to copy
+ * @param count  Number of elements to copy. If arrIn has less elements than count, arrOut will be the same size as arrIn.
+ */
+extern void wrapperCopyStringArray(TCHAR*** arrOut, TCHAR*** arrIn, int count);
+
+/**
+ * Function that splits a text into tokens according to delimiters.
+ *  Any spaces around delimiters will be trimmed.
+ *  Several delimiters following each others without spaces will be considered as one.
+ *  If there are any space between 2 delimiters, the function will consider it as a token and trim it.
+ *
+ * @param text Text to be split
+ * @param delim Array of delimiters 
+ *
+ * @return tokens in an Array of TCHAR*
+ */
+/*extern TCHAR** wrapperSplitText(const TCHAR* text, const TCHAR* delim);*/
+
+/**
+ * Trims any whitespace from the beginning and end of the in string
+ *  and places the results in the out buffer.  Assumes that the out
+ *  buffer is at least as large as the in buffer. */
+extern void trim(const TCHAR *in, TCHAR *out);
+
+/**
  * Returns a constant text representation of the specified Wrapper State.
  *
  * @param wState The Wrapper State whose name is being requested.
  *
- * @return Thre requested Wrapper State.
+ * @return The requested Wrapper State.
  */
 extern const TCHAR *wrapperGetWState(int wState);
 
@@ -609,7 +647,7 @@ extern const TCHAR *wrapperGetWState(int wState);
  *
  * @param jState The Java State whose name is being requested.
  *
- * @return Thre requested Java State.
+ * @return The requested Java State.
  */
 extern const TCHAR *wrapperGetJState(int jState);
 
@@ -763,6 +801,23 @@ extern void wrapperSetJavaState(int jState, TICKS nowTicks, int delay);
  * Platform specific methods
  *****************************************************************************/
 #ifdef WIN32
+
+/**
+ * Function that returns the position of the top-bottom corner of the user's screen.
+ *
+ * @return 8-byte hexadecimal value. The first four bytes (high word) represent the position of the window on the X (horizontal) axis. The last four bytes (low word) represent the position of the window on the Y (vertical) axis. If the function fails, NULL will be returned.
+ */
+extern DWORD wrapperGetRightBottomCornerPosition();
+
+/**
+ * Function that allocates an hidden console by editing the registry (fix for the console flicker bug).
+ *  The function will edit the registry in order to minimize the size of the console and to position it in the right-bottom hand corner of the screen.
+ *  The registry key will be removed just after the console is allocated. As a precaution, it is also set volatile and will not persist on system restart. 
+ *  
+ * @return TRUE if the console was allocated, FALSE if it could not be allocated.
+ */
+extern int wrapperAllocHiddenConsole();
+
 extern void wrapperCheckConsoleWindows();
 /**
  *   checks the digital Signature of the binary and reports the result.
@@ -775,7 +830,9 @@ BOOL extern duplicateSTD();
 BOOL extern myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParameters, LPCTSTR pszDirectory, TCHAR* namedPipeName);
 BOOL extern runElevated( __in LPCTSTR pszPath, __in_opt LPCTSTR pszParameters, __in_opt LPCTSTR pszDirectory, TCHAR* namedPipeName);
 BOOL extern isElevated();
+BOOL extern isWin10OrHigher();
 BOOL extern isVista();
+BOOL extern isWinXP();
 extern void wrapperMaintainControlCodes();
 #else
 extern void wrapperMaintainSignals();

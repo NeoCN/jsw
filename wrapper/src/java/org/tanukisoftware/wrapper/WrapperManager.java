@@ -297,6 +297,9 @@ public final class WrapperManager
     /** Flag to remember whether or not this is MacOSX. */
     private static boolean m_macosx = false;
     
+    /** Flag to remember whether or not this is AIX. */
+    private static boolean m_aix = false;
+    
     /** Flag that will be set to true once a SecurityManager has been detected and tested. */
     private static boolean m_securityManagerChecked = false;
     
@@ -1065,6 +1068,7 @@ public final class WrapperManager
         {
             // Display more JVM info right after the call initialization of the
             // library.
+            m_outDebug.println( getRes().getString( "Java PID       : {0}", Integer.toString( getJavaPID() ) ) );
             m_outDebug.println( getRes().getString( "Java Version   : {0}", fullVersion ) );
             m_outDebug.println( getRes().getString( "Java VM Vendor : {0}", vendor ) );
             m_outDebug.println( getRes().getString( "OS Name        : {0}", System.getProperty( "os.name", "" ) ) );
@@ -1165,6 +1169,7 @@ public final class WrapperManager
     private static native String nativeWrapperGetEnv( String val ) throws NullPointerException;
     private static native WrapperResources nativeLoadWrapperResources(String domain, String folder, boolean makeActive);
     private static native boolean nativeCheckDeadLocks();
+    private static native int nativeGetPortStatus(int port, String address, int protocol);
     
     /*---------------------------------------------------------------
      * Methods
@@ -1239,6 +1244,7 @@ public final class WrapperManager
     {
         try
         {
+            checkOldLibraryOnAix(file);
             System.loadLibrary( name );
             
             if ( m_debug )
@@ -1401,6 +1407,10 @@ public final class WrapperManager
         {
             os = "zos";
         }
+        else if ( os.indexOf("aix") > -1 )
+        {
+            m_aix = true;
+        }
         
         // Generate an architecture name.
         String arch;
@@ -1446,6 +1456,55 @@ public final class WrapperManager
         return baseName + "-" + os + "-" + arch + "-" + jvmBits;
     }
     
+    /** 
+     * On AIX, mapLibraryName() will return "lib*.a" with the IBM SDK, and "lib*.so" with the openJDK. 
+     * Shared libraries can either have .so or .a suffix on AIX, but System.loadLibrary() in openJDK only accepts '.so' file.
+     *   Note : After calling this function, we will always log the libraries names with a '.so' suffix even though the loaded lib was '.a'. 
+     *   This may not be perfect, but there is no way to control whether System.loadLibrary() loaded a '.a' or a '.so' file. 
+     *   We could use System.load() to control the path & suffix, but we don't want to make a special implementation for AIX.
+     *   We could also loop through the lib paths and check if libraries with same names & different suffix coexist, but it assumes loadLibrary() always load '.a' in priority, which is not guaranteed in future versions of Java.
+     */
+    private static String mapSharedLibraryName(String name) 
+    {
+        String result = System.mapLibraryName( name );
+        if (isAIX() && result.endsWith(".a"))
+        {
+            result = result.substring(0, result.length() - 2).concat(".so");
+        }
+        return result;
+    }
+    
+    /** 
+     * On AIX, '.a' libraries are loaded prior to '.so' libraries if both coexist on the same folder. 
+     * To help the user, lets warn if any '.a' file are found in the lib folders.
+     */
+    private static void checkOldLibraryOnAix(String libName)
+    {
+        if (isAIX())
+        {
+            if (libName.endsWith(".so")) 
+            {
+                libName = libName.substring(0, libName.length() - 3).concat(".a");
+            }
+            // We want to log the exact path of the library, so we don't pass libPaths with separators but rather loop on each path
+            String pathSep = System.getProperty( "path.separator" );
+            String[] libPaths = System.getProperty( "java.library.path" ).split(pathSep);
+            for ( int j = 0; j < libPaths.length; j++ ) 
+            {
+                File libFile = locateFileOnPath( libName, libPaths[j] );
+                if ( libFile != null )
+                {
+                    m_outInfo.println( getRes().getString( "WARNING - {0} was found in {1}.", libName, libPaths[j] ));
+                    m_outInfo.println( getRes().getString( "          Recent Wrapper''s native libraries have a ''.so'' suffix." ));
+                    m_outInfo.println( getRes().getString( "          Depending on the version of Java that is used, {0}", libName ));
+                    m_outInfo.println( getRes().getString( "          may be loaded instead of a more recent library." ));
+                    m_outInfo.println( getRes().getString( "          Please remove {0} and make sure that the latest version", libName ));
+                    m_outInfo.println( getRes().getString( "          of the Wrapper''s native library is in the lib folder." ));
+                }
+            }
+        }
+    }
+    
     /**
      * Searches for and then loads the native library.  This method will attempt
      *  locate the wrapper library using one of the following 3 naming 
@@ -1474,13 +1533,13 @@ public final class WrapperManager
         }
         
         // Construct brief and detailed native library file names.
-        String file = System.mapLibraryName( baseName );
+        String file = mapSharedLibraryName( baseName );
         String[] detailedFiles = new String[detailedNames.length];
         for ( int i = 0; i < detailedNames.length; i++ )
         {
             if ( detailedNames[i] != null )
             {
-                detailedFiles[i] = System.mapLibraryName( detailedNames[i] );
+                detailedFiles[i] = mapSharedLibraryName( detailedNames[i] );
             }
         }
         
@@ -2357,6 +2416,18 @@ public final class WrapperManager
     public static boolean isMacOSX()
     {
         return m_macosx;
+    }
+    
+    /**
+     * Returns true if the current JVM is AIX.
+     *
+     * @return True if this is AIX.
+     *
+     * @since Wrapper 3.5.27
+     */
+    public static boolean isAIX()
+    {
+        return m_aix;
     }
     
     /**
@@ -4813,78 +4884,118 @@ public final class WrapperManager
         SocketException causeException = null;
         do
         {
-            try
+            // On Windows if we attempt to open a socket with a port that was recently used and still in a TIME_WAIT
+            //  state, then Windows will sometimes cause a 4227 Event entry to be logged in the System EventLog.
+            //  It is not possible in Java to check on the state of a port before using it so we do so in native
+            //  code.  This check is not critical other than this warning, so fall through to the normal attempt if
+            //  we are unable to precheck the port status for any reason.
+            int portStatus;
+            if ( isNativeLibraryOk() )
             {
-                m_backendSocket = new Socket( iNetAddress, m_port, iNetAddress, tryPort );
-                if ( m_debug )
+                try
                 {
-                    m_outDebug.println(getRes().getString( "Opened Socket from {0} to {1}",
-                            new Integer( tryPort ), new Integer( m_port ) ) );
+                    portStatus = nativeGetPortStatus( tryPort, m_wrapperPortAddress, ( m_backendType == BACKEND_TYPE_SOCKET_V6 ? 1 : 0 ) );
                 }
-                connected = true;
-                break;
+                catch ( UnsatisfiedLinkError e )
+                {
+                    // This can happen if an old native library is used.  Fall through.
+                    m_outError.println( getRes().getString( "Unable to precheck status of port {0} due to: {1}",
+                                new Integer( tryPort ), e.toString() ) );
+                    portStatus = -1;
+                }
             }
-            catch ( SocketException e )
+            else
             {
-                String eMessage = e.getMessage();
-                
-                if ( e instanceof ConnectException )
+                portStatus = -1;
+            }
+            if ( portStatus <= 0 )
+            {
+                try
                 {
-                    m_outError.println(getRes().getString(
-                            "Failed to connect to the Wrapper at port {0}. Cause: {1}",
-                            new Integer( m_port ), e ) );
-                    // This is fatal because there is nobody listening.
-                    m_outError.println( "Exiting JVM..." );
-                    stopImmediate( 1 );
-                }
-                else if ( ( e instanceof BindException ) ||
-                    ( ( eMessage != null ) &&
-                    ( ( eMessage.indexOf( "errno: 48" ) >= 0 ) ||
-                        ( eMessage.indexOf( "Address already in use" ) >= 0 ) ) ||
-                        ( eMessage.indexOf( "Unrecognized Windows Sockets error: 0: JVM_Bind" ) >= 0 ) ) ) /* This message is caused by a JVM Bug: http://bugs.sun.com/view_bug.do?bug_id=6965962 */
-                {
-                    // Most Java implementations throw a BindException when the port is in use,
-                    //  but FreeBSD throws a SocketException with a specific message.
-                    
-                    // This happens if the local port is already in use.  In this case, we want
-                    //  to loop and try again.
+                    m_backendSocket = new Socket( iNetAddress, m_port, iNetAddress, tryPort );
                     if ( m_debug )
                     {
-                        m_outDebug.println( getRes().getString(
-                                "Unable to open socket to Wrapper from port {0}, already in use.",
-                                new Integer( tryPort ) ) );
+                        m_outDebug.println(getRes().getString( "Opened Socket from {0} to {1}",
+                                new Integer( tryPort ), new Integer( m_port ) ) );
                     }
+                    connected = true;
+                    break;
+                }
+                catch ( SocketException e )
+                {
+                    String eMessage = e.getMessage();
                     
-                    if ( fixedPort )
+                    if ( e instanceof ConnectException )
                     {
-                        // The last port checked was the fixed port, switch to the dynamic range.
-                        tryPort = m_jvmPortMin;
-                        fixedPort = false;
+                        m_outError.println(getRes().getString(
+                                "Failed to connect to the Wrapper at port {0}. Cause: {1}",
+                                new Integer( m_port ), e ) );
+                        // This is fatal because there is nobody listening.
+                        m_outError.println( "Exiting JVM..." );
+                        stopImmediate( 1 );
+                        // For compiler
+                        m_backendSocket = null;
+                        return;
+                    }
+                    else if ( ( e instanceof BindException ) ||
+                        ( ( eMessage != null ) &&
+                        ( ( eMessage.indexOf( "errno: 48" ) >= 0 ) ||
+                            ( eMessage.indexOf( "Address already in use" ) >= 0 ) ) ||
+                            ( eMessage.indexOf( "Unrecognized Windows Sockets error: 0: JVM_Bind" ) >= 0 ) ) ) /* This message is caused by a JVM Bug: http://bugs.sun.com/view_bug.do?bug_id=6965962 */
+                    {
+                        // Most Java implementations throw a BindException when the port is in use,
+                        //  but FreeBSD throws a SocketException with a specific message.
+                        
+                        // This happens if the local port is already in use.  In this case, we want
+                        //  to loop and try again.
+                        if ( m_debug )
+                        {
+                            m_outDebug.println( getRes().getString(
+                                    "Unable to open socket to Wrapper from port {0}, already in use.",
+                                    new Integer( tryPort ) ) );
+                        }
+                        
+                        // Keep this exception around in case we need to log it.
+                        if ( causeException == null )
+                        {
+                            causeException = e;
+                        }
                     }
                     else
                     {
-                        tryPort++;
-                    }
-                    
-                    // Keep this exception around in case we need to log it.
-                    if ( causeException == null )
-                    {
-                        causeException = e;
+                        // Unexpected exception.
+                        m_outError.println( getRes().getString( "Unexpected exception opening backend socket: {0}", e ) );
+                        m_backendSocket = null;
+                        return;
                     }
                 }
-                else
+                catch ( IOException e )
                 {
-                    // Unexpected exception.
-                    m_outError.println( getRes().getString( "Unexpected exception opening backend socket: {0}", e ) );
+                    m_outError.println( getRes().getString( "Unable to open backend socket: {0}", e ) );
                     m_backendSocket = null;
                     return;
                 }
             }
-            catch ( IOException e )
+            else
             {
-                m_outError.println( getRes().getString( "Unable to open backend socket: {0}", e ) );
-                m_backendSocket = null;
-                return;
+                // The native port status returned was not 0.
+                if ( m_debug )
+                {
+                    m_outDebug.println( getRes().getString(
+                            "Unable to open socket to Wrapper from port {0}, already in use. ({1})",
+                            new Integer( tryPort ), Integer.toString( portStatus ) ) );
+                }
+            }
+            
+            if ( fixedPort )
+            {
+                // The last port checked was the fixed port, switch to the dynamic range.
+                tryPort = m_jvmPortMin;
+                fixedPort = false;
+            }
+            else
+            {
+                tryPort++;
             }
         }
         while ( tryPort <= m_jvmPortMax );

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2014 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2015 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -35,6 +35,9 @@
 
 #ifndef WIN32
 
+#ifdef LINUX
+ #include <features.h>
+#endif
 #include <limits.h>
 #include <wchar.h>
 #include <netdb.h>
@@ -570,7 +573,7 @@ void sigActionChildDeath(int sigNum, siginfo_t *sigInfo, void *na) {
     /* On UNIX, when a Child process changes state, a SIGCHLD signal is sent to the parent.
      *  The parent should do a wait to make sure the child is cleaned up and doesn't become
      *  a zombie process. */
-
+                
     threadId = pthread_self();
     if (timerThreadSet && pthread_equal(threadId, timerThreadId)) {
         if (wrapperData->isDebugging) {
@@ -1187,6 +1190,77 @@ size_t wrapperCalculateEnvironmentLength() {
 }
 
 /**
+ * Create a child process to print the Java version running the command:
+ *    /path/to/java -version
+ *  After printing the java version, the process is terminated.
+ * 
+ * In case the JVM is slow to start, it will time out after
+ * the number of seconds set in "wrapper.java.version.timeout".
+ * 
+ * Note: before the timeout is reached, the user can ctrl+c to stop the Wrapper.
+ */
+void launchChildProcessPrintJavaVersion() {
+    int blockTimeout;      /* max time (in ms) to wait for the child process to terminate */
+    int result;            /* result of waitpid */
+    int status;            /* status of child process */
+    pid_t procJavaVersion; /* pid of the child process */
+    
+    /* Create the child process! */
+    procJavaVersion = fork();
+                
+    if (procJavaVersion >= 0) {
+        /* fork successful */
+        
+        if (procJavaVersion == 0) {
+            /* in the child process */
+            TCHAR *javaVersionArgv[3];
+            javaVersionArgv[0] = wrapperData->jvmCommand[0];
+            javaVersionArgv[1] = TEXT("-version");
+            javaVersionArgv[2] = 0;
+            _texecvp(wrapperData->jvmCommand[0], javaVersionArgv);
+        } else {
+            /* in the parent process */
+            /* Note: on CentOS, in case we don't call waitpid(), then the child process becomes a zombie */
+            /* Note2: use _tprintf to log messages instead of log_printf. With log_printf, the columns are printed twice */
+            
+            /* If the user set the value to 0, then we will wait indefinitely. */
+            blockTimeout = getIntProperty(properties, TEXT("wrapper.java.version.timeout"), DEFAULT_JAVA_VERSION_TIMEOUT) * 1000;
+            
+            if (blockTimeout > 0) {
+                while (((result = waitpid(procJavaVersion, &status, WNOHANG)) == 0) && (blockTimeout > 0)) {
+#ifdef _DEBUG
+                    _tprintf(TEXT("Child process: Java version: waiting... result=%d waitpidStatLoc=%d blockTimeout=%d\n"), result, status, blockTimeout);
+#endif
+                    wrapperSleep(100);
+                    blockTimeout -= 100;
+                }
+            } else {
+                /* Wait indefinately. */
+                result = waitpid(procJavaVersion, &status, 0);
+            }
+            
+            if (result == 0) {
+                /* Timed out. */
+                _tprintf(TEXT("Child process: Java version: timed out\n"));
+                kill(procJavaVersion, SIGKILL);
+            } else if (result > 0) {
+                /* Process completed. */
+#ifdef _DEBUG
+                _tprintf(TEXT("Child process: Java version: successful\n"));
+#endif
+            } else {
+                /* Wait failed. */
+                _tprintf(TEXT("Child process: Java version: wait failed\n"));
+                kill(procJavaVersion, SIGKILL);
+            }
+        }
+    } else {
+        /* Fork failed. */
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to spwan process to output Java version: %s"), getLastErrorText());
+    }
+}
+
+/**
  * Launches a JVM process and stores it internally.
  *
  * @return TRUE if there were any problems.  When this happens the Wrapper will not try to restart.
@@ -1260,6 +1334,7 @@ int wrapperExecute() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                    TEXT("Could not spawn JVM process: %s"), getLastErrorText());
 
+
         /* The pipedes array is global so do not close the pipes. */
         return TRUE;
     } else {
@@ -1271,6 +1346,7 @@ int wrapperExecute() {
 
         if (proc == 0) {
             /* We are the child side. */
+            
 
             /* Set the umask of the JVM */
             umask(wrapperData->javaUmask);
@@ -1290,7 +1366,7 @@ int wrapperExecute() {
                 return TRUE; /* Will not get here. */
             }
 
-            /* Send errors to the pipe by dupicating the pipe fd and setting the copy as the stderr fd. */
+            /* Send errors to the pipe by duplicating the pipe fd and setting the copy as the stderr fd. */
             if (dup2(pipedes[PIPE_WRITE_END], STDERR_FILENO) < 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                     TEXT("%sUnable to set JVM's stderr: %s"), LOG_FORK_MARKER, getLastErrorText());
@@ -1308,16 +1384,9 @@ int wrapperExecute() {
             /* forking at this point, the child process has set all pipes already, so no
                further assignments needed */
             if (wrapperData->printJVMVersion) {
-                if (fork() == 0) {
-                    /* in the child */
-                    TCHAR *javaVersionArgv[3];
-                    javaVersionArgv[0] = wrapperData->jvmCommand[0];
-                    javaVersionArgv[1] = TEXT("-version");
-                    javaVersionArgv[2] = 0;
-                    _texecvp(wrapperData->jvmCommand[0], javaVersionArgv);
-                }
-                /* we don't care about errors here, since they will be reported later */
+                launchChildProcessPrintJavaVersion();
             }
+            
             /* The pipedes array is global so do not close the pipes. */
             /* Child process: execute the JVM. */
             _texecvp(wrapperData->jvmCommand[0], wrapperData->jvmCommand);
@@ -1408,6 +1477,7 @@ int wrapperExecute() {
                 }
             }
             
+            /* we are on the parent side, cpuAffinityConfig will not be used here. A copy will remain for the child. */
             return FALSE;
         }
     }
@@ -1786,6 +1856,7 @@ int setWorkingDir(TCHAR *app) {
     return 0;
 }
 
+
 /*******************************************************************************
  * Main function                                                               *
  *******************************************************************************/
@@ -1931,6 +2002,14 @@ int main(int argc, char **argv) {
         return 1; /* For compiler. */
     }
 
+
+#if defined(LINUX) && defined(__GLIBC__) && defined(__GLIBC_MINOR__)
+    if (((__GLIBC__ == 2 && __GLIBC_MINOR__ < 21) || (__GLIBC__ < 2)) && 
+        (_tcscmp(getStringProperty(properties, TEXT("wrapper.logfile.maxsize"), TEXT("0")), TEXT("0")) != 0)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("The wrapper detected that the current version of the GNU C Library\n(glibc) is %d.%d. This library has a known bug that causes memory leaks\nfor versions lower than 2.21. Please upgrade it to a more recent\nversion.\n"), __GLIBC__, __GLIBC_MINOR__);
+    }
+#endif
+        
     /* Set the default umask of the Wrapper process. */
     umask(wrapperData->umask);
     if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate"))) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2014 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2015 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -162,6 +162,8 @@ BOOL isWindowsNT4_0OrEarlier()
     ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));
     osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
 
+#pragma warning(push)
+#pragma warning(disable : 4996) /* Visual Studio 2013 deprecates GetVersionEx but we still want to use it. */
     if (!(bOsVersionInfoEx = GetVersionEx ((OSVERSIONINFO *)&osvi))) {
        /* If OSVERSIONINFOEX doesn't work, try OSVERSIONINFO. */
         osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
@@ -169,6 +171,7 @@ BOOL isWindowsNT4_0OrEarlier()
             retval = TRUE;
         }
     }
+#pragma warning(pop)
 
     if (osvi.dwMajorVersion <= 4) {
         retval = TRUE;
@@ -657,11 +660,201 @@ int wrapperBuildJavaCommand() {
     return FALSE;
 }
 
+/**
+ * Function that returns the position of the top-bottom corner of the user's screen.
+ *
+ * @return 8-byte hexadecimal value. The first four bytes (high word) represent the position of the window on the X (horizontal) axis. The last four bytes (low word) represent the position of the window on the Y (vertical) axis. If the function fails, 0 will be returned.
+ */
+DWORD wrapperGetRightBottomCornerPosition() {
+    RECT workarea;
+	TCHAR hex[9];
+	DWORD result;
+
+	if(!SystemParametersInfo(SPI_GETWORKAREA, 0, &workarea, 0)) {
+        return 0;
+    }
+
+	_sntprintf(hex, 9, TEXT("%04x%04x"), workarea.bottom, workarea.right);
+	result = (DWORD)_tcstol((const TCHAR*)hex, NULL, 16);
+
+    return result;
+}
+
+/**
+ * Function that allocates an hidden console by editing the registry (fix for the console flicker bug).
+ *  The function will edit the registry in order to minimize the size of the console and to position it in the right-bottom hand corner of the screen.
+ *  The registry key will be removed just after the console is allocated. As a precaution, it is also set volatile and will not persist on system restart. 
+ *  
+ * @return TRUE if the console was allocated, FALSE if it could not be allocated.
+ */
+int wrapperAllocHiddenConsole() {
+    int result;
+	LONG nError;
+    DWORD errorAlloc = ERROR_SUCCESS;
+	HKEY hRootKey = HKEY_CURRENT_USER;
+	HKEY hKey;
+    TCHAR* strConsoleSubKey;
+	TCHAR* strConsoleSubKeyBase = TEXT("Console\\");
+	TCHAR* strValueSize = TEXT("WindowSize");
+	TCHAR* strValuePosi = TEXT("WindowPosition");
+	DWORD size = 0x00010001; /* set the size the smallest as one can */
+	DWORD posi;
+	size_t nSubKeyLen = 0;
+	int i = 0;
+	const int nMaxRestoreAttempts = 10;
+	int nAttempts = 1;
+    int isService;
+    
+    if (isWin10OrHigher()) {
+        size = 0x00000001; /* windows 10 allow height of 0px */
+    }
+
+    isService = ( (wrapperData->argc > 1) && (strcmpIgnoreCase(wrapperData->argv[1], TEXT("-s")) == 0) );
+ 
+    /* STEP 1: lets try to position the console at right-bottom hand corner of the screen. For other corners, it would be necessary to either subtract the console's height or the console's width which can't be known exactly.
+    TODO: check this is correct in multi-screens. */
+    posi = wrapperGetRightBottomCornerPosition();
+
+    if (posi == 0) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Failed to get the position of the right-bottom corner of the screen. Error: %s"), getLastErrorText());
+        return AllocConsole(); /* Allocates the console normally */
+    }
+    
+    
+    /* STEP 2: edit the registry */
+	nSubKeyLen = _tcslen(strConsoleSubKeyBase);
+
+	for (i = 0; i < (isService ? 1 : wrapperData->argc); i++) {
+		nSubKeyLen += _tcslen(wrapperData->argv[i]) + 1; /* For each item : size of the item + 1 space (or + '\0' for the last item). */
+	}
+    if (!isService && wrapperData->argc > 1 && isVista()) {
+        nSubKeyLen++; /* In the registry key name, for recent windows systems, there must be 2 spaces between application name and the first argument. */
+    }
+
+	strConsoleSubKey = (TCHAR*)malloc(sizeof(TCHAR) * nSubKeyLen);
+	if (strConsoleSubKey == NULL) {
+        outOfMemory(TEXT("WHCBA"), 1);
+		return TRUE;
+	}
+	_tcsncpy(strConsoleSubKey, strConsoleSubKeyBase, nSubKeyLen);
+
+	_tcsncat(strConsoleSubKey, wrapperData->argv[0], nSubKeyLen - _tcslen(strConsoleSubKey));
+
+    /* if the console is run in a windows service context, the key should only contain the name of the process. */
+    if (!isService) {
+        if (wrapperData->argc > 1) {
+            if (isVista()) {
+                _tcsncat(strConsoleSubKey, TEXT("  "), nSubKeyLen - _tcslen(strConsoleSubKey));
+            } else {
+                _tcsncat(strConsoleSubKey, TEXT(" "), nSubKeyLen - _tcslen(strConsoleSubKey));
+            }
+            
+            for (i = 1; i < wrapperData->argc - 1; i++) {
+                _tcsncat(strConsoleSubKey, wrapperData->argv[i], nSubKeyLen - _tcslen(strConsoleSubKey));
+                _tcsncat(strConsoleSubKey, TEXT(" "), nSubKeyLen - _tcslen(strConsoleSubKey));
+            }
+            _tcsncat(strConsoleSubKey, wrapperData->argv[wrapperData->argc - 1], nSubKeyLen - _tcslen(strConsoleSubKey));
+        }
+    }
+
+    /* In the registry key name, '\\' are replaced by '_' to avoid confusion with sub key. We start replacing after strConsoleSubKeyBase */
+    for (i = (int)_tcslen(strConsoleSubKeyBase); i < (int)nSubKeyLen; i++) {
+        if (strConsoleSubKey[i] == TEXT('\\')) {
+            strConsoleSubKey[i] = TEXT('_');
+        }
+    }
+
+    /* If the key or its values already exists, they will simply be overwritten without returning an error. (should not happen though) */
+	nError = RegCreateKeyEx(hRootKey, strConsoleSubKey, 0, NULL, REG_OPTION_VOLATILE, KEY_WRITE, NULL, &hKey, NULL);
+    
+    if (nError != ERROR_SUCCESS) {
+        RegCloseKey( hKey );
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            TEXT("Failed to create key 'HKEY_CURRENT_USER\\%s' in registry. Error: %ld"), strConsoleSubKey, nError);
+    } else {
+        nError = RegSetValueEx(hKey, strValueSize, 0, REG_DWORD, (LPBYTE)&size, sizeof(DWORD));
+        
+        if (nError != ERROR_SUCCESS) {
+            RegCloseKey( hKey );
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                TEXT("Failed to set the value %s for the key 'HKEY_CURRENT_USER\\%s' in registry. Error: %ld"), strValueSize, strConsoleSubKey, nError);
+        } else {
+            nError = RegSetValueEx(hKey, strValuePosi, 0, REG_DWORD, (LPBYTE)&posi, sizeof(DWORD));
+            RegCloseKey( hKey );
+        
+            if (nError != ERROR_SUCCESS) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                    TEXT("Failed to set the value %s for the key 'HKEY_CURRENT_USER\\%s' in registry. Error: %ld"), strValuePosi, strConsoleSubKey, nError);
+            }
+        }
+    }
+    /* Rem: If the key could not be set properly, a brief flicker may be visible when the console is shown and then hidden. */
+ 
+ 
+    /* STEP 3: Allocates a new console for the calling process.*/    
+    result = AllocConsole();
+    if (!result) {
+        errorAlloc = GetLastError();
+    }
+    
+    
+    /* STEP 4: Restore the registry.*/    
+    /* no matter if the registry key was created properly or not, and no matter if the console was allocated or not, 
+    lets clean up the registry so that any further calls to AllocConsole() does not edit undesirably the console location & size */ 
+    while (TRUE) {
+        /* RegDeleteKeyEx() is for deleting platform specific key, which is not our case.*/
+        nError = RegDeleteKey(hRootKey, strConsoleSubKey);
+        if (nError != ERROR_SUCCESS) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                TEXT("Attempt #%d to delete key 'HKEY_CURRENT_USER\\%s' in registry failed. Error: %ld"), nAttempts, strConsoleSubKey, nError);
+            if (++nAttempts < nMaxRestoreAttempts) {
+                wrapperSleep(200);
+                continue;
+            }
+        }
+        break;    
+    } 
+    /*Rem: If the key could not be restored properly, an exception could (unlikely!) happen: 
+    Next time AllocConsole() is called with the exact same application parameters, 
+    if the registry key remains and if wrapperData->ntHideWrapperConsole is set to FALSE, then the console will appear out of the screen. 
+        => As a precaution we could try again to remove the registry key at that time (not implemented yet). */
+
+    if (nAttempts == nMaxRestoreAttempts) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            TEXT("Unable to delete key 'HKEY_CURRENT_USER\\%s' in registry."), strConsoleSubKey);
+    }
+
+    free(strConsoleSubKey);
+    
+    
+    /* STEP 5 : Set the errorAlloc as the last error and return whether if failed or not.*/    
+    if (!result) {
+        SetLastError(errorAlloc);
+    }
+    return (errorAlloc == ERROR_SUCCESS);
+}
+
 int hideConsoleWindow(HWND consoleHandle, const TCHAR *name) {
+    RECT workarea;
+    RECT normalPositionRect;
     WINDOWPLACEMENT consolePlacement;
 
     memset(&consolePlacement, 0, sizeof(WINDOWPLACEMENT));
     consolePlacement.length = sizeof(WINDOWPLACEMENT);
+    
+    /* on Windows 10 the console will reappear at the position 'rcNormalPosition' when calling SetWindowPlacement(). To avoid another brief flicker, lets set this position out of the screen. */
+	if(SystemParametersInfo(SPI_GETWORKAREA, 0, &workarea, 0)) {
+        normalPositionRect.left = workarea.right;
+        normalPositionRect.top = workarea.bottom;
+        normalPositionRect.right = workarea.right;
+        normalPositionRect.bottom = workarea.bottom;
+    } else {
+        normalPositionRect.left = 99999;
+        normalPositionRect.top = 99999;
+        normalPositionRect.right = 99999;
+        normalPositionRect.bottom = 99999;
+    }
+    consolePlacement.rcNormalPosition = normalPositionRect;
 
     if (IsWindowVisible(consoleHandle)) {
 #ifdef _DEBUG
@@ -1216,6 +1409,7 @@ int wrapperInitializeRun() {
     int         nowMillis;
     int res;
     TCHAR titleBuffer[80];
+    int allocConsoleSucceed;
 
     /* Set the process priority. */
     HANDLE process = GetCurrentProcess();
@@ -1250,8 +1444,14 @@ int wrapperInitializeRun() {
         if (wrapperData->isDebugging) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Allocating a console for the service."));
         }
-
-        if (!AllocConsole()) {
+   
+        if (wrapperData->ntHideWrapperConsole) {
+            allocConsoleSucceed = wrapperAllocHiddenConsole();
+        } else {
+            allocConsoleSucceed = AllocConsole();
+        }
+                
+        if (!allocConsoleSucceed) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 TEXT("ERROR: Unable to allocate a console for the service: %s"), getLastErrorText());
             return 1;
@@ -1608,6 +1808,62 @@ int wrapperGetProcessStatus(TICKS nowTicks, int sigChild) {
 }
 
 /**
+ * Create a child process to print the Java version running the command:
+ *    /path/to/java -version
+ *  After printing the java version, the process is terminated.
+ * 
+ * In case the JVM is slow to start, it will time out after
+ * the number of seconds set in "wrapper.java.version.timeout".
+ * 
+ * Note: before the timeout is reached, the user can ctrl+c to stop the Wrapper.
+ */
+void launchChildProcessPrintJavaVersion(DWORD processflags, STARTUPINFO startup_info, PROCESS_INFORMATION process_info) {
+    int blockTimeout;
+    DWORD result;
+    
+    if (CreateProcess(NULL,
+                          wrapperData->jvmVersionCommand, /* the command line to start */
+                          NULL,          /* process security attributes */
+                          NULL,          /* primary thread security attributes */
+                          TRUE,          /* handles are inherited */
+                          processflags,  /* we specify new process group */
+                          NULL,          /* use parent's environment */
+                          NULL,          /* use the Wrapper's current working directory */
+                          &startup_info, /* STARTUPINFO pointer */
+                          &process_info  /* PROCESS_INFORMATION pointer */
+                         ) != 0) {
+
+                         
+            /* If the user set the value to 0, then we will wait indefinitely. */
+            blockTimeout = getIntProperty(properties, TEXT("wrapper.java.version.timeout"), DEFAULT_JAVA_VERSION_TIMEOUT) * 1000;
+            
+            if (blockTimeout <= 0) {
+                blockTimeout = INFINITE;
+            }
+            
+            result = WaitForSingleObject(process_info.hProcess, blockTimeout);
+            
+            if (result == WAIT_TIMEOUT) {
+                /* Timed out. */
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Child process: Java version: timed out"));
+                TerminateProcess(process_info.hProcess, 1);
+            } else if (result == WAIT_OBJECT_0) {
+                /* Process completed. */
+#ifdef _DEBUG
+                _tprintf(TEXT("Child process: Java version: successful\n"));
+#endif
+            } else {
+                /* Wait failed. */
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Child process: Java version: wait failed"));
+                TerminateProcess(process_info.hProcess, 1);
+            }
+        
+            CloseHandle(process_info.hProcess);
+            CloseHandle(process_info.hThread);
+        }
+}
+
+/**
  * Launches a JVM process and store it internally
  *
  * @return TRUE if there were any problems.  When this happens the Wrapper will not try to restart.
@@ -1622,7 +1878,7 @@ int wrapperExecute() {
 
     /* Create a new process group as part of this console so that signals can */
     /*  be sent to the JVM. */
-    DWORD processflags=CREATE_NEW_PROCESS_GROUP;
+    DWORD processflags = CREATE_NEW_PROCESS_GROUP;
 
     /* Do not show another console for the new process, but show its output in the current console. */
     /*int processflags=CREATE_NEW_PROCESS_GROUP; */
@@ -1631,8 +1887,8 @@ int wrapperExecute() {
     /*int processflags=CREATE_NEW_PROCESS_GROUP | CREATE_NEW_CONSOLE; */
 
     size_t len;
-    TCHAR *environment=NULL;
-    TCHAR *binparam=NULL;
+    TCHAR *environment = NULL;
+    TCHAR *binparam = NULL;
     int char_block_size = 8196;
     int string_size = 0;
     int temp_int = 0;
@@ -1642,8 +1898,7 @@ int wrapperExecute() {
     TCHAR titleBuffer[80];
     int hideConsole;
     int old_umask;
-
-    FILE *pid_fp = NULL;
+    FILE *pid_fp = NULL;    
 
     /* Reset the exit code when we launch a new JVM. */
     wrapperData->exitCode = 0;
@@ -1681,7 +1936,7 @@ int wrapperExecute() {
         }
     }
     
-    /* Log ghe application java command line */
+    /* Log the application java command line */
     if (wrapperData->commandLogLevel != LEVEL_NONE) {
         log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel, TEXT("Java Command Line:"));
         log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel, TEXT("  Command: %s"), wrapperData->jvmCommand);
@@ -1774,6 +2029,8 @@ int wrapperExecute() {
     /* Need the directory that this program exists in.  Not the current directory. */
     /*    Note, the current directory when run as an NT service is the windows system directory. */
     /* Get the full path and filename of this program */
+    /* Important : For win XP getLastError() is unchanged if the buffer is too small, so if we don't reset the last error first, we may actually test an old pending error. */
+    SetLastError(ERROR_SUCCESS);
     usedLen = GetModuleFileName(NULL, szPath, _MAX_PATH);
     if (usedLen == 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to launch %s -%s"),
@@ -1810,25 +2067,10 @@ int wrapperExecute() {
     /* If set, this will launch a second JVM before the actual one to quickly print out the JVM version information.
      *  This will appear to come from the same JVM instance in the logs. */
     if (wrapperData->printJVMVersion) {
-        if (CreateProcess(NULL,
-                          wrapperData->jvmVersionCommand, /* the command line to start */
-                          NULL,          /* process security attributes */
-                          NULL,          /* primary thread security attributes */
-                          TRUE,          /* handles are inherited */
-                          processflags,  /* we specify new process group */
-                          environment,   /* use parent's environment */
-                          NULL,          /* use the Wrapper's current working directory */
-                          &startup_info, /* STARTUPINFO pointer */
-                          &process_info  /* PROCESS_INFORMATION pointer */
-                         ) != 0) {
-
-            /* Always wait for the process to complate.  We don't currently do anything fancy here as the -version request will always exit immediately. */
-            WaitForSingleObject(process_info.hProcess, INFINITE);
-            CloseHandle(process_info.hProcess);
-            CloseHandle(process_info.hThread);
-        }
+        launchChildProcessPrintJavaVersion(processflags, startup_info, process_info);
     }
 
+    
     /* Create the new process */
     ret=CreateProcess(NULL,
                       wrapperData->jvmCommand, /* the command line to start */
@@ -1840,6 +2082,7 @@ int wrapperExecute() {
                       NULL,           /* use the Wrapper's current working directory */
                       &startup_info,  /* STARTUPINFO pointer */
                       &process_info); /* PROCESS_INFORMATION pointer */
+                      
 
     /* Restore the umask. */
     _umask(old_umask);
@@ -2333,6 +2576,7 @@ void disposeProfileCounters() {
         pdhQuery = NULL;
     }
 }
+
 
 /******************************************************************************
  * NT Service Methods
@@ -2955,6 +3199,24 @@ TCHAR *readPassword() {
     return buffer;
 }
 
+/**
+ * RETURNS TRUE if the current Windows OS is Windows 10 or higher...
+ */
+BOOL isWin10OrHigher() {
+    OSVERSIONINFO osver;
+
+    osver.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+
+#pragma warning(push)
+#pragma warning(disable : 4996) /* Visual Studio 2013 deprecates GetVersionEx but we still want to use it. */
+    if (GetVersionEx(&osver) &&
+            osver.dwPlatformId == VER_PLATFORM_WIN32_NT &&
+            osver.dwMajorVersion >= 10) {
+        return TRUE;
+    }
+#pragma warning(pop)
+    return FALSE;
+}
 
 /**
  * RETURNS TRUE if the current Windows OS is Windows Vista or later...
@@ -2964,29 +3226,34 @@ BOOL isVista() {
 
     osver.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
 
+#pragma warning(push)
+#pragma warning(disable : 4996) /* Visual Studio 2013 deprecates GetVersionEx but we still want to use it. */
     if (GetVersionEx(&osver) &&
             osver.dwPlatformId == VER_PLATFORM_WIN32_NT &&
             osver.dwMajorVersion >= 6) {
         return TRUE;
     }
+#pragma warning(pop)
     return FALSE;
 }
 
 
 /**
  * RETURNS TRUE if the current Windows OS is Windows XP or later...
- * http://msdn.microsoft.com/en-us/library/ms724834%28VS.85%29.aspx
  */
 BOOL isWinXP() {
     OSVERSIONINFO osver;
 
     osver.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
 
+#pragma warning(push)
+#pragma warning(disable : 4996) /* Visual Studio 2013 deprecates GetVersionEx but we still want to use it. */
     if (GetVersionEx(&osver) && osver.dwPlatformId == VER_PLATFORM_WIN32_NT) {
         if (osver.dwMajorVersion > 5 || osver.dwMajorVersion == 5 && osver.dwMinorVersion >= 1) {
             return TRUE;
         }
     }
+#pragma warning(pop)
     return FALSE;
 }
 
@@ -3108,6 +3375,8 @@ int buildServiceBinaryPath(TCHAR *buffer, size_t *reqBufferLen) {
         /* On Windows XP and 2000, GetModuleFileName will return exactly "moduleFileNameSize" and
          *  leave moduleFileName in an unterminated state in the event that the module file name is too long.
          *  Newer versions of Windows will set the error code to ERROR_INSUFFICIENT_BUFFER but we can't rely on that. */
+        /* Important : For win XP getLastError() is unchanged if the buffer is too small, so if we don't reset the last error first, we may actually test an old pending error. */
+        SetLastError(ERROR_SUCCESS);
         usedLen = GetModuleFileName(NULL, moduleFileName, moduleFileNameSize);
         if (usedLen == 0) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to resolve the full Wrapper path - %s"), getLastErrorText());
@@ -3585,6 +3854,29 @@ BOOL wrapperAddPrivileges(TCHAR *account) {
     } 
     return retVal;
 } 
+
+/**
+ * Setup the Wrapper (before running it as a console application)
+ *  Some setup require to be executed Elevated (for example writing in the registry). 
+ *  Those actions can be executed here once before the running the wrapper in normal mode.
+ *
+ * Returns 1 if there were any problems.
+ */
+int wrapperSetup() {
+    int result = 0;
+    
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Registering to the Event Logging System..."));
+    /* here we don't even check if the registration was made. We force installation in case some key or value were corrupted. */
+    result = registerSyslogMessageFile(TRUE);     
+
+    /* we can add here more actions to be processed at Setup time */
+    
+    if (result == 0) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Setup done successfully."));
+        return 0;
+    }
+    return 1;
+}
 
 /**
  * Install the Wrapper as an NT Service using the information and service
@@ -4356,8 +4648,8 @@ int wrapperStartService() {
         schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_QUERY_STATUS | SERVICE_START);
 
         if (schService) {
-            /* Make sure that the service is not already running. */
             if (QueryServiceStatus(schService, &serviceStatus)) {
+                /* Make sure that the service is not already started. */
                 if (serviceStatus.dwCurrentState == SERVICE_STOPPED) {
                     /* The service is stopped, so try starting it. */
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Starting the %s service..."),
@@ -4399,9 +4691,9 @@ int wrapperStartService() {
 
                         /* Was the service started? */
                         if (serviceStatus.dwCurrentState == SERVICE_RUNNING) {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s started."), wrapperData->serviceDisplayName);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s service started."), wrapperData->serviceDisplayName);
                         } else if (serviceStatus.dwCurrentState == SERVICE_PAUSED) {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s started but immediately paused.."), wrapperData->serviceDisplayName);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s service started but immediately paused.."), wrapperData->serviceDisplayName);
                         } else {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("The %s service was launched, but failed to start."),
                                 wrapperData->serviceDisplayName);
@@ -4455,7 +4747,7 @@ int wrapperStartService() {
                     }
                 } else {
                     status = getNTServiceStatusName(serviceStatus.dwCurrentState);
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("The %s service is already running with status: %s"),
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("The %s service is already started with status: %s"),
                         wrapperData->serviceDisplayName, status);
                     result = 1;
                 }
@@ -4516,7 +4808,7 @@ int wrapperStopService(int command) {
             if (QueryServiceStatus(schService, &serviceStatus)) {
                 if (serviceStatus.dwCurrentState == SERVICE_STOPPED) {
                     if (command) {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("The %s service was not running."),
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("The %s service was not started."),
                             wrapperData->serviceDisplayName);
                     }
                 } else {
@@ -4568,7 +4860,7 @@ int wrapperStopService(int command) {
                         } while (serviceStatus.dwCurrentState != SERVICE_STOPPED);
 
                         if (serviceStatus.dwCurrentState == SERVICE_STOPPED) {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s stopped."), wrapperData->serviceDisplayName);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s service stopped."), wrapperData->serviceDisplayName);
                         } else {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Failed to stop the %s service."), wrapperData->serviceDisplayName);
                             result = 1;
@@ -4617,6 +4909,7 @@ int wrapperPauseService() {
     TCHAR *status;
     int msgCntr;
     int result = 0;
+	int ignore = FALSE;
 
     /* First, get a handle to the service control manager */
     schSCManager = OpenSCManager(NULL,
@@ -4630,7 +4923,7 @@ int wrapperPauseService() {
             /* Make sure that the service is in a state that can be paused. */
             if (QueryServiceStatus(schService, &serviceStatus)) {
                 if (serviceStatus.dwCurrentState == SERVICE_STOPPED) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("The %s service was not running."),
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("The %s service was not started."),
                         wrapperData->serviceDisplayName);
                     result = 1;
                 } else if (serviceStatus.dwCurrentState == SERVICE_STOP_PENDING) {
@@ -4638,28 +4931,61 @@ int wrapperPauseService() {
                         TEXT("The %s service was in the process of stopping."),
                         wrapperData->serviceDisplayName);
                     result = 1;
-                } else if (serviceStatus.dwCurrentState == SERVICE_PAUSED) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        TEXT("The %s service was already paused."),
-                        wrapperData->serviceDisplayName);
                 } else if (serviceStatus.dwCurrentState == SERVICE_PAUSE_PENDING) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                         TEXT("The %s service was in the process of being paused."),
                         wrapperData->serviceDisplayName);
+                } else if (serviceStatus.dwCurrentState == SERVICE_PAUSED) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                        TEXT("The %s service was already paused."),
+                        wrapperData->serviceDisplayName);
+					ignore = TRUE;	
                 } else {
                     /* The service is started, starting, or resuming, so try pausing it. */
                     if (ControlService(schService, SERVICE_CONTROL_PAUSE, &serviceStatus)) {
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Pausing the %s service..."),
                             wrapperData->serviceDisplayName);
+                    } else if (!wrapperData->pausable) {
+                        status = getNTServiceStatusName(serviceStatus.dwCurrentState);
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                            TEXT("The %s service is not allowed to be paused.  Status: %s"),
+                            wrapperData->serviceDisplayName, status);
+                        if (wrapperData->isAdviserEnabled) {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("") );
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                                TEXT("--------------------------------------------------------------------") );
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                                TEXT("Advice:" ));
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                                TEXT("To be able to pause the service, please set 'wrapper.pausable=TRUE'\nand restart it." ),
+                                wrapperData->serviceDisplayName);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                                TEXT("--------------------------------------------------------------------") );
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("") );
+                        }
+                        result = 1;
                     } else {
                         status = getNTServiceStatusName(serviceStatus.dwCurrentState);
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                             TEXT("Attempt to pause the %s service failed.  Status: %s"),
                             wrapperData->serviceDisplayName, status);
                         result = 1;
+                        if (wrapperData->isAdviserEnabled && strcmpIgnoreCase(status, TEXT("running")) == 0) {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("") );
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                                TEXT("--------------------------------------------------------------------") );
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                                TEXT("Advice:" ));
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                                TEXT("The reason may be that the service was not restarted after setting\n'wrapper.pausable' to TRUE." ),
+                                wrapperData->serviceDisplayName);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                                TEXT("--------------------------------------------------------------------") );
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("") );
+                        }
                     }
                 }
-                if (result == 0) {
+                if ((!ignore) && (result == 0)) {
                     /* Wait for the service to pause. */
                     msgCntr = 0;
                     do {
@@ -4731,6 +5057,7 @@ int wrapperResumeService() {
     TCHAR *status;
     int msgCntr;
     int result = 0;
+	int ignore = FALSE;
 
     /* First, get a handle to the service control manager */
     schSCManager = OpenSCManager(NULL,
@@ -4744,7 +5071,7 @@ int wrapperResumeService() {
             /* Make sure that the service is in a state that can be resumed. */
             if (QueryServiceStatus(schService, &serviceStatus)) {
                 if (serviceStatus.dwCurrentState == SERVICE_STOPPED) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("The %s service was not running."),
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("The %s service was not started."),
                         wrapperData->serviceDisplayName);
                     result = 1;
                 } else if (serviceStatus.dwCurrentState == SERVICE_STOP_PENDING) {
@@ -4763,8 +5090,9 @@ int wrapperResumeService() {
                         wrapperData->serviceDisplayName);
                 } else if (serviceStatus.dwCurrentState == SERVICE_RUNNING) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        TEXT("The %s service was already started."),
+                        TEXT("The %s service is already running."),
                         wrapperData->serviceDisplayName);
+					ignore = TRUE;	
                 } else {
                     /* The service is paused, so try resuming it. */
                     if (ControlService(schService, SERVICE_CONTROL_CONTINUE, &serviceStatus)) {
@@ -4777,8 +5105,8 @@ int wrapperResumeService() {
                             wrapperData->serviceDisplayName, status);
                         result = 1;
                     }
-                }
-                if (result == 0) {
+				}  
+                if ((!ignore) && (result == 0)) {
                     /* Wait for the service to resume. */
                     msgCntr = 0;
                     do {
@@ -4860,7 +5188,7 @@ int sendServiceControlCodeInner(int controlCode) {
             /* Make sure that the service is in a state that can be resumed. */
             if (QueryServiceStatus(schService, &serviceStatus)) {
                 if (serviceStatus.dwCurrentState == SERVICE_STOPPED) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("The %s service was not running."),
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("The %s service was not started."),
                         wrapperData->serviceDisplayName);
                     result = 1;
                 } else if (serviceStatus.dwCurrentState == SERVICE_STOP_PENDING) {
@@ -5208,6 +5536,8 @@ int setWorkingDir() {
             outOfMemory(TEXT("SWD"), 1);
             return 1;
         }
+        /* Important : For win XP getLastError() is unchanged if the buffer is too small, so if we don't reset the last error first, we may actually test an old pending error. */
+        SetLastError(ERROR_SUCCESS);
         usedLen = GetModuleFileName(NULL, szPath, size);
         if (usedLen == 0) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to get the path-%s"), getLastErrorText());
@@ -6168,6 +6498,14 @@ void _tmain(int argc, TCHAR **argv) {
             appExit(1);
             return; /* For clarity. */
         }
+        
+        if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("su")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-setup"))) {
+            /* Wrapper will be run in setup mode. */
+            /* No need to warn about the Syslog to be unregistered because we will do it right after. */
+            /* We should set the flag as soon as possible because any log message before we effectively register could cause a warning. */
+            setWarnSyslogUnregistered(FALSE);
+        }
+        
         wrapperLoadHostName();
 
         /* At this point, we have a command, confFile, and possibly additional arguments. */
@@ -6184,7 +6522,7 @@ void _tmain(int argc, TCHAR **argv) {
             appExit(0);
             return; /* For clarity. */
         } else if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("h")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-hostid"))) {
-            /* Print out a banner containing the host id. */
+            /* Print out a banner containing the HostId. */
             setSimpleLogLevels();
             wrapperVersionBanner();
             showHostIds(LEVEL_STATUS);
@@ -6216,12 +6554,31 @@ void _tmain(int argc, TCHAR **argv) {
             appExit(1);
             return; /* For clarity. */
         }
+        
 
         /* Set the default umask of the Wrapper process. */
         _umask(wrapperData->umask);
 
         /* Perform the specified command */
-        if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("i")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-install"))) {
+        if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("su")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-setup"))) {
+            /* Setup the Wrapper */
+            enterLauncherMode();
+            
+            /* Always auto close the log file to keep the output in synch. */
+            setLogfileAutoClose(TRUE);
+            /* are we elevated ? */
+            if (!isElevated()) {
+                appExit(elevateThis(argc, argv));
+            } else {
+                /* are we launched secondary? */
+                if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
+                    appExit(1);
+                    return;
+                }
+                appExit(wrapperSetup());
+            }
+            return; /* For clarity. */
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("i")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-install"))) {
             /* Install an NT service */
             enterLauncherMode();
             

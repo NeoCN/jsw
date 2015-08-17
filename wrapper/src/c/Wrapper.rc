@@ -72,7 +72,7 @@ BEGIN
             VALUE "CompanyName", "Tanuki Software, Ltd."
             VALUE "FileDescription", "Java Service Wrapper Community Edition 3.5.27-a"
             VALUE "FileVersion", "3, 5, 27, 0"
-            VALUE "LegalCopyright", "Copyright (C) 1999, 2014 Tanuki Software, Ltd.  All rights reserved."
+            VALUE "LegalCopyright", "Copyright (C) 1999, 2015 Tanuki Software, Ltd.  All rights reserved."
             VALUE "InternalName", "wrapper"
             VALUE "OriginalFilename", "wrapper.exe"
             VALUE "ProductName", "Java Service Wrapper Community"

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2014 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2015 Tanuki Software, Ltd.
  * http://www.tanukisoftware.comment
  * All rights reserved.
  *
@@ -468,12 +468,13 @@ void setInnerProperty(Properties *properties, Property *property, const TCHAR *p
     }
 }
 
-static int loadPropertiesCallback(void *callbackParam, const TCHAR *fileName, int lineNumber, TCHAR *config, int debugProperties)
+static int loadPropertiesCallback(void *callbackParam, const TCHAR *fileName, int lineNumber, TCHAR *config, int exitOnOverwrite, int logLevelOnOverwrite)
 {
     Properties *properties = (Properties *)callbackParam;
     TCHAR *d;
 
-    properties->debugProperties = debugProperties;
+    properties->exitOnOverwrite = exitOnOverwrite;
+    properties->logLevelOnOverwrite = logLevelOnOverwrite;
 
     if (_tcsstr(config, TEXT("include")) == config) {
         /* Users sometimes remove the '#' from include statements.
@@ -545,13 +546,33 @@ int loadProperties(Properties *properties,
     }
 }
 
+/**
+ * Get the log level of the messages reported when properties are overwritten.
+ *
+ * @param properties 
+ *
+ * @return log level 
+ */
+int GetLogLevelOnOverwrite(Properties *properties) {
+    /* Should be at least LEVEL_FATAL if exitOnOverwrite is set to TRUE */
+    if (properties) {
+		if (properties->exitOnOverwrite) {
+            return __max(properties->logLevelOnOverwrite, LEVEL_FATAL);
+		}
+        return properties->logLevelOnOverwrite;
+	}
+    return LEVEL_UNKNOWN;
+}
+
 Properties* createProperties() {
     Properties *properties = malloc(sizeof(Properties));
     if (!properties) {
         outOfMemory(TEXT("CP"), 1);
         return NULL;
     }
-    properties->debugProperties = FALSE;
+    properties->exitOnOverwrite = FALSE;
+    properties->logLevelOnOverwrite = LEVEL_NONE;
+    properties->overwrittenPropertyCausedExit = FALSE;
     properties->logWarnings = TRUE;
     properties->logWarningLogLevel = LEVEL_WARN;
     properties->first = NULL;
@@ -882,37 +903,6 @@ int setEnv(const TCHAR *name, const TCHAR *value, int source) {
     return FALSE;
 }
 
-/* Trims any whitespace from the beginning and end of the in string
- *  and places the results in the out buffer.  Assumes that the out
- *  buffer is at least as large as the in buffer. */
-void trim(const TCHAR *in, TCHAR *out) {
-    size_t len;
-    size_t first;
-    size_t last;
-
-    len = _tcslen(in);
-    if (len > 0) {
-        first = 0;
-        last = len - 1;
-
-        /* Right Trim */
-        while (((in[first] == ' ') || (in[first] == '\t')) && (first < last)) {
-            first++;
-        }
-        /* Left Trim */
-        while ((last > first) && ((in[last] == ' ') || (in[last] == '\t'))) {
-            last--;
-        }
-
-        /* Copy over what is left. */
-        len = last - first + 1;
-        if (len > 0) {
-            _tcsncpy(out, in + first, len);
-        }
-    }
-    out[len] = TEXT('\0');
-}
-
 /**
  * Used to set a NULL terminated list of property names whose values should be
  *  escaped when read in from a file.   '\\' will become '\' and '\n' will
@@ -1126,6 +1116,7 @@ Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum
     TCHAR *propertyNameTrim;
     TCHAR *propertyValueTrim;
     TCHAR *propertyExpandedValue;
+    int logLevelOnOverwrite;
 
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("addProperty(properties, %s, '%s', '%s', %d, %d, %d, %d)"),
@@ -1177,28 +1168,28 @@ Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum
         /* Insert this property at the correct location.  Value will still be null. */
         insertInnerProperty(properties, property);
     } else {
-        /* The property was already set.  Only change it if non final */
-        if (property->internal) {
-            setValue = FALSE;
-            
-            if (properties->debugProperties) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+        logLevelOnOverwrite = GetLogLevelOnOverwrite(properties);
+        if (logLevelOnOverwrite < LEVEL_NONE) { /* Don't log anything on preload (logLevelOnOverwrite = LEVEL_NONE). */            
+            /* The property was already set.  Only change it if non final */
+            if (property->internal) {
+                setValue = FALSE;
+                /* Logging properties were already preoloaded, so the logging system is ready. */
+                log_printf(WRAPPER_SOURCE_WRAPPER, logLevelOnOverwrite,
                     TEXT("The \"%s\" property is defined by the Wrapper internally and can not be overwritten.\n  Ignoring redefinition on line #%d of configuration file: %s\n  Fixed Value %s=%s\n  Ignored Value %s=%s"),
                     propertyNameTrim, lineNum, (filename ? filename : TEXT("<NULL>")), propertyNameTrim, property->value, propertyNameTrim, propertyValueTrim);
-            }
-        } else if (property->finalValue) {
-            setValue = FALSE;
-            
-            if (properties->debugProperties) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            } else if (property->finalValue) {
+                setValue = FALSE;
+                log_printf(WRAPPER_SOURCE_WRAPPER, logLevelOnOverwrite,
                     TEXT("The \"%s\" property was defined on the Wrapper command line and can not be overwritten.\n  Ignoring redefinition on line #%d of configuration file: %s\n  Fixed Value %s=%s\n  Ignored Value %s=%s"),
                     propertyNameTrim, lineNum, (filename ? filename : TEXT("<NULL>")), propertyNameTrim, property->value, propertyNameTrim, propertyValueTrim);
-            }
-        } else {
-            if (properties->debugProperties) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, logLevelOnOverwrite,
                     TEXT("The \"%s\" property was redefined on line #%d of configuration file: %s\n  Old Value %s=%s\n  New Value %s=%s"),
                     propertyNameTrim, lineNum, (filename ? filename : TEXT("<NULL>")), propertyNameTrim, property->value, propertyNameTrim, propertyValueTrim);
+            }
+            
+            if (properties->exitOnOverwrite) {
+                properties->overwrittenPropertyCausedExit = TRUE;
             }
         }
     }
@@ -1702,6 +1693,79 @@ int getBooleanProperty(Properties *properties, const TCHAR *propertyName, int de
         return FALSE;
     }
 }
+
+/**
+ * Build sorted arrays of all boolean properties beginning with {propertyNameBase}.
+ *  Only numerical characters can be returned between the two.
+ *
+ * The calling code must always call freeBooleanProperties to make sure that the
+ *  malloced propertyNames, propertyValues, and propertyIndices arrays are freed
+ *  up correctly.  This is only necessary if the function returns 0.
+ *
+ * @param properties The full properties structure.
+ * @param propertyNameHead All matching properties must begin with this value.
+ * @param propertyNameTail All matching properties must end with this value.
+ * @param all If FALSE then the array will start with #1 and loop up until the
+ *            next property is not found, if TRUE then all properties will be
+ *            returned, even if there are gaps in the series.
+ * @param matchAny If FALSE only numbers are allowed as placeholder
+ * @param propertyNames Returns a pointer to a NULL terminated array of
+ *                      property names.
+ * @param propertyValues Returns a pointer to a NULL terminated array of
+ *                       property values.
+ * @param propertyIndices Returns a pointer to a 0 terminated array of
+ *                        the index numbers used in each property name of
+ *                        the propertyNames array.
+ *
+ * @return 0 if successful, -1 if there was an error.
+ */
+int getBooleanProperties(Properties *properties, const TCHAR *propertyNameHead, const TCHAR *propertyNameTail, int all, int matchAny, TCHAR ***propertyNames, int **propertyValues, long unsigned int **propertyIndices) {
+    TCHAR **strPropertyValues;
+    int i = 0;
+    int count = 0;
+    int result;
+    
+    result = getStringProperties(properties, propertyNameHead, propertyNameTail, all, matchAny, propertyNames, &strPropertyValues, propertyIndices);
+    if (result == -1)
+        return result;
+    
+    while (strPropertyValues[i]) {
+        count++;
+        i++;
+    }
+    *propertyValues = malloc(sizeof(TCHAR *) * (count + 1));
+    
+    i = 0;
+    while (strPropertyValues[i]) {
+        if (strcmpIgnoreCase(strPropertyValues[i], TEXT("true")) == 0) {
+            (*propertyValues)[i] = TRUE;
+        } else if (strcmpIgnoreCase(strPropertyValues[i], TEXT("false")) == 0) {
+            (*propertyValues)[i] = FALSE;
+        } else {
+            if (properties->logWarnings) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, properties->logWarningLogLevel,
+                    TEXT("Encountered an invalid boolean value for configuration property %s=%s.  Resolving to %s."),
+                    (*propertyNames)[i], (*propertyValues)[i], TEXT("FALSE"));
+            }
+            
+            (*propertyValues)[i] = FALSE;
+        }
+        i++;    
+    }
+    
+    free(strPropertyValues);
+    return 0;
+}
+
+void freeBooleanProperties(TCHAR **propertyNames, int *propertyValues, long unsigned int *propertyIndices) {
+    /* The property names are not malloced. */
+    free(propertyNames);
+
+    free(propertyValues);
+
+    free(propertyIndices);
+}
+
 
 int isQuotableProperty(Properties *properties, const TCHAR *propertyName) {
     Property *property;

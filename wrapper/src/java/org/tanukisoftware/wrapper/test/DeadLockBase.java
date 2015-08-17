@@ -3,7 +3,7 @@ package org.tanukisoftware.wrapper.test;
 import java.lang.reflect.InvocationTargetException;
 
 /*
- * Copyright (c) 1999, 2014 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2015 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *

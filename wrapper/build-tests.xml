@@ -559,9 +559,8 @@ wrapper.java.classpath.missing.loglevel=NONE]]></replacevalue>
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.QuickComplete" />
         <echo file="${test.dir}/hugeclasspathenvmaxsize-path.conf" append="false" message="#encoding=UTF-8${line.separator}"/>
         <script language="javascript">
-            importClass(java.io.File)
             echo = project.createTask("echo");
-            echo.setFile(new File(project.getProperty("test.dir"), "hugeclasspathenvmaxsize-path.conf"));
+            echo.setFile(new java.io.File(project.getProperty("test.dir"), "hugeclasspathenvmaxsize-path.conf"));
             echo.setAppend(true);
             for (var i = 1000; i &lt; 2362; i++) {
                 echo.setMessage("wrapper.java.classpath." + i + "=../lib/no-file-" + i + ".jar\n");
@@ -593,9 +592,8 @@ wrapper.java.classpath.missing.loglevel=NONE]]></replacevalue>
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.QuickComplete" />
         <echo file="${test.dir}/hugeclasspathenvoversize-path.conf" append="false" message="#encoding=UTF-8${line.separator}"/>
         <script language="javascript">
-            importClass(java.io.File)
             echo = project.createTask("echo");
-            echo.setFile(new File(project.getProperty("test.dir"), "hugeclasspathenvoversize-path.conf"));
+            echo.setFile(new java.io.File(project.getProperty("test.dir"), "hugeclasspathenvoversize-path.conf"));
             echo.setAppend(true);
             for (var i = 1000; i &lt; 2362; i++) {
                 echo.setMessage("wrapper.java.classpath." + i + "=../lib/no-file-" + i + ".jar\n");

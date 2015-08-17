@@ -1,6 +1,66 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 
+3.5.27
+* Fix a misleading error message when there is a problem processing a system
+  error message on Windows.
+* Handle system exit codes with descriptions (Windows only).  
+* Add new configuration file directives (#properties.on_overwrite.loglevel and 
+  #properties.on_overwrite.exit) to better control how the wrapper should 
+  behave when detecting duplicate property definitions.
+* Fix: No longer tries to resume a Windows service that is already running, 
+  or pause a service that is already paused.
+* Improve accuracy of status messages when installing, removing, starting,
+  stopping, resuming and pausing a Windows service.
+* Improve the display of the available HostIds when calling 'wrapper -h'.
+* Fix the console flicker bug. Happened when wrapper.ntservice.generate_console
+  was set to TRUE, which is required for thread dumping.
+* Fix a problem on Windows with the consoleless version of the Wrapper. If a 
+  splash screen was set at launch time, and if the wrapper eventually failed to
+  start normally, the splash screen did not disappear and remained on the top 
+  of the log window.
+* Fix a problem on Windows platforms that caused the log window to overlap all 
+  the other forms even when the focus was set on an other application.
+* Add the ability to define CPU affinity for the wrapper and JVM processes
+  (Windows and Linux systems, professional edition).
+* The wrapper can now be executed with a '--setup' option in order to install 
+  components under elevated mode on Windows. During the installation, the 
+  wrapper will register the application to the Windows Event Log system. 
+  After the wrapper is executed with the '--setup' option, the Event Viewer 
+  will no longer report that the installation was corrupted.
+* wrapper.exe and wrapper.dll are now manifested for compatibility with newer
+  versions of Windows (8.1 and above).
+* Modify the Community Edition license to allow the Wrapper to be integrated
+  and distributed with Products released under either the GPL version 2 or GPL
+  version 3 licenses.
+* Include the PID of the Wrapper and Java processes in debug output.
+* Fix a problem where the wrapper.jvm.port.min and wrapper.jvm.port.max
+  properties were being ignored.  This meant that the defaults were always
+  being used.  Since 3.5.26.
+* Fix a very infrequent issue in which the Wrapper would produce an out of 
+  memory error or fail when trying to get the path to the Wrapper on Windows 
+  XP.
+* Modify the wrapper.pausable and wrapper.pausable.stop_jvm properties so they
+  are no longer reloaded when wrapper.restart.reload_configuration=TRUE.
+* Fix a bug when the child process printing the JVM version became a zombie 
+  after completion (problem known on CentOS). Add property 
+  wrapper.java.version.timeout to let the user set a timeout for the child 
+  process to print the JVM version before being terminated.
+* Avoid 4227 events in the Windows LogBook when using SOCKET values for the
+  wrapper.backend.type property.  We now try to check the port status in
+  native code prior to opening it in Java.  The Wrapper worked correctly, but
+  a Windows issue was causing warnings in the EventLog if the port had an
+  existing socket in the TIME_WAIT state from a previous JVM invocation.
+* Fix a problem on AIX with OpenJRE where the wrapper failed to load the
+  native library. The native library now has a '.so' extension like on other 
+  UNIX platforms.
+* Fix a problem on HP-UX when listing HostIds with the 32-bit version of the 
+  Wrapper. If several HostIds are available on the machine, the wrapper could 
+  only get the first one and reported DLPI errors when attempting to get the 
+  others. This issue remains in the 64-bit version and will be corrected in
+  a future release. 
+  
+  
 3.5.26
 * Improve the log messages when a JVM restart is requested when the Wrapper is
   in a state that it will be ignored.
@@ -13,11 +73,13 @@ Java Service Wrapper Revision History.
   (Solaris, MacOS, etc.) show an error message because '-o' is not a valid
   parameter.  Now we hide this error message to avoid confusion and we can
   guess that Cygwin is not running.
-* Allow to control the service in systemd using the script file.
-* Improve script file. Fix a typo. On MacOS, add another alternative way to
-  find Java and use full path to execute sysctl in case it's not in the path.
-  Thanks to Dannes Wessels for pointing this out.
-* Fix a problem on newer version of Windows when customizing the Wrapper. 
+* Add the ability to control running the service with systemd using the script
+  file.
+* On Mac OS X, fix a typo, add another alternative way to find Java to set
+  the JAVA_HOME environment variable, and use the full path to execute sysctl
+  in case it's not in the path. Thanks to Dannes Wessels for pointing this
+  out.
+* Fix a problem on newer versions of Windows when customizing the Wrapper. 
   The certificate was not removed when creating the target. This was leading
   to an error when trying to sign the target with a new certificate.
 * Add missing support in the shell script for restarting/stopping the Wrapper 
@@ -25,7 +87,7 @@ Java Service Wrapper Revision History.
 * Add missing support in the shell script for restarting/stopping the Wrapper 
   service with Upstart.
 * Add the ability to set the path of the 'su' command as well as the ability
-  to specifiy additional options in the Wrapper shell script using new SU_BIN
+  to specify additional arguments in the Wrapper shell script using new SU_BIN
   and SU_OPTS variables.
 * Fix a problem in the WrapperSimpleApp, WrapperStartStopApp, and
   WrapperJarApp helper classes where command line problems that resulted in

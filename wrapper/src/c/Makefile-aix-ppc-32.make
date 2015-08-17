@@ -1,4 +1,4 @@
-# Copyright (c) 1999, 2014 Tanuki Software, Ltd.
+# Copyright (c) 1999, 2015 Tanuki Software, Ltd.
 # http://www.tanukisoftware.com
 # All rights reserved.
 #
@@ -15,19 +15,19 @@ DEFS = -I$(INCLUDE) -I$(INCLUDE)/aix
 
 wrapper_SOURCE = wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c logger_file.c wrapper_file.c wrapper_i18n.c wrapper_hashmap.c
 
-libwrapper_a_SOURCE = wrapper_i18n.c wrapperjni_unix.c wrapperinfo.c wrapperjni.c loggerjni.c
+libwrapper_so_SOURCE = wrapper_i18n.c wrapperjni_unix.c wrapperinfo.c wrapperjni.c loggerjni.c
 
 BIN = ../../bin
 LIB = ../../lib
 
-all: init wrapper libwrapper.a
+all: init wrapper libwrapper.so
 
 clean:
 	rm -f *.o
 
 cleanall: clean
 	rm -rf *~ .deps
-	rm -f $(BIN)/wrapper $(LIB)/libwrapper.a
+	rm -f $(BIN)/wrapper $(LIB)/libwrapper.so
 
 init:
 	if test ! -d .deps; then mkdir .deps; fi
@@ -35,8 +35,8 @@ init:
 wrapper: $(wrapper_SOURCE)
 	$(COMPILE) -lpthread -lnsl -lm $(wrapper_SOURCE) -o $(BIN)/wrapper
 
-libwrapper.a: $(libwrapper_a_SOURCE)
-	${COMPILE} $(DEFS) -shared -lpthread $(libwrapper_a_SOURCE) -o $(LIB)/libwrapper.a
+libwrapper.so: $(libwrapper_so_SOURCE)
+	${COMPILE} $(DEFS) -shared -lpthread $(libwrapper_so_SOURCE) -o $(LIB)/libwrapper.so
 
 %.o: %.c
 	@echo '$(COMPILE) -c $<'; \
