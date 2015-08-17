@@ -56,9 +56,9 @@
                 <equals arg1="${os.name}" arg2="Windows 2003"/>
                 <equals arg1="${os.name}" arg2="Windows Vista"/>
                 <equals arg1="${os.name}" arg2="Windows 7"/>
-				<equals arg1="${os.name}" arg2="Windows 8"/>
+                <equals arg1="${os.name}" arg2="Windows 8"/>
                 <equals arg1="${os.name}" arg2="Windows Server 2008"/>
-				<equals arg1="${os.name}" arg2="Windows Server 2008 R2"/>
+                <equals arg1="${os.name}" arg2="Windows Server 2008 R2"/>
                 <equals arg1="${os.name}" arg2="Windows Server 2012"/>
             </or>
         </condition>
@@ -315,14 +315,14 @@
         <condition property="vcvars.bat.arg.1" value="${vcvars.v8_x86_64_5.arg.1}">
             <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_x86_64_5}"/>
         </condition>
-		<condition property="vcvars.bat" value="${vcvars.v8_x86_64_6}">
+        <condition property="vcvars.bat" value="${vcvars.v8_x86_64_6}">
             <and>
                 <equals arg1="${bits}" arg2="64"/>
                 <equals arg1="${dist.arch}" arg2="x86"/>
                 <available file="${vcvars.v8_x86_64_6}"/>
             </and>
         </condition>
-		<condition property="vcvars.bat" value="${vcvars.v8_x86_64_7}">
+        <condition property="vcvars.bat" value="${vcvars.v8_x86_64_7}">
             <and>
                 <equals arg1="${bits}" arg2="64"/>
                 <equals arg1="${dist.arch}" arg2="x86"/>
@@ -1210,6 +1210,7 @@ wrapper.filter.action.999=NONE]]></replacevalue>
                 <include name="src/c/*.c" />
                 <include name="src/c/*.c.in" />
                 <include name="src/c/*.h" />
+                <include name="src/c/*.inc" />
                 <include name="src/c/Makefile-*" />
                 <include name="src/c/*.mak" />
                 <exclude name="src/c/WrapperJNI*.mak" />
