@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2014 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2015 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -59,8 +59,11 @@ const TCHAR* getLastErrorText() {
                           NULL);
 
     /* supplied buffer is not long enough */
-    if ((!dwRet) || ((long)LAST_ERROR_TEXT_BUFFER_SIZE - 1 < (long)dwRet + 14)) {
-        _sntprintf(lastErrorTextBufferW, LAST_ERROR_TEXT_BUFFER_SIZE, TEXT("Error Message too large (Size %d) (Error 0x%x)"), dwRet, errorNum);
+    if (!dwRet) {
+        /* There was an error calling FormatMessage. */
+        _sntprintf(lastErrorTextBufferW, LAST_ERROR_TEXT_BUFFER_SIZE, TEXT("Failed to format system error message (Error: %d) (Original Error: 0x%x)"), GetLastError(), errorNum);
+    } else if ((long)LAST_ERROR_TEXT_BUFFER_SIZE - 1 < (long)dwRet + 14) {
+        _sntprintf(lastErrorTextBufferW, LAST_ERROR_TEXT_BUFFER_SIZE, TEXT("System error message is too large to convert (Required size: %d) (Original Error: 0x%x)"), dwRet, errorNum);
     } else {
         lpszTemp[lstrlen(lpszTemp)-2] = TEXT('\0');  /*remove cr and newline character */
         _sntprintf(lastErrorTextBufferW, LAST_ERROR_TEXT_BUFFER_SIZE, TEXT("%s (0x%x)"), lpszTemp, errorNum);
@@ -76,9 +79,9 @@ const TCHAR* getLastErrorText() {
     req = mbstowcs(NULL, lastErrorTextMB, MBSTOWCS_QUERY_LENGTH);
     if (req == (size_t)-1) {
         invalidMultiByteSequence(TEXT("GLET"), 1);
-        _sntprintf(lastErrorTextBufferW, LAST_ERROR_TEXT_BUFFER_SIZE, TEXT("Error Message could not be decoded (Error 0x%x)"), errorNum);
+        _sntprintf(lastErrorTextBufferW, LAST_ERROR_TEXT_BUFFER_SIZE, TEXT("System error message could not be decoded (Error 0x%x)"), errorNum);
     } else if (req >= LAST_ERROR_TEXT_BUFFER_SIZE) {
-        _sntprintf(lastErrorTextBufferW, LAST_ERROR_TEXT_BUFFER_SIZE, TEXT("Error Message too large (Size %d) (Error 0x%x)"), req, errorNum);
+        _sntprintf(lastErrorTextBufferW, LAST_ERROR_TEXT_BUFFER_SIZE, TEXT("System error message too large to convert (Require size: %d) (Original Error: 0x%x)"), req, errorNum);
     } else {
         mbstowcs(lastErrorTextBufferW, lastErrorTextMB, LAST_ERROR_TEXT_BUFFER_SIZE);
     }

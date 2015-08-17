@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2014 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2015 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -127,7 +127,7 @@ TCHAR         *keyChars = TEXT("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKL
 /* Properties structure loaded in from the configuration file. */
 Properties              *properties;
 
-/* Mutex for syncronization of the tick timer. */
+/* Mutex for synchronization of the tick timer. */
 #ifdef WIN32
 HANDLE tickMutexHandle = NULL;
 #else
@@ -151,7 +151,14 @@ SOCKET protocolActiveBackendSD = INVALID_SOCKET;
  #define IN6ADDR_LOOPBACK_INIT { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 }
 #endif
 #define LOOPBACK_IPv4  "127.0.0.1"
+#ifdef HPUX_IA
+ /* on HPUX ia, gcc reports a warning "missing braces around initializer" 
+    when using IN6ADDR_LOOPBACK_INIT (/usr/include/netinet/in6.h:241). 
+    So I add braces for the struct and braces for the union. */
+struct in6_addr LOOPBACK_IPv6 = {{IN6ADDR_LOOPBACK_INIT}};
+#else
 struct in6_addr LOOPBACK_IPv6 = IN6ADDR_LOOPBACK_INIT;  
+#endif
 
 int disposed = FALSE;
 int loadConfiguration();
@@ -299,7 +306,7 @@ void wrapperAddDefaultProperties() {
         }
 #else
         /* The solaris implementation of realpath will return a relative path if a relative
-         *  path is provided.  We always need an abosulte path here.  So build up one and
+         *  path is provided.  We always need an absolute path here.  So build up one and
          *  then use realpath to remove any .. or other relative references. */
         wrapperData->confDir = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
         if (!wrapperData->confDir) {
@@ -706,10 +713,12 @@ void wrapperLoadLoggingProperties(int preload) {
     setSyslogEventSourceName(getStringProperty(properties, TEXT("wrapper.syslog.ident"), getStringProperty(properties, TEXT("wrapper.name"), getStringProperty(properties, TEXT("wrapper.ntservice.name"), TEXT("wrapper")))));
 
     /* Register the syslog message file if syslog is enabled */
-    if (getSyslogLevelInt() < LEVEL_NONE) {
-        registerSyslogMessageFile();
+    /* Now lets register the syslog message file anytime */
+    /* if (getSyslogLevelInt() < LEVEL_NONE) { */
+    if (preload) {
+        registerSyslogMessageFile(FALSE);
     }
-
+    /*} */
 
     /* Get the debug status (Property is deprecated but flag is still used) */
     wrapperData->isDebugging = getBooleanProperty(properties, TEXT("wrapper.debug"), FALSE);
@@ -859,6 +868,8 @@ int wrapperLoadConfigurationProperties(int preload) {
     
     setLogPropertyWarnings(properties, !preload);
     
+    /* Is it really useful to call again wrapperAddDefaultProperties() here? The function was already called on preload.
+    Use properties->logLevelOnOverwrite to see the concerned properties */
     wrapperAddDefaultProperties();
 
 
@@ -895,7 +906,13 @@ int wrapperLoadConfigurationProperties(int preload) {
 
     /* Config file found. */
     wrapperData->argConfFileFound = TRUE;
-    
+
+    /* The properties have just been loaded. */
+    if (preload == TRUE) {
+    } else if (properties->overwrittenPropertyCausedExit) {
+        return TRUE; /* will cause the wrapper to exit with error code 1 */
+    }
+
     if (firstCall) {
         /* If the working dir was configured, we need to extract it and preserve its value.
          *  This must be done after the configuration has been completely loaded. */
@@ -987,7 +1004,7 @@ int wrapperLoadConfigurationProperties(int preload) {
             TEXT("Problem loading wrapper configuration file: %s"), wrapperData->configFile);
         return TRUE;
     }
-
+    
     return FALSE;
 }
 
@@ -1704,14 +1721,14 @@ void protocolOpenSocket(int IPv4) {
     /* New connection, so continue. */
     protocolActiveBackendSD = newBackendSD;
 
+    /* Collect information about the remote end of the socket. */
     if (wrapperData->isDebugging) {
         if (IPv4) {
             port = ntohs(addr_srv4.sin_port);
         } else {
             port = ntohs(addr_srv6.sin6_port);
         }
-
-        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_INFO, TEXT("accepted a socket from %s on port %d"), socketSource, port);
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("accepted a socket on port %d from %s at port %d"), wrapperData->actualPort, socketSource, port);
     }
     
     free(socketSource);
@@ -2193,7 +2210,7 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
 
 #ifdef WIN32
                     /* Send a maximum of 32000 characters per call as larger values appear to fail without error. */
-                    if (WriteFile(protocolActiveServerPipeOut, protocolSendBuffer + sent, __min(maxSendSize, sizeof(char) * (int)(len - sent)), &inWritten, NULL) == FALSE) {
+                    if (WriteFile(protocolActiveServerPipeOut, protocolSendBuffer + sent, __min(maxSendSize, (int)(sizeof(char) * (len - sent))), &inWritten, NULL) == FALSE) {
 #else
                     if ((inWritten = write(protocolActiveServerPipeOut, protocolSendBuffer + sent, sizeof(char) * (int)(len - sent))) == -1) {
 #endif
@@ -2738,6 +2755,8 @@ int wrapperInitialize() {
     wrapperData->ctrlCodeQueueWriteIndex = 0;
     wrapperData->ctrlCodeQueueReadIndex = 0;
     wrapperData->ctrlCodeQueueWrapped = FALSE;
+    wrapperData->argc = 0;
+    wrapperData->argv = NULL;
 #endif
 
     if (initLogging(wrapperLogFileChanged)) {
@@ -2823,7 +2842,18 @@ int wrapperInitialize() {
 
 void wrapperDataDispose() {
     int i;
-
+    
+#ifdef WIN32
+    if (wrapperData->argv) {
+        for (i = 0; wrapperData->argv[i] != NULL; i++) {
+            free(wrapperData->argv[i]);
+            wrapperData->argv[i] = NULL;
+        }
+        free(wrapperData->argv);
+        wrapperData->argv = NULL;
+    }    
+    wrapperData->argc = 0;
+#endif
     if (wrapperData->workingDir) {
         free(wrapperData->workingDir);
         wrapperData->workingDir = NULL;
@@ -3098,7 +3128,7 @@ void wrapperGetFileBase(const TCHAR *fileName, TCHAR *baseName) {
 TCHAR *generateVersionBanner() {
     TCHAR *banner = TEXT("Java Service Wrapper %s Edition %s-bit %s\n  Copyright (C) 1999-%s Tanuki Software, Ltd. All Rights Reserved.\n    http://wrapper.tanukisoftware.com");
     TCHAR *product = TEXT("Community");
-    TCHAR *copyright = TEXT("2014");
+    TCHAR *copyright = TEXT("2015");
     TCHAR *buffer;
     size_t len;
 
@@ -3155,6 +3185,7 @@ void wrapperUsage(TCHAR *appName) {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("where <command> can be one of:"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -c  --console run as a Console application"));
 #ifdef WIN32
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -su --setup   SetUp the wrapper"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -t  --start   starT an NT service"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -a  --pause   pAuse a started NT service"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -e  --resume  rEsume a paused NT service"));
@@ -3198,6 +3229,15 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
     TCHAR *c;
     int delimiter, wrapperArgCount;
     wrapperData->javaArgValueCount = 0;
+
+#ifdef WIN32
+    wrapperData->argc = argc;
+    wrapperCopyStringArray(&(wrapperData->argv), &argv, argc);
+    if (wrapperData->argv == NULL) {
+        return FALSE;        
+    }
+#endif
+
     delimiter = 1;
 
     if (argc > 1
@@ -3672,6 +3712,177 @@ size_t wrapperGetMinimumTextLengthForPattern(const TCHAR *pattern) {
     /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("wrapperGetMinimumTextLengthForPattern(%s) -> %d"), pattern, minLen);*/
 
     return minLen;
+}
+
+/**
+ * Function that copies an array of strings.
+ *  The output will be pointer to a NULL terminated array even though the source does not end with a NULL value.
+ *
+ * @param arrOut Array with copied strings
+ * @param arrIn  Array to copy
+ * @param count  Number of elements to copy. If arrIn has less elements than count, arrOut will be the same size as arrIn.
+ */
+void wrapperCopyStringArray(TCHAR*** arrOut, TCHAR*** arrIn, int count) {
+    int i;
+    int j;
+    
+    for (i = 0; i < count; i++) {
+        if (!(*(*arrIn + i))) {
+            count = i;
+            break;
+        }
+    }
+     
+    *arrOut = malloc(sizeof(TCHAR *) * (count + 1));
+    if (arrOut == NULL) {
+        outOfMemory(TEXT("WCSA"), 1);
+        return;        
+    }
+    
+    for (i = 0; i < count; i++) {
+        *(*arrOut + i) = malloc(sizeof(TCHAR *) * (_tcslen(*(*arrIn + i)) + 1));
+        if (*(*arrOut + i) == NULL) {
+            outOfMemory(TEXT("WCSA"), 2);
+            for (j = 0; j < i; j++) {
+                free(*(*arrOut + j));
+                *(*arrOut + j) = NULL;
+            }
+            free(*arrOut);
+            *arrOut = NULL;            
+            return;        
+        }
+        _tcsncpy(*(*arrOut + i), *(*arrIn + i), _tcslen(*(*arrIn + i)) + 1);
+    }
+    *(*arrOut + count) = NULL;
+}
+
+/**
+ * Function that splits a text into tokens according to delimiters.
+ *  Any spaces around delimiters will be trimmed.
+ *  Several delimiters following each others without spaces will be considered as one.
+ *  If there are any space between 2 delimiters, the function will consider it as a token and trim it.
+ *
+ * @param text Text to be split
+ * @param delim Array of delimiters 
+ *
+ * @return tokens in an Array of TCHAR*
+ */
+/* commented because not used, but tested and working: just need to replace _tcsdup() by _tcsncpy() for cross platform compatibility  */ 
+/*
+TCHAR** wrapperSplitText(const TCHAR* text, const TCHAR* delim) {
+    TCHAR** result = NULL;
+    / * We work on a copies of the text because _tcstok cut it after the first delimiter * /
+    TCHAR* text0         = NULL;
+    TCHAR* text1         = NULL;
+    TCHAR* token         = NULL;
+    TCHAR* tokenTrim     = NULL;
+    size_t count         = 0; 
+    size_t i             = 0; 
+    size_t j             = 0; 
+#if defined(UNICODE) && !defined(WIN32)
+    TCHAR *state;
+#endif
+    
+    text0 = _tcsdup(text);
+    if (!text0) {
+        outOfMemory(TEXT("WST"), 1);
+        return NULL;
+    }
+    
+    while(_tcstok((count == 0 ? text0 : 0), delim
+#if defined(UNICODE) && !defined(WIN32)
+       , &state
+#endif
+    )){
+        count++;
+    }
+    free(text0);
+
+    if (count == 0) {
+        return NULL;
+    }
+    
+    / * +1 for for terminating null string * /
+    count++;
+    
+    result = (TCHAR**)malloc(sizeof(TCHAR*) * count);
+
+    if (!result) {
+        outOfMemory(TEXT("WST"), 2);
+        return NULL;
+    }
+
+    text1 = _tcsdup(text);
+    if (!text1) {
+        outOfMemory(TEXT("WST"), 3);
+        free(result);
+        return NULL;
+    }
+    
+    token = _tcstok(text1, delim
+#if defined(UNICODE) && !defined(WIN32)
+        , &state
+#endif
+    ); 
+
+    while (token) {
+        tokenTrim = malloc(sizeof(TCHAR) * (_tcslen(token) + 1));
+        if (!tokenTrim) {
+            outOfMemory(TEXT("WST"), 4);
+            for (j = 0; j < i; j++) {
+                free(*(result + j));
+                *(result + j) = NULL;
+            }
+            free(result);
+            free(text1);
+            return NULL;
+        }
+        
+        trim(token, tokenTrim);
+        *(result + i++) = tokenTrim;
+        token = _tcstok(0, delim
+#if defined(UNICODE) && !defined(WIN32)
+            , &state
+#endif
+        );
+    }
+    *(result + i) = NULL;
+    free(text1);
+
+    return result;
+}
+*/
+
+/**
+ * Trims any whitespace from the beginning and end of the in string
+ *  and places the results in the out buffer.  Assumes that the out
+ *  buffer is at least as large as the in buffer. */
+void trim(const TCHAR *in, TCHAR *out) {
+    size_t len;
+    size_t first;
+    size_t last;
+
+    len = _tcslen(in);
+    if (len > 0) {
+        first = 0;
+        last = len - 1;
+
+        /* Left Trim */
+        while (((in[first] == ' ') || (in[first] == '\t')) && (first < last)) {
+            first++;
+        }
+        /* Right Trim */
+        while ((last > first) && ((in[last] == ' ') || (in[last] == '\t'))) {
+            last--;
+        }
+
+        /* Copy over what is left. */
+        len = last - first + 1;
+        if (len > 0) {
+            _tcsncpy(out, in + first, len);
+        }
+    }
+    out[len] = TEXT('\0');
 }
 
 void logApplyFilters(const TCHAR *log) {
@@ -4294,9 +4505,12 @@ BOOL GetOSDisplayString(TCHAR** pszOS) {
 
     osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
 
+#pragma warning(push)
+#pragma warning(disable : 4996) /* Visual Studio 2013 deprecates GetVersionEx but we still want to use it. */    
     if (!GetVersionEx((OSVERSIONINFO*) &osvi)) {
          return FALSE;
     }
+#pragma warning(pop)
 
     /* Call GetNativeSystemInfo if supported or GetSystemInfo otherwise.*/
 
@@ -4311,23 +4525,106 @@ BOOL GetOSDisplayString(TCHAR** pszOS) {
         _tcsncpy(*pszOS, TEXT("Microsoft "), OSBUFSIZE);
 
         /* Test for the specific product. */
-        if (osvi.dwMajorVersion == 6) {
+        if (osvi.dwMajorVersion == 10) {
+            if (osvi.dwMinorVersion == 0 ) {
+                if (osvi.wProductType == VER_NT_WORKSTATION) {
+                    _tcsncat(*pszOS, TEXT("Windows 10 "), OSBUFSIZE);
+                } else {
+                    _tcsncat(*pszOS, TEXT("Windows Server 2016 "), OSBUFSIZE);
+                }
+            }
+        } else if (osvi.dwMajorVersion == 6) {
             if (osvi.dwMinorVersion == 0 ) {
                 if (osvi.wProductType == VER_NT_WORKSTATION) {
                     _tcsncat(*pszOS, TEXT("Windows Vista "), OSBUFSIZE);
                 } else {
                     _tcsncat(*pszOS, TEXT("Windows Server 2008 "), OSBUFSIZE);
                 }
-            }
-
-            if (osvi.dwMinorVersion == 1) {
+            } else if (osvi.dwMinorVersion == 1) {
                 if (osvi.wProductType == VER_NT_WORKSTATION) {
                     _tcsncat(*pszOS, TEXT("Windows 7 "), OSBUFSIZE);
                 } else {
                     _tcsncat(*pszOS, TEXT("Windows Server 2008 R2 "), OSBUFSIZE);
                 }
+            } else if ( osvi.dwMinorVersion == 2 ) {
+                if( osvi.wProductType == VER_NT_WORKSTATION ) {
+                    _tcsncat(*pszOS, TEXT("Windows 8 "), OSBUFSIZE);
+                } else {
+                    _tcsncat(*pszOS, TEXT("Windows Server 2012 "), OSBUFSIZE);
+                }
+            } else if ( osvi.dwMinorVersion == 3 ) {
+                if( osvi.wProductType == VER_NT_WORKSTATION ) {
+                    _tcsncat(*pszOS, TEXT("Windows 8.1 "), OSBUFSIZE);
+                } else {
+                    _tcsncat(*pszOS, TEXT("Windows Server 2012 R2 "), OSBUFSIZE);
+                }
+            }
+        } else if ((osvi.dwMajorVersion == 5) && (osvi.dwMinorVersion == 2)) {
+            if (GetSystemMetrics(89)) {
+                _tcsncat(*pszOS, TEXT("Windows Server 2003 R2, "), OSBUFSIZE);
+            } else if (osvi.wSuiteMask & 8192) {
+                _tcsncat(*pszOS, TEXT("Windows Storage Server 2003"), OSBUFSIZE);
+            } else if (osvi.wSuiteMask & 32768) {
+                _tcsncat(*pszOS, TEXT("Windows Home Server"), OSBUFSIZE);
+            } else if (osvi.wProductType == VER_NT_WORKSTATION && si.wProcessorArchitecture==PROCESSOR_ARCHITECTURE_AMD64) {
+                _tcsncat(*pszOS, TEXT("Windows XP Professional x64 Edition"), OSBUFSIZE);
+            } else {
+                _tcsncat(*pszOS, TEXT("Windows Server 2003, "), OSBUFSIZE);
             }
 
+            /* Test for the server type. */
+            if (osvi.wProductType != VER_NT_WORKSTATION) {
+                if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_IA64) {
+                    if (osvi.wSuiteMask & VER_SUITE_DATACENTER) {
+                        _tcsncat(*pszOS, TEXT("Datacenter Edition for Itanium-based Systems"), OSBUFSIZE);
+                    } else if (osvi.wSuiteMask & VER_SUITE_ENTERPRISE) {
+                        _tcsncat(*pszOS, TEXT("Enterprise Edition for Itanium-based Systems"), OSBUFSIZE);
+                    }
+                } else if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64) {
+                    if (osvi.wSuiteMask & VER_SUITE_DATACENTER) {
+                        _tcsncat(*pszOS, TEXT("Datacenter x64 Edition"), OSBUFSIZE);
+                    } else if (osvi.wSuiteMask & VER_SUITE_ENTERPRISE) {
+                        _tcsncat(*pszOS, TEXT("Enterprise x64 Edition"), OSBUFSIZE);
+                    } else {
+                        _tcsncat(*pszOS, TEXT("Standard x64 Edition"), OSBUFSIZE);
+                    }
+                } else {
+                    if (osvi.wSuiteMask & VER_SUITE_COMPUTE_SERVER) {
+                        _tcsncat(*pszOS, TEXT("Compute Cluster Edition"), OSBUFSIZE);
+                    } else if (osvi.wSuiteMask & VER_SUITE_DATACENTER) {
+                        _tcsncat(*pszOS, TEXT("Datacenter Edition"), OSBUFSIZE);
+                    } else if (osvi.wSuiteMask & VER_SUITE_ENTERPRISE) {
+                        _tcsncat(*pszOS, TEXT("Enterprise Edition"), OSBUFSIZE);
+                    } else if (osvi.wSuiteMask & VER_SUITE_BLADE) {
+                        _tcsncat(*pszOS, TEXT("Web Edition" ), OSBUFSIZE);
+                    } else {
+                        _tcsncat(*pszOS, TEXT("Standard Edition"), OSBUFSIZE);
+                    }
+                }
+            }
+        } else if ((osvi.dwMajorVersion == 5) && (osvi.dwMinorVersion == 1)) {
+            _tcsncat(*pszOS, TEXT("Windows XP "), OSBUFSIZE);
+            if (osvi.wSuiteMask & VER_SUITE_PERSONAL) {
+                _tcsncat(*pszOS, TEXT("Home Edition"), OSBUFSIZE);
+            } else {
+                _tcsncat(*pszOS, TEXT("Professional"), OSBUFSIZE);
+            }
+        } else if ((osvi.dwMajorVersion == 5) && (osvi.dwMinorVersion == 0)) {
+            _tcsncat(*pszOS, TEXT("Windows 2000 "), OSBUFSIZE);
+            if (osvi.wProductType == VER_NT_WORKSTATION) {
+                _tcsncat(*pszOS, TEXT("Professional"), OSBUFSIZE);
+            } else {
+                if (osvi.wSuiteMask & VER_SUITE_DATACENTER) {
+                    _tcsncat(*pszOS, TEXT("Datacenter Server"), OSBUFSIZE);
+                } else if (osvi.wSuiteMask & VER_SUITE_ENTERPRISE) {
+                    _tcsncat(*pszOS, TEXT("Advanced Server"), OSBUFSIZE);
+                } else {
+                    _tcsncat(*pszOS, TEXT("Server"), OSBUFSIZE);
+                }
+            }
+        }
+
+        if (osvi.dwMajorVersion >= 6) {
             pGPI = GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")), "GetProductInfo");
 
             pGPI(osvi.dwMajorVersion, osvi.dwMinorVersion, 0, 0, &dwType);
@@ -4373,7 +4670,7 @@ BOOL GetOSDisplayString(TCHAR** pszOS) {
                     _tcsncat(*pszOS, TEXT("Enterprise Edition for Itanium-based Systems"), OSBUFSIZE);
                     break;
                 case 9:
-                    _tcsncat(*pszOS,  TEXT("Small Business Server"), OSBUFSIZE);
+                    _tcsncat(*pszOS, TEXT("Small Business Server"), OSBUFSIZE);
                     break;
                 case 25:
                     _tcsncat(*pszOS, TEXT("Small Business Server Premium Edition"), OSBUFSIZE);
@@ -4387,75 +4684,42 @@ BOOL GetOSDisplayString(TCHAR** pszOS) {
                 case 17:
                     _tcsncat(*pszOS, TEXT("Web Server Edition"), OSBUFSIZE);
                     break;
-            }
-        }
-
-        if ((osvi.dwMajorVersion == 5) && (osvi.dwMinorVersion == 2)) {
-            if (GetSystemMetrics(89)) {
-                _tcsncat(*pszOS, TEXT("Windows Server 2003 R2, "), OSBUFSIZE);
-            } else if (osvi.wSuiteMask & 8192) {
-                _tcsncat(*pszOS, TEXT("Windows Storage Server 2003"), OSBUFSIZE);
-            } else if (osvi.wSuiteMask & 32768) {
-                _tcsncat(*pszOS, TEXT("Windows Home Server"), OSBUFSIZE);
-            } else if (osvi.wProductType == VER_NT_WORKSTATION && si.wProcessorArchitecture==PROCESSOR_ARCHITECTURE_AMD64) {
-                _tcsncat(*pszOS, TEXT("Windows XP Professional x64 Edition"), OSBUFSIZE);
-            } else {
-                _tcsncat(*pszOS, TEXT("Windows Server 2003, "), OSBUFSIZE);
-            }
-
-            /* Test for the server type. */
-            if (osvi.wProductType != VER_NT_WORKSTATION) {
-                if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_IA64) {
-                    if (osvi.wSuiteMask & VER_SUITE_DATACENTER) {
-                        _tcsncat(*pszOS, TEXT("Datacenter Edition for Itanium-based Systems"), OSBUFSIZE);
-                    } else if (osvi.wSuiteMask & VER_SUITE_ENTERPRISE) {
-                        _tcsncat(*pszOS, TEXT("Enterprise Edition for Itanium-based Systems"), OSBUFSIZE);
-                    }
-                } else if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64) {
-                    if (osvi.wSuiteMask & VER_SUITE_DATACENTER) {
-                        _tcsncat(*pszOS, TEXT("Datacenter x64 Edition"), OSBUFSIZE);
-                    } else if (osvi.wSuiteMask & VER_SUITE_ENTERPRISE) {
-                        _tcsncat(*pszOS, TEXT("Enterprise x64 Edition"), OSBUFSIZE);
-                    } else {
-                        _tcsncat(*pszOS, TEXT("Standard x64 Edition"), OSBUFSIZE);
-                    }
-                } else {
-                    if (osvi.wSuiteMask & VER_SUITE_COMPUTE_SERVER) {
-                        _tcsncat(*pszOS, TEXT("Compute Cluster Edition"), OSBUFSIZE);
-                    } else if (osvi.wSuiteMask & VER_SUITE_DATACENTER) {
-                        _tcsncat(*pszOS, TEXT("Datacenter Edition"), OSBUFSIZE);
-                    } else if (osvi.wSuiteMask & VER_SUITE_ENTERPRISE) {
-                        _tcsncat(*pszOS, TEXT("Enterprise Edition"), OSBUFSIZE);
-                    } else if (osvi.wSuiteMask & VER_SUITE_BLADE) {
-                        _tcsncat(*pszOS, TEXT("Web Edition" ), OSBUFSIZE);
-                    } else {
-                        _tcsncat(*pszOS, TEXT("Standard Edition"), OSBUFSIZE);
-                    }
-                }
-            }
-        }
-
-        if ((osvi.dwMajorVersion == 5) && (osvi.dwMinorVersion == 1)) {
-            _tcsncat(*pszOS, TEXT("Windows XP "), OSBUFSIZE);
-            if (osvi.wSuiteMask & VER_SUITE_PERSONAL) {
-                _tcsncat(*pszOS, TEXT("Home Edition"), OSBUFSIZE);
-            } else {
-                _tcsncat(*pszOS, TEXT("Professional"), OSBUFSIZE);
-            }
-        }
-
-        if ((osvi.dwMajorVersion == 5) && (osvi.dwMinorVersion == 0)) {
-            _tcsncat(*pszOS, TEXT("Windows 2000 "), OSBUFSIZE);
-            if (osvi.wProductType == VER_NT_WORKSTATION) {
-                _tcsncat(*pszOS, TEXT("Professional"), OSBUFSIZE);
-            } else {
-                if (osvi.wSuiteMask & VER_SUITE_DATACENTER) {
-                    _tcsncat(*pszOS, TEXT("Datacenter Server"), OSBUFSIZE);
-                } else if (osvi.wSuiteMask & VER_SUITE_ENTERPRISE) {
-                    _tcsncat(*pszOS, TEXT("Advanced Server"), OSBUFSIZE);
-                } else {
-                    _tcsncat(*pszOS, TEXT("Server"), OSBUFSIZE);
-                }
+                case 101:
+                    _tcsncat(*pszOS, TEXT("Home"), OSBUFSIZE);
+                    break;
+                case 98:
+                    _tcsncat(*pszOS, TEXT("Home N"), OSBUFSIZE);
+                    break;
+                case 99:
+                    _tcsncat(*pszOS, TEXT("Home China"), OSBUFSIZE);
+                    break;
+                case 100:
+                    _tcsncat(*pszOS, TEXT("Home Single Language"), OSBUFSIZE);
+                    break;
+                case 104:
+                    _tcsncat(*pszOS, TEXT("Mobile"), OSBUFSIZE);
+                    break;
+                case 133:
+                    _tcsncat(*pszOS, TEXT("Mobile Enterprise"), OSBUFSIZE);
+                    break;
+                case 121:
+                    _tcsncat(*pszOS, TEXT("Education"), OSBUFSIZE);
+                    break;
+                case 122:
+                    _tcsncat(*pszOS, TEXT("Education N"), OSBUFSIZE);
+                    break;
+                case 70:
+                    _tcsncat(*pszOS, TEXT("Enterprise E"), OSBUFSIZE);
+                    break;
+                case 84:
+                    _tcsncat(*pszOS, TEXT("Enterprise N (evaluation installation)"), OSBUFSIZE);
+                    break;
+                case 27:
+                    _tcsncat(*pszOS, TEXT("Enterprise N"), OSBUFSIZE);
+                    break;
+                case 72:
+                    _tcsncat(*pszOS, TEXT("Enterprise (evaluation installation)"), OSBUFSIZE);
+                    break;
             }
         }
 
@@ -4618,6 +4882,9 @@ int wrapperRunCommonInner() {
             }
         }
 #endif
+        
+        /* Log the Wrapper's PID. */
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("PID:          %d"), wrapperData->wrapperPID);
     }
 
 #ifdef WIN32
@@ -5745,7 +6012,8 @@ static int loadParameterFileCallbackParam_AddArg(LoadParameterFileCallbackParam 
     return TRUE;
 }
 
-static int loadParameterFileCallback(void *callbackParam, const TCHAR *fileName, int lineNumber, TCHAR *config, int debugProperties) {
+/*exitOnOverwrite and logLevelOnOverwrite are not used here but the function must implement the signature of ConfigFileReader_Callback. */
+static int loadParameterFileCallback(void *callbackParam, const TCHAR *fileName, int lineNumber, TCHAR *config, int exitOnOverwrite, int logLevelOnOverwrite) {
     LoadParameterFileCallbackParam *param = (LoadParameterFileCallbackParam *)callbackParam;
     TCHAR *tail_bound;
     TCHAR *arg;
@@ -6648,7 +6916,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     }
 
     /* Store the Wrapper jvm min and max ports. */
-    if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_SOCKET) {
+    if ((wrapperData->backendType == WRAPPER_BACKEND_TYPE_SOCKET_V4) || (wrapperData->backendType == WRAPPER_BACKEND_TYPE_SOCKET_V6)) {
         if (wrapperData->portAddress != NULL) {
             if (strings) {
                 strings[index] = malloc(sizeof(TCHAR) * (_tcslen(TEXT("-Dwrapper.port.address=")) + _tcslen(wrapperData->portAddress) + 1));
@@ -6660,6 +6928,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
             }
             index++;
         }
+        
         if (wrapperData->jvmPort >= 0) {
             if (strings) {
                 strings[index] = malloc(sizeof(TCHAR) * (19 + 5 + 1));  /* Port up to 5 characters */
@@ -6667,26 +6936,28 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
                     outOfMemory(TEXT("WBJCAI"), 28);
                     return -1;
                 }
-                _sntprintf(strings[index], 19 + 5 + 1, TEXT("-Dwrapper.jvm.port=%d"), (int)wrapperData->jvmPort);
+                _sntprintf(strings[index], 19 + 5 + 1, TEXT("-Dwrapper.jvm.port=%d"), wrapperData->jvmPort);
             }
             index++;
         }
+        
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (23 + 5 + 1));  /* Port up to 5 characters */
             if (!strings[index]) {
                 outOfMemory(TEXT("WBJCAI"), 29);
                 return -1;
             }
-            _sntprintf(strings[index], 23 + 5 + 1, TEXT("-Dwrapper.jvm.port.min=%d"), (int)wrapperData->jvmPortMin);
+            _sntprintf(strings[index], 23 + 5 + 1, TEXT("-Dwrapper.jvm.port.min=%d"), wrapperData->jvmPortMin);
         }
         index++;
+        
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (23 + 5 + 1));  /* Port up to 5 characters */
             if (!strings[index]) {
                 outOfMemory(TEXT("WBJCAI"), 30);
                 return -1;
             }
-            _sntprintf(strings[index], 23 + 5 + 1, TEXT("-Dwrapper.jvm.port.max=%d"), (int)wrapperData->jvmPortMax);
+            _sntprintf(strings[index], 23 + 5 + 1, TEXT("-Dwrapper.jvm.port.max=%d"), wrapperData->jvmPortMax);
         }
         index++;
     }
@@ -6817,7 +7088,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     if (strings) {
         strings[index] = malloc(sizeof(TCHAR) * (20 + _tcslen(wrapperVersion) + 1));
         if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 37);
+            outOfMemory(TEXT("WBJCAI"), 38);
             return -1;
         }
         if (addQuotes) {
@@ -6832,7 +7103,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     if (strings) {
         strings[index] = malloc(sizeof(TCHAR) * (27 + _tcslen(wrapperData->nativeLibrary) + 1));
         if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 38);
+            outOfMemory(TEXT("WBJCAI"), 39);
             return -1;
         }
         if (addQuotes) {
@@ -6847,7 +7118,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     if (strings) {
         strings[index] = malloc(sizeof(TCHAR) * (17 + _tcslen(wrapperArch) + 1));
         if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 39);
+            outOfMemory(TEXT("WBJCAI"), 40);
             return -1;
         }
         if (addQuotes) {
@@ -6863,7 +7134,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (31 + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 40);
+                outOfMemory(TEXT("WBJCAI"), 41);
                 return -1;
             }
             if (addQuotes) {
@@ -6880,7 +7151,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (24 + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 41);
+                outOfMemory(TEXT("WBJCAI"), 42);
                 return -1;
             }
             if (addQuotes) {
@@ -6897,7 +7168,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (30 + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 42);
+                outOfMemory(TEXT("WBJCAI"), 43);
                 return -1;
             }
             if (addQuotes) {
@@ -6914,7 +7185,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (38 + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 43);
+                outOfMemory(TEXT("WBJCAI"), 44);
                 return -1;
             }
             if (addQuotes) {
@@ -6931,7 +7202,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         /* Just to be safe, allow 20 characters for the timeout value */
         strings[index] = malloc(sizeof(TCHAR) * (24 + 20 + 1));
         if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 44);
+            outOfMemory(TEXT("WBJCAI"), 45);
             return -1;
         }
         if (addQuotes) {
@@ -6946,7 +7217,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (25 + _tcslen(prop) + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 46);
+                outOfMemory(TEXT("WBJCAI"), 47);
                 return -1;
             }
             if (addQuotes) {
@@ -6962,7 +7233,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (25 + _tcslen(prop) + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 47);
+                outOfMemory(TEXT("WBJCAI"), 48);
                 return -1;
             }
             if (addQuotes) {
@@ -6978,7 +7249,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     if (strings) {
         strings[index] = malloc(sizeof(TCHAR) * (16 + 5 + 1));  /* jvmid up to 5 characters */
         if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 48);
+            outOfMemory(TEXT("WBJCAI"), 49);
             return -1;
         }
         _sntprintf(strings[index], 16 + 5 + 1, TEXT("-Dwrapper.jvmid=%d"), (wrapperData->jvmRestarts + 1));
@@ -6991,7 +7262,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (30 + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 51);
+                outOfMemory(TEXT("WBJCAI"), 52);
                 return -1;
             }
             if (addQuotes) {
@@ -7013,7 +7284,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     if (strings) {
         strings[index] = malloc(sizeof(TCHAR) * (_tcslen(prop) + 1));
         if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 52);
+            outOfMemory(TEXT("WBJCAI"), 53);
             return -1;
         }
         _sntprintf(strings[index], _tcslen(prop) + 1, TEXT("%s"), prop);
@@ -7103,6 +7374,11 @@ void wrapperFreeJavaCommandArray(TCHAR **strings, int length) {
  */
 void wrapperJVMProcessExited(TICKS nowTicks, int exitCode) {
     int setState = TRUE;
+#ifdef WIN32
+    const TCHAR* errorDescriptionWrapper;
+    const TCHAR* errorDescriptionJVM;
+    HMODULE handle;
+#endif
 
     if (exitCode == 0) {
         /* The JVM exit code was 0, so leave any current exit code as is. */
@@ -7123,6 +7399,35 @@ void wrapperJVMProcessExited(TICKS nowTicks, int exitCode) {
             TEXT("JVM process exited with a code of %d, however the wrapper exit code was already %d."),
             exitCode, wrapperData->exitCode);
     }
+
+    /* lets display a description of the error codes */
+#ifdef WIN32
+    if ((exitCode != 0) || (wrapperData->exitCode != 0)) {
+        handle = LoadLibrary(TEXT("ntdll.dll"));
+        if (handle) {
+            if (exitCode != 0) {
+                errorDescriptionJVM = getErrorText(exitCode, handle);
+                /* error 317 means the message failed to be formatted */
+                if(GetLastError() != 317 && errorDescriptionJVM[0] != TEXT('\0')) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                        TEXT("  %d: %s"),
+                        exitCode, errorDescriptionJVM);
+                }
+            }
+            
+            if ((wrapperData->exitCode != 0) && (wrapperData->exitCode != exitCode)) {
+                errorDescriptionWrapper = getErrorText(wrapperData->exitCode, handle);
+                /* error 317 means the message failed to be formatted */
+                if(GetLastError() != 317 && errorDescriptionWrapper[0] != TEXT('\0')) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                        TEXT("  %d: %s"),
+                        wrapperData->exitCode, errorDescriptionWrapper);
+                }
+            }
+            FreeLibrary(handle);
+        }
+    }
+#endif
 
     switch(wrapperData->jState) {
     case WRAPPER_JSTATE_DOWN_CLEAN:
@@ -7516,6 +7821,8 @@ void wrapperLoadHostName() {
         free(hostName2);
     }
 }
+
+
 
 /**
  * Resolves an action name into an actionId.
@@ -7945,7 +8252,7 @@ int loadConfiguration() {
     /* Get the wrapper command log level. */
     wrapperData->commandLogLevel = getLogLevelForName(
         getStringProperty(properties, TEXT("wrapper.java.command.loglevel"), TEXT("DEBUG")));
-    if (wrapperData->commandLogLevel >= LEVEL_NONE) {
+    if (wrapperData->commandLogLevel >= LEVEL_NONE || wrapperData->commandLogLevel == LEVEL_UNKNOWN) {
         /* Should never be possible to completely disable the java command as this would make it very difficult to support. */
         wrapperData->commandLogLevel = LEVEL_DEBUG;
     }
@@ -8238,8 +8545,10 @@ int loadConfiguration() {
     updateStringValue(&wrapperData->serviceDescription, getStringProperty(properties, TEXT("wrapper.description"), getStringProperty(properties, TEXT("wrapper.ntservice.description"), wrapperData->serviceDisplayName)));
 
     /* Pausable */
-    wrapperData->pausable = getBooleanProperty(properties, TEXT("wrapper.pausable"), getBooleanProperty(properties, TEXT("wrapper.ntservice.pausable"), FALSE));
-    wrapperData->pausableStopJVM = getBooleanProperty(properties, TEXT("wrapper.pausable.stop_jvm"), getBooleanProperty(properties, TEXT("wrapper.ntservice.pausable.stop_jvm"), TRUE));
+    if (!wrapperData->configured) {
+        wrapperData->pausable = getBooleanProperty(properties, TEXT("wrapper.pausable"), getBooleanProperty(properties, TEXT("wrapper.ntservice.pausable"), FALSE));
+        wrapperData->pausableStopJVM = getBooleanProperty(properties, TEXT("wrapper.pausable.stop_jvm"), getBooleanProperty(properties, TEXT("wrapper.ntservice.pausable.stop_jvm"), TRUE));
+    }
     if (!wrapperData->configured) {
         wrapperData->initiallyPaused = getBooleanProperty(properties, TEXT("wrapper.pause_on_startup"), FALSE);
     }
@@ -9023,7 +9332,7 @@ static void tsJAP_subTestJavaAdditionalParamSuite(int stripQuote, TCHAR *config,
     param.strings = NULL;
     param.index = 0;
     param.isJVMParam = isJVMParam;
-    ret = loadParameterFileCallback((void *)(&param), NULL, 0, config, FALSE);
+    ret = loadParameterFileCallback((void *)(&param), NULL, 0, config, FALSE, LEVEL_NONE);
     CU_ASSERT_TRUE(ret);
     if (!ret) {
         return;
@@ -9039,7 +9348,7 @@ static void tsJAP_subTestJavaAdditionalParamSuite(int stripQuote, TCHAR *config,
     param.index = 0;
     param.isJVMParam = isJVMParam;
 
-    ret = loadParameterFileCallback((void *)(&param), NULL, 0, config, FALSE);
+    ret = loadParameterFileCallback((void *)(&param), NULL, 0, config, FALSE, LEVEL_NONE);
     CU_ASSERT_TRUE(ret);
     if (!ret) {
         return;

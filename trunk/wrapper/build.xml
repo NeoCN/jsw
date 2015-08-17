@@ -58,6 +58,8 @@
                 <equals arg1="${os.name}" arg2="Windows 7"/>
 				<equals arg1="${os.name}" arg2="Windows 8"/>
                 <equals arg1="${os.name}" arg2="Windows Server 2008"/>
+				<equals arg1="${os.name}" arg2="Windows Server 2008 R2"/>
+                <equals arg1="${os.name}" arg2="Windows Server 2012"/>
             </or>
         </condition>
         <condition property="dist.os" value="linux">
@@ -320,7 +322,14 @@
                 <available file="${vcvars.v8_x86_64_6}"/>
             </and>
         </condition>
-       <condition property="vcvars.bat" value="${vcvars.v8_ia_64_1}">
+		<condition property="vcvars.bat" value="${vcvars.v8_x86_64_7}">
+            <and>
+                <equals arg1="${bits}" arg2="64"/>
+                <equals arg1="${dist.arch}" arg2="x86"/>
+                <available file="${vcvars.v8_x86_64_7}"/>
+            </and>
+        </condition>
+        <condition property="vcvars.bat" value="${vcvars.v8_ia_64_1}">
             <and>
                 <equals arg1="${bits}" arg2="64"/>
                 <equals arg1="${dist.arch}" arg2="ia"/>
@@ -662,6 +671,24 @@
             <equals arg1="${bits}" arg2="64"/>
         </condition>
         <property name="makefile" value="Makefile-windows-x86-32.nmake"/>
+        
+        <!-- architecture to be inserted in the manifest -->
+        <condition property="processor.architecture" value="ia64">
+            <equals arg1="${dist.arch}" arg2="ia"/>
+        </condition>
+        <condition property="processor.architecture" value="amd64">
+            <and>
+                <equals arg1="${dist.arch}" arg2="x86"/>
+                <equals arg1="${bits}" arg2="64"/>
+            </and>    
+        </condition>
+        <property name="processor.architecture" value="x86"/>        
+
+        <!-- Edit the manifest -->
+        <replace file="${src.dir}/c/wrapper.exe.manifest" token='SXS_ASSEMBLY_VERSION' value='"${version}"' />
+        <replace file="${src.dir}/c/wrapper.exe.manifest" token='SXS_PROCESSOR_ARCHITECTURE' value='"${processor.architecture}"' />
+        <replace file="${src.dir}/c/wrapper.dll.manifest" token='SXS_ASSEMBLY_VERSION' value='"${version}"' />
+        <replace file="${src.dir}/c/wrapper.dll.manifest" token='SXS_PROCESSOR_ARCHITECTURE' value='"${processor.architecture}"' />
 
         <exec executable="${src.dir}/c/runnmake.bat"
             dir="${src.dir}/c" 
@@ -905,6 +932,10 @@ rem ********************************************************************]]></rep
         
         <copy file="${src.dir}/bin/QueryApp-NT.bat.in"
               tofile="${bin.dir}/Query${app.caps.name}-NT.bat"
+              filtering="on"/>
+              
+        <copy file="${src.dir}/bin/SetupApp.bat.in"
+              tofile="${bin.dir}/Setup${app.caps.name}.bat"
               filtering="on"/>
     </target>
     
@@ -1194,10 +1225,11 @@ wrapper.filter.action.999=NONE]]></replacevalue>
                 <include name="src/c/*.ico" />
                 <include name="src/c/*.bmp" />
                 <include name="src/c/*.bin" />
+                <include name="src/c/*.manifest" />
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
-
+        
         <!-- Make sure that files are formatted correctly for their platforms -->
         <fixcrlf srcdir="${intermdir}" includes="**/*.bat" eol="crlf" />
         <fixcrlf srcdir="${intermdir}" includes="**/*.bat.in" eol="crlf" />
@@ -1388,9 +1420,11 @@ original tar distribution due to a lack of support for long path names in some t
                 <include name="jdoc/**" />
                 <include name="doc/**" />
                 <include name="conf/demoapp.conf" />
+                <include name="src/c/*.manifest" />
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
+        
         <!-- Copy a fresh wrapper.conf rather than the development file -->
         <copy file="${src.dir}/conf/wrapper.conf.in"
               tofile="${releasedir}/conf/wrapper.conf"

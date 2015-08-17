@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2014 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2015 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -251,7 +251,9 @@ extern void setSyslogSplitMessages(int splitMessages);
 extern void setSyslogFacility( const TCHAR *loginfo_level );
 #endif
 extern void setSyslogEventSourceName( const TCHAR *event_source_name );
-extern int registerSyslogMessageFile();
+extern void setWarnSyslogUnregistered(int value);
+extern int syslogMessageFileRegistered();
+extern int registerSyslogMessageFile(int forceInstall);
 extern int unregisterSyslogMessageFile();
 
 

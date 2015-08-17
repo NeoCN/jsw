@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2014 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2015 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -56,32 +56,43 @@
 
 typedef struct EnvSrc EnvSrc;
 struct EnvSrc {
-    int     source;                 /* Source of the variable. */
-    TCHAR*  name;                   /* Name of the environment variable. */
-    EnvSrc *next;                   /* Next variable in the chain. */
+    int     source;                     /* Source of the variable. */
+    TCHAR*  name;                       /* Name of the environment variable. */
+    EnvSrc *next;                       /* Next variable in the chain. */
 };
 extern EnvSrc *baseEnvSrc;
 
 typedef struct Property Property;
 struct Property {
-    TCHAR *name;             /* The name of the property. */
-    TCHAR *value;            /* The value of the property. */
-    int finalValue;          /* TRUE if the Property can not be changed. */
-    int quotable;            /* TRUE if quotes can be optionally added around the value. */
-    int internal;            /* TRUE if the Property is internal. */
-    Property *next;          /* Pointer to the next Property in a linked list */
-    Property *previous;      /* Pointer to the next Property in a linked list */
+    TCHAR *name;                        /* The name of the property. */
+    TCHAR *value;                       /* The value of the property. */
+    int finalValue;                     /* TRUE if the Property can not be changed. */
+    int quotable;                       /* TRUE if quotes can be optionally added around the value. */
+    int internal;                       /* TRUE if the Property is internal. */
+    Property *next;                     /* Pointer to the next Property in a linked list */
+    Property *previous;                 /* Pointer to the next Property in a linked list */
 };
 
 typedef struct Properties Properties;
 struct Properties {
-    int debugProperties;     /* TRUE if debug information on Properties should be shown. */
-    int logWarnings;         /* Flag that controls whether or not warnings will be logged. */
-    int logWarningLogLevel;  /* Log level at which any log warnings will be logged. */
-    Property *first;         /* Pointer to the first property. */
-    Property *last;          /* Pointer to the last property.  */
-    PHashMap warnedVarMap;   /* Map of undefined environment variables for which the user was warned. */
+    int exitOnOverwrite;                /* If TRUE, causes the wrapper to exit when any property is overwritten in the config files. */
+    int logLevelOnOverwrite;            /* Defines the log level of the messages reported when properties are overwritten. */
+    int overwrittenPropertyCausedExit;  /* Flag to keep trace whether at least one property was overridden */
+    int logWarnings;                    /* Flag that controls whether or not warnings will be logged. */
+    int logWarningLogLevel;             /* Log level at which any log warnings will be logged. */
+    Property *first;                    /* Pointer to the first property. */
+    Property *last;                     /* Pointer to the last property.  */
+    PHashMap warnedVarMap;              /* Map of undefined environment variables for which the user was warned. */
 };
+
+/**
+ * Get the log level of the messages reported when properties are overwritten.
+ *
+ * @param properties 
+ *
+ * @return log level 
+ */
+extern int GetLogLevelOnOverwrite(Properties *properties);
 
 /**
  * Sets an environment variable with the specified value.
@@ -262,6 +273,10 @@ extern void freeStringProperties(TCHAR **propertyNames, TCHAR **propertyValues, 
 extern int getIntProperty(Properties *properties, const TCHAR *propertyName, int defaultValue);
 
 extern int getBooleanProperty(Properties *properties, const TCHAR *propertyName, int defaultValue);
+
+extern int getBooleanProperties(Properties *properties, const TCHAR *propertyNameHead, const TCHAR *propertyNameTail, int all, int matchAny, TCHAR ***propertyNames, int **propertyValues, long unsigned int **propertyIndices);
+
+extern void freeBooleanProperties(TCHAR **propertyNames, int *propertyValues, long unsigned int *propertyIndices);
 
 extern int isQuotableProperty(Properties *properties, const TCHAR *propertyName);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2014 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2015 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -35,8 +35,6 @@
 
 #include "wrapper_file.h"
 #include "logger.h"
-#include "wrapper_i18n.h"
-#include "property.h"
 
 #ifndef TRUE
 #define TRUE -1
@@ -47,19 +45,6 @@
 #endif
 
 #define MAX_INCLUDE_DEPTH 10
-
-/* Structure used by configFileReader to read files. */
-typedef struct ConfigFileReader ConfigFileReader;
-struct ConfigFileReader {
-    ConfigFileReader_Callback callback;
-    void *callbackParam;
-    int enableIncludes;
-    int preload;
-    /* debugIncludes controls whether or not debug output is logged.  It is set using directives in the file being read. */
-    int debugIncludes;
-    /* debugProperties controls whether or not debug output is logged.  It is set using directives in the file being read. */
-    int debugProperties;
-};
 
 /**
  * Tests whether a file exists.
@@ -152,6 +137,7 @@ int configFileReader_Read(ConfigFileReader *reader,
 #ifdef WIN32
     int size;
 #endif
+    int logLevelOnOverwrite;
 
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("configFileReader_Read('%s', required %d, depth %d, parent '%s', number %d, debugIncludes %d, preload %d)"),
@@ -266,6 +252,11 @@ int configFileReader_Read(ConfigFileReader *reader,
         return CONFIG_FILE_READER_FAIL;
     }
 
+    if (depth == 0 && !reader->preload) {
+        /* On the community edition, all messages will appear on loading the configuration file because there is no preload. So we shouldn't log if there is no directive. */
+        reader->logLevelOnOverwrite = LEVEL_NONE;
+    }
+    
     /* Read all of the configurations */
     lineNumber = 1;
     do {
@@ -373,64 +364,88 @@ int configFileReader_Read(ConfigFileReader *reader,
             /* Only look at lines which contain data and do not start with a '#'
              *  If the line starts with '#include' then recurse to the include file */
             if (_tcslen(trimmedBuffer) > 0) {
-                if (reader->enableIncludes && strcmpIgnoreCase(trimmedBuffer, TEXT("#include.debug")) == 0) {
-                    /* Enable include file debugging. */
-                    if (reader->preload == FALSE) {
-                        reader->debugIncludes = TRUE;
-                        if (depth == 0) {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                                TEXT("Base configuration file is %s"), filename);
-                        }
-                    } else {
-                        reader->debugIncludes = FALSE;
-                    }
-                } else if (reader->enableIncludes
-               && ((_tcsstr(trimmedBuffer, TEXT("#include ")) == trimmedBuffer) || (_tcsstr(trimmedBuffer, TEXT("#include.required ")) == trimmedBuffer))) {
-                    if (_tcsstr(trimmedBuffer, TEXT("#include.required ")) == trimmedBuffer) {
-                        /* The include file is required. */
-                        includeRequired = TRUE;
-                        c = trimmedBuffer + 18;
-                    } else {
-                        /* Include file, if the file does not exist, then ignore it */
-                        includeRequired = FALSE;
-                        c = trimmedBuffer + 9;
-                    }
-                    
-                    /* Strip any leading whitespace */
-                    while ((c[0] != TEXT('\0')) && (c[0] == TEXT(' '))) {
-                        c++;
-                    }
+                if (trimmedBuffer[0] != TEXT('#')) {
+                    /*_tprintf(TEXT("%s\n"), trimmedBuffer);*/
 
-                    /* The filename may contain environment variables, so expand them. */
-                    if (reader->debugIncludes) {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                            TEXT("Found #include file in %s: %s"), filename, c);
+                    if (!(*reader->callback)(reader->callbackParam, filename, lineNumber, trimmedBuffer, reader->exitOnOverwrite, reader->logLevelOnOverwrite)) {
+                        readResult = CONFIG_FILE_READER_HARD_FAIL;
+                        break;
                     }
-                    evaluateEnvironmentVariables(c, expBuffer, MAX_PROPERTY_NAME_VALUE_LENGTH, logWarnings, warnedVarMap, logWarningLogLevel);
-
-                    if (reader->debugIncludes && (_tcscmp(c, expBuffer) != 0)) {
-                        /* Only show this log if there were any environment variables. */
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                            TEXT("  After environment variable replacements: %s"), expBuffer);
-                    }
-
-                    /* Now obtain the real absolute path to the include file. */
-#ifdef WIN32
-                    /* Find out how big the absolute path will be */
-                    size = GetFullPathName(expBuffer, 0, NULL, NULL); /* Size includes '\0' */
-                    if (!size) {
-                        if (reader->debugIncludes || includeRequired) {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                                TEXT("Unable to resolve the full path of included configuration file: %s (%s)\n  Referenced from: %s (line %d)\n  Current working directory: %s"),
-                                expBuffer, getLastErrorText(), filename, lineNumber, originalWorkingDir);
-                        }
-                        absoluteBuffer = NULL;
-                    } else {
-                        absoluteBuffer = malloc(sizeof(TCHAR) * size);
-                        if (!absoluteBuffer) {
-                            outOfMemory(TEXT("RCF"), 1);
+                } else { /* so the line starts with a # */
+                    if (reader->enableIncludes && strcmpIgnoreCase(trimmedBuffer, TEXT("#include.debug")) == 0) {
+                        /* Enable include file debugging. */
+                        if (reader->preload == FALSE) {
+                            reader->debugIncludes = TRUE;
+                            if (depth == 0) {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                                    TEXT("Base configuration file is %s"), filename);
+                            }
                         } else {
-                            if (!GetFullPathName(expBuffer, size, absoluteBuffer, NULL)) {
+                            reader->debugIncludes = FALSE;
+                        }
+                    } else if (reader->enableIncludes && 
+                    ((_tcsstr(trimmedBuffer, TEXT("#include ")) == trimmedBuffer) || (_tcsstr(trimmedBuffer, TEXT("#include.required ")) == trimmedBuffer))) {
+                        if (_tcsstr(trimmedBuffer, TEXT("#include.required ")) == trimmedBuffer) {
+                            /* The include file is required. */
+                            includeRequired = TRUE;
+                            c = trimmedBuffer + 18;
+                        } else {
+                            /* Include file, if the file does not exist, then ignore it */
+                            includeRequired = FALSE;
+                            c = trimmedBuffer + 9;
+                        }
+                        
+                        /* Strip any leading whitespace */
+                        while ((c[0] != TEXT('\0')) && (c[0] == TEXT(' '))) {
+                            c++;
+                        }
+                        
+                        /* The filename may contain environment variables, so expand them. */
+                        if (reader->debugIncludes) {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                                TEXT("Found #include file in %s: %s"), filename, c);
+                        }
+                        evaluateEnvironmentVariables(c, expBuffer, MAX_PROPERTY_NAME_VALUE_LENGTH, logWarnings, warnedVarMap, logWarningLogLevel);
+                        
+                        if (reader->debugIncludes && (_tcscmp(c, expBuffer) != 0)) {
+                            /* Only show this log if there were any environment variables. */
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                                TEXT("  After environment variable replacements: %s"), expBuffer);
+                        }
+                        
+                        /* Now obtain the real absolute path to the include file. */
+    #ifdef WIN32
+                        /* Find out how big the absolute path will be */
+                        size = GetFullPathName(expBuffer, 0, NULL, NULL); /* Size includes '\0' */
+                        if (!size) {
+                            if (reader->debugIncludes || includeRequired) {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                                    TEXT("Unable to resolve the full path of included configuration file: %s (%s)\n  Referenced from: %s (line %d)\n  Current working directory: %s"),
+                                    expBuffer, getLastErrorText(), filename, lineNumber, originalWorkingDir);
+                            }
+                            absoluteBuffer = NULL;
+                        } else {
+                            absoluteBuffer = malloc(sizeof(TCHAR) * size);
+                            if (!absoluteBuffer) {
+                            	outOfMemory(TEXT("RCF"), 1);
+                            } else {
+                                if (!GetFullPathName(expBuffer, size, absoluteBuffer, NULL)) {
+                                    if (reader->debugIncludes || includeRequired) {
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                                            TEXT("Unable to resolve the full path of included configuration file: %s (%s)\n  Referenced from: %s (line %d)\n  Current working directory: %s"),
+                                            expBuffer, getLastErrorText(), filename, lineNumber, originalWorkingDir);
+                                    }
+                                    free(absoluteBuffer);
+                                    absoluteBuffer = NULL;
+                                }
+                            }
+                        }
+    #else
+                        absoluteBuffer = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
+                        if (!absoluteBuffer) {
+                            outOfMemory(TEXT("RCF"), 2);
+                        } else {
+                            if (_trealpathN(expBuffer, absoluteBuffer, PATH_MAX + 1) == NULL) {
                                 if (reader->debugIncludes || includeRequired) {
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                                         TEXT("Unable to resolve the full path of included configuration file: %s (%s)\n  Referenced from: %s (line %d)\n  Current working directory: %s"),
@@ -440,81 +455,70 @@ int configFileReader_Read(ConfigFileReader *reader,
                                 absoluteBuffer = NULL;
                             }
                         }
-                    }
-#else
-                    absoluteBuffer = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
-                    if (!absoluteBuffer) {
-                        outOfMemory(TEXT("RCF"), 2);
-                    } else {
-                        if (_trealpathN(expBuffer, absoluteBuffer, PATH_MAX + 1) == NULL) {
-                            if (reader->debugIncludes || includeRequired) {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                                    TEXT("Unable to resolve the full path of included configuration file: %s (%s)\n  Referenced from: %s (line %d)\n  Current working directory: %s"),
-                                    expBuffer, getLastErrorText(), filename, lineNumber, originalWorkingDir);
-                            }
-                            free(absoluteBuffer);
-                            absoluteBuffer = NULL;
-                        }
-                    }
-#endif
-                    if (absoluteBuffer) {
-                        if (depth < MAX_INCLUDE_DEPTH) {
-                            readResult = configFileReader_Read(reader, absoluteBuffer, includeRequired, depth + 1, filename, lineNumber, argCommand, originalWorkingDir, warnedVarMap, logWarnings, logWarningLogLevel, isDebugging);
-                            if (readResult == CONFIG_FILE_READER_SUCCESS) {
-                                /* Ok continue. */
-                            } else if ((readResult == CONFIG_FILE_READER_FAIL) || (readResult == CONFIG_FILE_READER_HARD_FAIL)) {
-                                /* Failed. */
-                                if (includeRequired) {
-                                    /* Include file was required, but we failed to read it. */
-                                    if (!reader->preload) {
-                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                                            TEXT("%sThe required configuration file, %s, was not loaded.\n%s  Referenced from: %s (line %d)"),
-                                            (reader->debugIncludes ? TEXT("  ") : TEXT("")), absoluteBuffer, (reader->debugIncludes ? TEXT("  ") : TEXT("")), filename, lineNumber);
+    #endif
+                        if (absoluteBuffer) {
+                            if (depth < MAX_INCLUDE_DEPTH) {
+                                readResult = configFileReader_Read(reader, absoluteBuffer, includeRequired, depth + 1, filename, lineNumber, argCommand, originalWorkingDir, warnedVarMap, logWarnings, logWarningLogLevel, isDebugging);
+                                if (readResult == CONFIG_FILE_READER_SUCCESS) {
+                                    /* Ok continue. */
+                                } else if ((readResult == CONFIG_FILE_READER_FAIL) || (readResult == CONFIG_FILE_READER_HARD_FAIL)) {
+                                    /* Failed. */
+                                    if (includeRequired) {
+                                        /* Include file was required, but we failed to read it. */
+                                        if (!reader->preload) {
+                                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                                                TEXT("%sThe required configuration file, %s, was not loaded.\n%s  Referenced from: %s (line %d)"),
+                                                (reader->debugIncludes ? TEXT("  ") : TEXT("")), absoluteBuffer, (reader->debugIncludes ? TEXT("  ") : TEXT("")), filename, lineNumber);
+                                        }
+                                        readResult = CONFIG_FILE_READER_HARD_FAIL;
                                     }
-                                    readResult = CONFIG_FILE_READER_HARD_FAIL;
-                                }
-                                if (readResult == CONFIG_FILE_READER_HARD_FAIL) {
-                                    /* Can't continue. */
-                                    break;
+                                    if (readResult == CONFIG_FILE_READER_HARD_FAIL) {
+                                        /* Can't continue. */
+                                        break;
+                                    } else {
+                                        /* Failed but continue. */
+                                        readResult = CONFIG_FILE_READER_SUCCESS;
+                                    }
                                 } else {
-                                    /* Failed but continue. */
+                                    _tprintf(TEXT("Unexpected load error %d\n"), readResult);
+                                    /* continue. */
                                     readResult = CONFIG_FILE_READER_SUCCESS;
                                 }
                             } else {
-                                _tprintf(TEXT("Unexpected load error %d\n"), readResult);
-                                /* continue. */
-                                readResult = CONFIG_FILE_READER_SUCCESS;
+                                if (reader->debugIncludes) {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                                        TEXT("  Unable to include configuration file, %s, because the max include depth was reached."), absoluteBuffer);
+                                }
                             }
+                            free(absoluteBuffer);
                         } else {
-                            if (reader->debugIncludes) {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                                    TEXT("  Unable to include configuration file, %s, because the max include depth was reached."), absoluteBuffer);
+                            if (includeRequired) {
+                                /* Include file was required, but we failed to read it. */
+                                if (!reader->preload) {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                                        TEXT("%sThe required configuration file, %s, was not read.\n%s  Referenced from: %s (line %d)"),
+                                        (reader->debugIncludes ? TEXT("  ") : TEXT("")), expBuffer, (reader->debugIncludes ? TEXT("  ") : TEXT("")), filename, lineNumber);
+                                }
+                                readResult = CONFIG_FILE_READER_HARD_FAIL;
+                                break;
                             }
                         }
-                        free(absoluteBuffer);
-                    } else {
-                        if (includeRequired) {
-                            /* Include file was required, but we failed to read it. */
-                            if (!reader->preload) {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                                    TEXT("%sThe required configuration file, %s, was not read.\n%s  Referenced from: %s (line %d)"),
-                                    (reader->debugIncludes ? TEXT("  ") : TEXT("")), expBuffer, (reader->debugIncludes ? TEXT("  ") : TEXT("")), filename, lineNumber);
+                    } else if (!reader->preload && _tcsstr(trimmedBuffer, TEXT("#properties.")) == trimmedBuffer) {
+                        if(_tcsstr(trimmedBuffer, TEXT("#properties.on_overwrite.exit=")) == trimmedBuffer) {
+                            trimmedBuffer += 30;
+                            reader->exitOnOverwrite = (_tcsicmp(trimmedBuffer, TEXT("TRUE")) == 0);
+                        } else if (_tcsstr(trimmedBuffer, TEXT("#properties.on_overwrite.loglevel=")) == trimmedBuffer) {
+                            trimmedBuffer += 34;
+                            logLevelOnOverwrite = getLogLevelForName(trimmedBuffer);
+                            if (logLevelOnOverwrite >= LEVEL_NONE ) {
+                                /* On the community edition, all messages will appear on loading the configuration file because there is no preload. So we shouldn't log if there is no directive. */
+                                reader->logLevelOnOverwrite = LEVEL_NONE;
+                            } else if (logLevelOnOverwrite != LEVEL_UNKNOWN) {
+                                reader->logLevelOnOverwrite = logLevelOnOverwrite;
                             }
-                            readResult = CONFIG_FILE_READER_HARD_FAIL;
-                            break;
+                        } else if (strcmpIgnoreCase(trimmedBuffer, TEXT("#properties.debug")) == 0) {
+                            reader->logLevelOnOverwrite = LEVEL_STATUS;
                         }
-                    }
-                } else if (strcmpIgnoreCase(trimmedBuffer, TEXT("#properties.debug")) == 0) {
-                    if (!reader->preload) {
-                        /* Enable property debugging. */
-                        reader->debugProperties = TRUE;
-                    }
-                } else if (trimmedBuffer[0] != TEXT('#')) {
-                    /*_tprintf(TEXT("%s\n"), trimmedBuffer);*/
-
-                    if (!(*reader->callback)(reader->callbackParam, filename, lineNumber, trimmedBuffer, reader->debugProperties)) {
-                        readResult = CONFIG_FILE_READER_HARD_FAIL;
-                        break;
                     }
                 }
             }
@@ -538,7 +542,7 @@ int configFileReader_Read(ConfigFileReader *reader,
  * @param filename Name of configuration file to read.
  * @param fileRequired TRUE if the file specified by filename is required, FALSE if a missing
  *                     file will silently fail.
- * @param callback Pointer to a callback funtion which will be called for each line read.
+ * @param callback Pointer to a callback function which will be called for each line read.
  * @param callbackParam Pointer to additional user data which will be passed to the callback.
  * @param enableIncludes If TRUE then includes will be supported.
  * @param preload TRUE if this is being called in the preload step meaning that all errors
@@ -574,7 +578,8 @@ int configFileReader(const TCHAR *filename,
     reader.enableIncludes = enableIncludes;
     reader.preload = preload;
     reader.debugIncludes = FALSE;
-    reader.debugProperties = FALSE;
+    reader.exitOnOverwrite = FALSE;
+    reader.logLevelOnOverwrite = LEVEL_NONE; /* on preload, don't log anything. */
     
     return configFileReader_Read(&reader, filename, fileRequired, 0, NULL, 0, argCommand, originalWorkingDir, warnedVarMap, logWarnings, logWarningLogLevel, isDebugging);
 }

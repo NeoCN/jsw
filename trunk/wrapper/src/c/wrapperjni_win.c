@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2014 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2015 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -42,6 +42,7 @@ barf
 #include <tlhelp32.h>
 #include <winnt.h>
 #include <Sddl.h>
+#include <Iphlpapi.h>
 #include "loggerjni.h"
 #include "wrapperjni.h"
 
@@ -616,6 +617,8 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jC
         _tprintf(TEXT("WrapperJNI Debug: Initializing WrapperManager native library.\n"));
         flushall();
 
+        /* Important : For win XP getLastError() is unchanged if the buffer is too small, so if we don't reset the last error first, we may actually test an old pending error. */
+        SetLastError(ERROR_SUCCESS);
         usedLen = GetModuleFileName(NULL, szPath, _MAX_PATH);
         if (usedLen == 0) {
             _tprintf(TEXT("WrapperJNI Debug: Unable to retrieve the Java process file name. %s\n"), getLastErrorText());
@@ -628,6 +631,8 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jC
             flushall();
         }
 
+        /* Important : For win XP getLastError() is unchanged if the buffer is too small, so if we don't reset the last error first, we may actually test an old pending error. */
+        SetLastError(ERROR_SUCCESS);
         usedLen = GetModuleFileName((HINSTANCE)&__ImageBase, szPath, _MAX_PATH);
         if (usedLen == 0) {
             _tprintf(TEXT("WrapperJNI Debug: Unable to retrieve the native library file name. %s\n"), getLastErrorText());
@@ -646,6 +651,8 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jC
     }
 
     osVer.dwOSVersionInfoSize = sizeof(osVer);
+#pragma warning(push)
+#pragma warning(disable : 4996) /* Visual Studio 2013 deprecates GetVersionEx but we still want to use it. */    
     if (GetVersionEx(&osVer)) {
         if (wrapperJNIDebugging) {
             _tprintf(TEXT("WrapperJNI Debug: Windows version: %ld.%ld.%ld\n"),
@@ -656,6 +663,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jC
         _tprintf(TEXT("WrapperJNI Error: Unable to retrieve the Windows version information.\n"));
         flushall();
     }
+#pragma warning(pop)
     loadDLLProcs();
     if (!(controlEventQueueMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
         _tprintf(TEXT("WrapperJNI Error: Failed to create control event queue mutex. Signals will be ignored. %s\n"), getLastErrorText());
@@ -1180,5 +1188,160 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIE
 
     return service;
 }
+
+int getPortStatusTCPv4(JNIEnv *env, int port, jstring jAddress) {
+    PMIB_TCPTABLE tcpTable;
+    DWORD tableSize;
+    DWORD retVal;
+    int tries;
+    int i;
+    int result;
+    const char *nativeAddress;
+    struct in_addr addr;
+    char localAddr[128];
+    int localPort;
+#ifdef GETPORTSTATUS_DEBUG
+    char remoteAddr[128];
+    int remotePort;
+    TCHAR *stateName;
+#endif
+    
+    /* We don't know how big the table needs to be, and it can change with timing, so loop. */
+    tableSize = 0;
+    tcpTable = NULL;
+    tries = 0;
+    while (TRUE)
+    {
+        retVal = GetTcpTable(tcpTable, &tableSize, TRUE);
+        if (retVal == ERROR_INSUFFICIENT_BUFFER) {
+            /* Too small, need to retry. */
+#ifdef GETPORTSTATUS_DEBUG
+            _tprintf(TEXT("WrapperJNI Debug: GetTcpTable buffer too small < %d\n"), tableSize);
+            flushall();
+#endif
+            
+            if (tcpTable) {
+                free(tcpTable);
+            }
+            tcpTable = malloc(tableSize);
+            if (!tcpTable) {
+                throwOutOfMemoryError(env, TEXT("GPSVF1"));
+                return -100;
+            }
+        } else {
+            /* Got our table. */
+            break;
+        }
+        
+        tries++;
+        if (tries >= 10) {
+            free(tcpTable);
+            /* Too many attempts, may happen if the TCP table is changing a lot? */
+            return -101;
+        }
+    }
+    
+    nativeAddress = (*env)->GetStringUTFChars(env, jAddress, 0);
+    
+    result = 0;
+    for (i = 0; i < (int) tcpTable->dwNumEntries; i++) {
+        addr.S_un.S_addr = (u_long)tcpTable->table[i].dwLocalAddr;
+        strncpy(localAddr, inet_ntoa(addr), sizeof(localAddr));
+        localPort = ntohs((u_short)tcpTable->table[i].dwLocalPort);
+        
+#ifdef GETPORTSTATUS_DEBUG
+        addr.S_un.S_addr = (u_long)tcpTable->table[i].dwRemoteAddr;
+        strncpy(remoteAddr, inet_ntoa(addr), sizeof(remoteAddr));
+        remotePort = ntohs((u_short)tcpTable->table[i].dwRemotePort);
+        
+        switch (tcpTable->table[i].dwState) {
+        case MIB_TCP_STATE_CLOSED:
+            stateName = TEXT("CLOSED");
+            break;
+        case MIB_TCP_STATE_LISTEN:
+            stateName = TEXT("LISTEN");
+            break;
+        case MIB_TCP_STATE_SYN_SENT:
+            stateName = TEXT("SYN-SENT");
+            break;
+        case MIB_TCP_STATE_SYN_RCVD:
+            stateName = TEXT("SYN-RECEIVED");
+            break;
+        case MIB_TCP_STATE_ESTAB:
+            stateName = TEXT("ESTABLISHED");
+            break;
+        case MIB_TCP_STATE_FIN_WAIT1:
+            stateName = TEXT("FIN-WAIT-1");
+            break;
+        case MIB_TCP_STATE_FIN_WAIT2:
+            stateName = TEXT("FIN-WAIT-2");
+            break;
+        case MIB_TCP_STATE_CLOSE_WAIT:
+            stateName = TEXT("CLOSE-WAIT");
+            break;
+        case MIB_TCP_STATE_CLOSING:
+            stateName = TEXT("CLOSING");
+            break;
+        case MIB_TCP_STATE_LAST_ACK:
+            stateName = TEXT("LAST-ACK");
+            break;
+        case MIB_TCP_STATE_TIME_WAIT:
+            stateName = TEXT("TIME-WAIT");
+            break;
+        case MIB_TCP_STATE_DELETE_TCB:
+            stateName = TEXT("DELETE-TCB");
+            break;
+        default:
+            stateName = TEXT("UNKNOWN");
+            break;
+        }
+        
+        _tprintf(TEXT("WrapperJNI Debug:   TcpTable[%d] State: %d %s  Local: %S:%d  Remote: %S:%d\n"),
+                i, tcpTable->table[i].dwState, stateName,
+                localAddr, localPort,
+                remoteAddr, remotePort);
+        flushall();
+#endif
+        
+        if ((port == localPort) && (strcmp(nativeAddress, localAddr) == 0)) {
+            /* Matched. */
+#ifdef GETPORTSTATUS_DEBUG
+            _tprintf(TEXT("WrapperJNI Debug:   MATCHED!  Port In Use.\n"));
+#endif
+            result = tcpTable->table[i].dwState;
+        }
+    }
+    
+    (*env)->ReleaseStringUTFChars(env, jAddress, nativeAddress);	
+    
+    free(tcpTable);
+    
+    return result;
+}
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeGetPortStatus
+ * Signature: (ILjava/lang/String;I)I
+ *
+ * @param port Port is the port whose status is requested.
+ * @param protocol The protocol of the port, 0=tcpv4, 1=tcpv6
+ *
+ * @return The status, -1=error, 0=closed, >0=in use.
+ */
+JNIEXPORT jint JNICALL
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetPortStatus(JNIEnv *env, jclass clazz, jint port, jstring jAddress, jint protocol) {
+    switch (protocol) {
+    case 0:
+        return getPortStatusTCPv4(env, port, jAddress);
+    case 1:
+        /* GetTcp6Table required Windows Vista/2008 Server.  Is it needed now? */
+        /*return getPortStatusTCPv6(env, port, jAddress);*/
+        return 0;
+    default:
+        return -99;
+    }
+}
+
 
 #endif

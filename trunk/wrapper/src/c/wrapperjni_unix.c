@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2014 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2015 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -431,4 +431,21 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIE
     /** Not supported on UNIX platforms. */
     return NULL;
 }
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeGetPortStatus
+ * Signature: (ILjava/lang/String;I)I
+ *
+ * @param port Port is the port whose status is requested.
+ * @param protocol The protocol of the port, 0=tcpv4, 1=tcpv6
+ *
+ * @return The status, -1=error, 0=closed, >0=in use.
+ */
+JNIEXPORT jint JNICALL
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetPortStatus(JNIEnv *env, jclass clazz, jint port, jstring jAddress, jint protocol) {
+    /* Not implemented on UNIX as it is not needed for now. May implement if ever made publicly available. */
+    return 0;
+}
+
 #endif

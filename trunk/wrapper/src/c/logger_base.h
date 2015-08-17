@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2014 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2015 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -58,6 +58,16 @@
  * @return The last error message.
  */
 extern const TCHAR* getLastErrorText();
+
+/**
+ * Returns a textual error message of a given error number.
+ *
+ * @param errorNum Error code.
+ * @param handle (for Windows only) A module handle containing the message-table resource(s) to search. If NULL, the current process's application image file will be searched.
+ * 
+ * @return The error message.
+ */
+extern const TCHAR* getErrorText(int errorNum, void* handle);
 
 /**
  * Returns the last error number.

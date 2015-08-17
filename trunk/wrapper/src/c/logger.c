@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2014 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2015 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -785,7 +785,7 @@ int checkLogfileDir() {
         len = _tcslen(logFileDir) + 23 + 1 + 1000;
         testfile = malloc(len * sizeof(TCHAR));
         if (!testfile) {
-            outOfMemory(TEXT("CLD"), 1);
+            outOfMemory(TEXT("CLD"), 2);
             free(logFileDir);
             return TRUE;
         }
@@ -1713,7 +1713,7 @@ int log_printf_message_logFileInner(int source_id, int level, int threadId, int 
                     tempBufferLen = _tcslen(tempBufferFormat) - 2 - 2 + _tcslen(currentLogFileName) + _tcslen(tempBufferLastErrorText) + 1;
                     tempBuffer = malloc(sizeof(TCHAR) * tempBufferLen);
                     if (!tempBuffer) {
-                        outOfMemoryQueued(TEXT("LPML"), 1 );
+                        outOfMemoryQueued(TEXT("LPML"), 2 );
                     } else {
                         _sntprintf(tempBuffer, tempBufferLen, tempBufferFormat, currentLogFileName, getLastErrorText());
                         
@@ -2334,33 +2334,44 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
 TCHAR lastErrorTextBufferW[LAST_ERROR_TEXT_BUFFER_SIZE];
 
 /**
- * Returns a textual error message of the last error encountered.
+ * Returns a textual error message of a given error number.
  *
- * @return The last error message.
+ * @param errorNum Error code.
+ * @param handle (for Windows only) A module handle containing the message-table resource(s) to search. If NULL, the current process's application image file will be searched.
+ * 
+ * @return The error message.
  */
-const TCHAR* getLastErrorText() {
-    int errorNum;
+const TCHAR* getErrorText(int errorNum, void* handle) {
 #ifdef WIN32
     DWORD dwRet;
     TCHAR* lpszTemp = NULL;
+    DWORD   dwFlags;
 #else
     char* lastErrorTextMB;
     size_t req;
 #endif
 
 #ifdef WIN32
-    errorNum = GetLastError();
-    dwRet = FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY,
-                          NULL,
-                          GetLastError(),
+    if (handle) {
+        dwFlags = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY | FORMAT_MESSAGE_FROM_HMODULE;
+    } else {
+        dwFlags = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY;
+    }
+
+    dwRet = FormatMessage(dwFlags,
+                          handle,
+                          errorNum,
                           LANG_NEUTRAL,
                           (TCHAR*)&lpszTemp,
                           0,
                           NULL);
 
-    /* supplied buffer is not long enough */
-    if ((!dwRet) || ((long)LAST_ERROR_TEXT_BUFFER_SIZE - 1 < (long)dwRet + 14)) {
-        _sntprintf(lastErrorTextBufferW, LAST_ERROR_TEXT_BUFFER_SIZE, TEXT("Error Message too large (Size %d) (Error 0x%x)"), dwRet, errorNum);
+    if (!dwRet) {
+        /* There was an error calling FormatMessage. */
+        _sntprintf(lastErrorTextBufferW, LAST_ERROR_TEXT_BUFFER_SIZE, TEXT("Failed to format system error message (Error: %d) (Original Error: 0x%x)"), GetLastError(), errorNum);
+    } else if ((long)LAST_ERROR_TEXT_BUFFER_SIZE - 1 < (long)dwRet + 14) {
+        /* supplied buffer is not long enough (14 is for the length of the error code in hexadecimal notation (12)+ space + null termination character) */
+        _sntprintf(lastErrorTextBufferW, LAST_ERROR_TEXT_BUFFER_SIZE, TEXT("System error message is too large to convert (Required size: %d) (Original Error: 0x%x)"), dwRet, errorNum);
     } else {
         lpszTemp[lstrlen(lpszTemp)-2] = TEXT('\0');  /*remove cr and newline character */
         _sntprintf(lastErrorTextBufferW, LAST_ERROR_TEXT_BUFFER_SIZE, TEXT("%s (0x%x)"), lpszTemp, errorNum);
@@ -2370,15 +2381,15 @@ const TCHAR* getLastErrorText() {
     if (lpszTemp) {
         LocalFree(lpszTemp);
     }
+
 #else
-    errorNum = errno;
     lastErrorTextMB = strerror(errorNum);
     req = mbstowcs(NULL, lastErrorTextMB, MBSTOWCS_QUERY_LENGTH);
     if (req == (size_t)-1) {
         invalidMultiByteSequence(TEXT("GLET"), 1);
-        _sntprintf(lastErrorTextBufferW, LAST_ERROR_TEXT_BUFFER_SIZE, TEXT("Error Message could not be decoded (Error 0x%x)"), errorNum);
+        _sntprintf(lastErrorTextBufferW, LAST_ERROR_TEXT_BUFFER_SIZE, TEXT("System error message could not be decoded (Error 0x%x)"), errorNum);
     } else if (req >= LAST_ERROR_TEXT_BUFFER_SIZE) {
-        _sntprintf(lastErrorTextBufferW, LAST_ERROR_TEXT_BUFFER_SIZE, TEXT("Error Message too large (Size %d) (Error 0x%x)"), req, errorNum);
+        _sntprintf(lastErrorTextBufferW, LAST_ERROR_TEXT_BUFFER_SIZE, TEXT("System error message too large to convert (Require size: %d) (Original Error: 0x%x)"), req, errorNum);
     } else {
         mbstowcs(lastErrorTextBufferW, lastErrorTextMB, LAST_ERROR_TEXT_BUFFER_SIZE);
     }
@@ -2387,6 +2398,15 @@ const TCHAR* getLastErrorText() {
     lastErrorTextBufferW[LAST_ERROR_TEXT_BUFFER_SIZE - 1] = TEXT('\0');
 
     return lastErrorTextBufferW;
+}
+
+/**
+ * Returns a textual error message of the last error encountered.
+ *
+ * @return The last error message.
+ */
+const TCHAR* getLastErrorText() {
+    return getErrorText(getLastError(), NULL);
 }
 
 /**
@@ -2402,15 +2422,97 @@ int getLastError() {
 #endif
 }
 
-int registerSyslogMessageFile( ) {
+#ifdef WIN32
+int eventLogSourceInstalled = FALSE;
+int warnSyslogUnregistered = TRUE;
+int syslogRegistrationChecked = FALSE;
+DWORD syslogRegistrationLastError;  /* we log the error code only if the user attempts to send a message, so we should keep the value when first calling syslogMessageFileRegistered(). */
+
+void setWarnSyslogUnregistered(int value) {
+    warnSyslogUnregistered = value;
+}
+
+/**
+ * Check if the Event Log source was registered successfully.
+ *  There are 2 ways to register: 
+ *  CASE 1: If we need elevated privileges, it should be done through the setup process (see --setup argument).
+ *  CASE 2: On older versions of windows where running elevated was not needed, registerSyslogMessageFile() can be called when the wrapper runs.
+ * 
+ * @param useLoggerQueue TRUE if the message should be queued.
+ * 
+ * Returns TRUE if registered, FALSE if not registered.
+ */
+int syslogMessageFileRegistered(int useLoggerQueue) {
+    TCHAR bufferPath[_MAX_PATH];
+    TCHAR bufferKVal[_MAX_PATH];
+    DWORD cbData = _MAX_PATH;
+    DWORD usedLen;
+    TCHAR regPath[1024];
+    HKEY hKey;
+    
+    /* first check if the function was called before */
+    if (syslogRegistrationChecked || eventLogSourceInstalled) {  /* || eventLogSourceInstalled: just in case we would have run registerSyslogMessageFile(TRUE) before this function (should not happen) */
+        return eventLogSourceInstalled;
+    }
+
+    /* if the registry key exist, and the path to the wrapper is ok, lets assume the registration was done successfully. No need to check the other values of the key */
+    
+    /* Get absolute path to service manager */
+    /* Important : For win XP getLastError() is unchanged if the buffer is too small, so if we don't reset the last error first, we may actually test an old pending error. */
+    SetLastError(ERROR_SUCCESS);
+    usedLen = GetModuleFileName(NULL, bufferPath, _MAX_PATH);
+    if (usedLen == 0) {
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to obtain the full path to the Wrapper. %s"), getLastErrorText());
+        return FALSE;
+    } else if ((usedLen == _MAX_PATH) || (getLastError() == ERROR_INSUFFICIENT_BUFFER)) {
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to obtain the full path to the Wrapper. %s"), TEXT("Path to Wrapper binary too long."));
+        return FALSE;
+    } else {
+        _sntprintf( regPath, 1024, TEXT("SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Application\\%s"), loginfoSourceName );
+        
+        /* check that the registry key exists. */
+        if((syslogRegistrationLastError = RegOpenKeyEx( HKEY_LOCAL_MACHINE, regPath, 0, KEY_READ, (PHKEY) &hKey )) == ERROR_SUCCESS ) {
+            /* check that the path to the wrapper is correct. */
+            if((syslogRegistrationLastError = RegQueryValueEx( hKey, TEXT("EventMessageFile"), NULL, NULL, (LPBYTE) bufferKVal, &cbData)) == ERROR_SUCCESS ) {
+                if (strcmpIgnoreCase(bufferPath, bufferKVal) == 0) {
+                    RegCloseKey( hKey );
+                    syslogRegistrationChecked = TRUE;
+                    eventLogSourceInstalled = TRUE;
+                    return TRUE;
+                }
+            }
+            RegCloseKey( hKey );
+        }
+    }
+    
+    /* not registered or failed to register correctly */
+    syslogRegistrationChecked = TRUE;
+    eventLogSourceInstalled = FALSE;
+    return FALSE;
+}
+#endif
+
+/**
+ * Register to the Log Event System
+ *  There are 2 ways to register: 
+ *  CASE 1: If we need elevated privileges, it should be done through the setup process (see --setup argument).
+ *  CASE 2: On older versions of windows where running elevated was not needed, registerSyslogMessageFile() can called when the wrapper runs.
+ */
+int registerSyslogMessageFile( int forceInstall ) {
 #ifdef WIN32
     TCHAR buffer[_MAX_PATH];
     DWORD usedLen;
     TCHAR regPath[1024];
     HKEY hKey;
     DWORD categoryCount, typesSupported;
+    
+    if (!forceInstall && syslogMessageFileRegistered(FALSE)) {
+        return 0;
+    }
 
     /* Get absolute path to service manager */
+    /* Important : For win XP getLastError() is unchanged if the buffer is too small, so if we don't reset the last error first, we may actually test an old pending error. */
+    SetLastError(ERROR_SUCCESS);
     usedLen = GetModuleFileName(NULL, buffer, _MAX_PATH);
     if (usedLen == 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to obtain the full path to the Wrapper. %s"), getLastErrorText());
@@ -2452,6 +2554,7 @@ int registerSyslogMessageFile( ) {
                 }
 
                 RegCloseKey( hKey );
+                eventLogSourceInstalled = TRUE;
                 return 0;
             }
         }
@@ -2463,6 +2566,10 @@ int registerSyslogMessageFile( ) {
 #endif
 }
 
+/**
+ * Register to the Log Event System
+ *  (not used anymore) 
+ */
 int unregisterSyslogMessageFile( ) {
 #ifdef WIN32
     /* If we deregister this application, then the event viewer will not work when the program is not running. */
@@ -2472,8 +2579,10 @@ int unregisterSyslogMessageFile( ) {
     /* Get absolute path to service manager */
     _sntprintf( regPath, 1024, TEXT("SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Application\\%s"), loginfoSourceName );
 
-    if( RegDeleteKey( HKEY_LOCAL_MACHINE, regPath ) == ERROR_SUCCESS )
+    if( RegDeleteKey( HKEY_LOCAL_MACHINE, regPath ) == ERROR_SUCCESS ) {
+        eventLogSourceInstalled = FALSE;
         return 0;
+    }
 
     return -1; /* Failure */
 #else
@@ -2490,6 +2599,18 @@ void sendEventlogMessage( int source_id, int level, const TCHAR *szBuff ) {
     WORD   eventID, categoryID;
     int    result;
 
+    if (!syslogMessageFileRegistered(TRUE)) {
+        if (warnSyslogUnregistered) {  /* Warn only one time - else infinite loop */
+            warnSyslogUnregistered = FALSE;
+            if (syslogRegistrationLastError) {
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to write in event logs because the application is not\n  registered (%s).\n  Run the wrapper with the '--setup' option to register."), getErrorText(syslogRegistrationLastError, NULL));
+            } else {
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to write in event logs because the application is not\n  registered. Run the wrapper with the '--setup' option to register."));
+            }
+        }
+        return;
+    }
+    
     strings = malloc(sizeof(TCHAR *) * 3);
     if (!strings) {
         _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("SEM1"));
@@ -3243,7 +3364,7 @@ void log_printf_queue( int useQueue, int source_id, int level, const TCHAR *lpsz
     if (useQueue) {
         /* Care needs to be taken both with this code and the code below to get done as quick as possible.
          *  It is generally safe because each thread has its own queue.  The only danger is if a message is
-         *  being queued while that thread is interupted by a signal.  If things are setup correctly however
+         *  being queued while that thread is interrupted by a signal.  If things are setup correctly however
          *  then non-signal threads should not be here in the first place. */
         threadId = getThreadId();
         
@@ -3280,7 +3401,7 @@ void log_printf_queue( int useQueue, int source_id, int level, const TCHAR *lpsz
         /* The expanded message was too big to fit into the buffer.
          *  On Windows, it writes as much as it can so we can make it look pretty.
          *  But on other platforms, nothing is written so we need a message.
-         *  It is illegal to do any mallocs in here, so there is notheing we can really do on UNIX. */
+         *  It is illegal to do any mallocs in here, so there is nothing we can really do on UNIX. */
 #if defined(WIN32)
         /* To be safe, make sure we are null terminated. */
         buffer[QUEUED_BUFFER_SIZE_USABLE - 1] = 0;
