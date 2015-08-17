@@ -1,5 +1,5 @@
 ﻿-----------------------------------------------------------------------------
-Java Service Wrapper Community Edition 3.5.27-a
+Java Service Wrapper Community Edition 3.5.27
 Copyright (C) 1999-2015 Tanuki Software, Ltd. All Rights Reserved.
 http://wrapper.tanukisoftware.com
 -----------------------------------------------------------------------------
