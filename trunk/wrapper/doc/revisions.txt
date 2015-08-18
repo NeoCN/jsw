@@ -54,11 +54,9 @@ Java Service Wrapper Revision History.
 * Fix a problem on AIX with OpenJRE where the wrapper failed to load the
   native library. The native library now has a '.so' extension like on other 
   UNIX platforms.
-* Fix a problem on HP-UX when listing HostIds with the 32-bit version of the 
-  Wrapper. If several HostIds are available on the machine, the wrapper could 
-  only get the first one and reported DLPI errors when attempting to get the 
-  others. This issue remains in the 64-bit version and will be corrected in
-  a future release. 
+* Fix a problem on HP-UX when listing HostIds. If several HostIds were 
+  available on the machine, the wrapper could only get the first one and 
+  reported DLPI errors when attempting to get the others.
   
   
 3.5.26
