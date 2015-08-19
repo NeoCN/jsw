@@ -253,8 +253,8 @@ int configFileReader_Read(ConfigFileReader *reader,
     }
 
     if (depth == 0 && !reader->preload) {
-        /* On the community edition, all messages will appear on loading the configuration file because there is no preload. So we shouldn't log if there is no directive. */
-        reader->logLevelOnOverwrite = LEVEL_NONE;
+        /* At least log with LEVEL_DEBUG to help support. */
+        reader->logLevelOnOverwrite = LEVEL_DEBUG;
     }
     
     /* Read all of the configurations */
@@ -511,10 +511,14 @@ int configFileReader_Read(ConfigFileReader *reader,
                             trimmedBuffer += 34;
                             logLevelOnOverwrite = getLogLevelForName(trimmedBuffer);
                             if (logLevelOnOverwrite >= LEVEL_NONE ) {
-                                /* On the community edition, all messages will appear on loading the configuration file because there is no preload. So we shouldn't log if there is no directive. */
-                                reader->logLevelOnOverwrite = LEVEL_NONE;
+                                /* At least log with LEVEL_DEBUG to help support. */
+                                reader->logLevelOnOverwrite = LEVEL_DEBUG;
                             } else if (logLevelOnOverwrite != LEVEL_UNKNOWN) {
                                 reader->logLevelOnOverwrite = logLevelOnOverwrite;
+                            } else {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                                    TEXT("Encountered an invalid value for directive #properties.on_overwrite.loglevel=%s (line %d)\n  Ignoring this directive."),
+                                    trimmedBuffer, lineNumber);
                             }
                         } else if (strcmpIgnoreCase(trimmedBuffer, TEXT("#properties.debug")) == 0) {
                             reader->logLevelOnOverwrite = LEVEL_STATUS;
