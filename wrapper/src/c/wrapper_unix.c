@@ -1990,6 +1990,11 @@ int main(int argc, char **argv) {
     }
 
     /* Load the properties. */
+    /* To make the WRAPPER_LANG references in the configuration work correctly,
+     *  it is necessary to load the configuration twice.
+     * The first time, we want to ignore the return value.  Any errors will be
+     *  suppressed and will get reported again the second time through. */
+    wrapperLoadConfigurationProperties(TRUE);
     if (wrapperLoadConfigurationProperties(FALSE)) {
         /* Unable to load the configuration.  Any errors will have already
          *  been reported. */

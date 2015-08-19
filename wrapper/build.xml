@@ -388,9 +388,6 @@
         <property name="wrapper.bin.long.name" value="${name}-${dist.os}-${dist.arch}-${bits}"/>
         
         <!-- Decide on library names -->
-        <condition property="wrapper.lib.extension" value="a">
-            <isset property="is.aix"/>
-        </condition>
         <condition property="wrapper.lib.extension" value="sl">
             <and>
                 <isset property="is.hpux"/>
@@ -1024,10 +1021,10 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <!-- Create wrapper.conf for the TestWrapper Sample Application -->
         <copy file="${src.dir}/conf/wrapper.conf.in"
               tofile="${conf.dir}/wrapper.conf"
-              filtering="on"/>
+              filtering="on" overwrite="true" />
         <replace file="${conf.dir}/wrapper.conf">
-            <replacetoken># Wrapper Properties</replacetoken>
-            <replacevalue><![CDATA[# TestWrapper Properties
+            <replacetoken>#  of the the file.</replacetoken>
+            <replacevalue><![CDATA[#  of the the file.
 #
 # NOTE - Please use src/conf/wrapper.conf.in as a template for your
 #        own application rather than the values used for the
@@ -1429,10 +1426,10 @@ original tar distribution due to a lack of support for long path names in some t
         <!-- Copy a fresh wrapper.conf rather than the development file -->
         <copy file="${src.dir}/conf/wrapper.conf.in"
               tofile="${releasedir}/conf/wrapper.conf"
-              filtering="on"/>
+              filtering="on" overwrite="true" />
         <replace file="${releasedir}/conf/wrapper.conf">
-            <replacetoken># Wrapper Properties</replacetoken>
-            <replacevalue><![CDATA[# TestWrapper Properties
+            <replacetoken>#  of the the file.</replacetoken>
+            <replacevalue><![CDATA[#  of the the file.
 #
 # NOTE - Please use src/conf/wrapper.conf.in as a template for your
 #        own application rather than the values used for the
@@ -1564,10 +1561,10 @@ wrapper.filter.action.999=NONE]]></replacevalue>
         <!-- Copy a fresh wrapper.conf rather than the development file -->
         <copy file="${src.dir}/conf/wrapper.conf.in"
               tofile="${releasedir}/conf/wrapper.conf"
-              filtering="on"/>
+              filtering="on" overwrite="true" />
         <replace file="${releasedir}/conf/wrapper.conf">
-            <replacetoken># Wrapper Properties</replacetoken>
-            <replacevalue><![CDATA[# TestWrapper Properties
+            <replacetoken>#  of the the file.</replacetoken>
+            <replacevalue><![CDATA[#  of the the file.
 #
 # NOTE - Please use src/conf/wrapper.conf.in as a template for your
 #        own application rather than the values used for the

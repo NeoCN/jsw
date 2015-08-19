@@ -734,6 +734,38 @@ void wrapperLoadLoggingProperties(int preload) {
 }
 
 
+/**
+ * This function provides a log file after proloading the properties.
+ *  It will load all configurations related to the logging (loglevel, format, etc.).
+ *  For standard editions, it helps us to resolve the language, if specified in the conf file.
+ * @return TRUE if something failed.
+ */
+int wrapperPreLoadConfigurationProperties() {
+    int returnVal;
+
+    returnVal = TRUE;
+        /* Load log file */
+        wrapperLoadLoggingProperties(TRUE);
+
+        /* As soon as the logging is loaded see if we are in a translate call.  If so we need to reset the log levels to silent mode. */
+        if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate"))) {
+            setSilentLogLevels();
+        }
+        
+        wrapperAddDefaultProperties();
+        if (wrapperData->workingDir && wrapperData->originalWorkingDir) {
+            if (wrapperSetWorkingDir(wrapperData->originalWorkingDir, FALSE)) {
+                /* Failed to restore the working dir.  Shutdown the Wrapper */
+                returnVal = TRUE;
+            }
+        }
+
+    if (properties) {
+        disposeProperties(properties);
+        properties = NULL;
+    }
+    return returnVal;
+}
 
 /**
  * Load the configuration.
@@ -909,6 +941,8 @@ int wrapperLoadConfigurationProperties(int preload) {
 
     /* The properties have just been loaded. */
     if (preload == TRUE) {
+        /* If we are in preload mode, we want to enable log warning messages here so everything below this point has propper warnings. */
+        setLogPropertyWarnings(properties, TRUE);
     } else if (properties->overwrittenPropertyCausedExit) {
         return TRUE; /* will cause the wrapper to exit with error code 1 */
     }
@@ -969,6 +1003,9 @@ int wrapperLoadConfigurationProperties(int preload) {
         return TRUE;
     }
     
+    /* We are only preloading */
+    if (preload == TRUE) {
+        /* this affects basically language specific variables */
         if (wrapperData->umask == -1) {
         /** Get the umask value for the various files. */
 #ifdef WIN32
@@ -989,6 +1026,8 @@ int wrapperLoadConfigurationProperties(int preload) {
         wrapperData->javaStatusFileUmask = getIntProperty(properties, TEXT("wrapper.java.statusfile.umask"), wrapperData->umask);
         wrapperData->anchorFileUmask = getIntProperty(properties, TEXT("wrapper.anchorfile.umask"), wrapperData->umask);
         setLogfileUmask(getIntProperty(properties, TEXT("wrapper.logfile.umask"), wrapperData->umask));
+        return wrapperPreLoadConfigurationProperties();
+    }
 #ifndef WIN32
     /** If in the first call here and the wrapper will deamonize, then we don't need
      * to proceed any further anymore as the properties will be loaded properly at

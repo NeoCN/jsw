@@ -1169,7 +1169,9 @@ Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum
         insertInnerProperty(properties, property);
     } else {
         logLevelOnOverwrite = GetLogLevelOnOverwrite(properties);
-        if (logLevelOnOverwrite < LEVEL_NONE) { /* Don't log anything on preload (logLevelOnOverwrite = LEVEL_NONE). */            
+        /* On preload the loglevel is set to NONE, then it is set by default to DEBUG on the second load.
+        *   We don't want to log anything nor to stop the Wrapper on preload so we test if logLevelOnOverwrite < LEVEL_NONE). */  
+        if (logLevelOnOverwrite < LEVEL_NONE) {
             /* The property was already set.  Only change it if non final */
             if (property->internal) {
                 setValue = FALSE;
