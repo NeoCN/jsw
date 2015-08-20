@@ -4947,7 +4947,7 @@ int wrapperRunCommonInner() {
      * If the the user specifically wants the environment, show it as the status log level, otherwise include it in debug output if enabled. */
     if (getBooleanProperty(properties, TEXT("wrapper.environment.dump"), FALSE)) {
         dumpEnvironment(LEVEL_INFO);
-    } else if (getBooleanProperty(properties, TEXT("wrapper.debug"), FALSE)) {
+    } else if (wrapperData->isDebugging) {
         dumpEnvironment(LEVEL_DEBUG);
     }
 

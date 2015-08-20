@@ -506,7 +506,16 @@ int configFileReader_Read(ConfigFileReader *reader,
                     } else if (!reader->preload && _tcsstr(trimmedBuffer, TEXT("#properties.")) == trimmedBuffer) {
                         if(_tcsstr(trimmedBuffer, TEXT("#properties.on_overwrite.exit=")) == trimmedBuffer) {
                             trimmedBuffer += 30;
-                            reader->exitOnOverwrite = (_tcsicmp(trimmedBuffer, TEXT("TRUE")) == 0);
+                            if (_tcsicmp(trimmedBuffer, TEXT("TRUE")) == 0) {
+                                reader->exitOnOverwrite = TRUE;
+                            } else {
+                                reader->exitOnOverwrite = FALSE;
+                                if (_tcsicmp(trimmedBuffer, TEXT("FALSE")) != 0) {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                                        TEXT("Encountered an invalid boolean value for directive #properties.on_overwrite.exit=%s (line %d).  Resolving to FALSE."),
+                                        trimmedBuffer, lineNumber);
+                                }
+                            }
                         } else if (_tcsstr(trimmedBuffer, TEXT("#properties.on_overwrite.loglevel=")) == trimmedBuffer) {
                             trimmedBuffer += 34;
                             logLevelOnOverwrite = getLogLevelForName(trimmedBuffer);
@@ -517,7 +526,7 @@ int configFileReader_Read(ConfigFileReader *reader,
                                 reader->logLevelOnOverwrite = logLevelOnOverwrite;
                             } else {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                                    TEXT("Encountered an invalid value for directive #properties.on_overwrite.loglevel=%s (line %d)\n  Ignoring this directive."),
+                                    TEXT("Encountered an invalid value for directive #properties.on_overwrite.loglevel=%s (line %d).  Ignoring this directive."),
                                     trimmedBuffer, lineNumber);
                             }
                         } else if (strcmpIgnoreCase(trimmedBuffer, TEXT("#properties.debug")) == 0) {
