@@ -1464,7 +1464,7 @@ installdaemon() {
         else
             eval echo `gettext ' Installing the $APP_LONG_NAME daemon..'`
             ln -s "$REALPATH" "/sbin/init.d/$APP_NAME"
-            for i in `ls "/etc/rc3.d/K"??"$APP_NAME_LOWER" "/etc/rc3.d/S"??"$APP_NAME_LOWER" 2>/dev/null` ; do
+            for i in `ls "/sbin/rc3.d/K"??"$APP_NAME_LOWER" "/sbin/rc3.d/S"??"$APP_NAME_LOWER" 2>/dev/null` ; do
                 eval echo `gettext ' Removing unexpected file before proceeding: $i'`
                 rm -f $i
             done
@@ -1666,7 +1666,7 @@ removedaemon() {
         if [ -f "/sbin/init.d/$APP_NAME" -o -L "/sbin/init.d/$APP_NAME" ] ; then
             stopit "0"
             eval echo `gettext ' Removing $APP_LONG_NAME daemon...'`
-            for i in `ls "/etc/rc3.d/K"??"$APP_NAME_LOWER" "/etc/rc3.d/S"??"$APP_NAME_LOWER" "/etc/init.d/$APP_NAME" 2>/dev/null` ; do
+            for i in `ls "/sbin/rc3.d/K"??"$APP_NAME_LOWER" "/sbin/rc3.d/S"??"$APP_NAME_LOWER" "/sbin/init.d/$APP_NAME" 2>/dev/null` ; do
                 rm -f $i
             done
         else

@@ -57,7 +57,8 @@ Java Service Wrapper Revision History.
 * Fix a problem on HP-UX when listing HostIds. If several HostIds were 
   available on the machine, the wrapper could only get the first one and 
   reported DLPI errors when attempting to get the others.
-  
+* Fix path to remove files when uninstalling the Wrapper daemon process on 
+  HPUX.
   
 3.5.26
 * Improve the log messages when a JVM restart is requested when the Wrapper is
