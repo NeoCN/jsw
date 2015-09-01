@@ -476,6 +476,11 @@ static int loadPropertiesCallback(void *callbackParam, const TCHAR *fileName, in
     properties->exitOnOverwrite = exitOnOverwrite;
     properties->logLevelOnOverwrite = logLevelOnOverwrite;
 
+    /* special case where the callback should only update the properties structure */
+    if ((fileName == NULL) && (lineNumber == -1) && (config == NULL)) {
+        return TRUE;
+    }
+    
     if (_tcsstr(config, TEXT("include")) == config) {
         /* Users sometimes remove the '#' from include statements.
            Add a warning to help them notice the problem. */
@@ -564,14 +569,15 @@ int GetLogLevelOnOverwrite(Properties *properties) {
     return LEVEL_UNKNOWN;
 }
 
-Properties* createProperties() {
+Properties* createProperties(int debug, int logLevelOnOverwrite, int exitOnOverwrite) {
     Properties *properties = malloc(sizeof(Properties));
     if (!properties) {
         outOfMemory(TEXT("CP"), 1);
         return NULL;
     }
-    properties->exitOnOverwrite = FALSE;
-    properties->logLevelOnOverwrite = LEVEL_NONE;
+    properties->debugProperties = debug;
+    properties->exitOnOverwrite = exitOnOverwrite;
+    properties->logLevelOnOverwrite = logLevelOnOverwrite;
     properties->overwrittenPropertyCausedExit = FALSE;
     properties->logWarnings = TRUE;
     properties->logWarningLogLevel = LEVEL_WARN;
@@ -1168,26 +1174,40 @@ Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum
         /* Insert this property at the correct location.  Value will still be null. */
         insertInnerProperty(properties, property);
     } else {
-        logLevelOnOverwrite = GetLogLevelOnOverwrite(properties);
-        /* On preload the loglevel is set to NONE, then it is set by default to DEBUG on the second load.
-        *   We don't want to log anything nor to stop the Wrapper on preload so we test if logLevelOnOverwrite < LEVEL_NONE). */  
-        if (logLevelOnOverwrite < LEVEL_NONE) {
-            /* The property was already set.  Only change it if non final */
-            if (property->internal) {
-                setValue = FALSE;
-                /* Logging properties were already preoloaded, so the logging system is ready. */
-                log_printf(WRAPPER_SOURCE_WRAPPER, logLevelOnOverwrite,
-                    TEXT("The \"%s\" property is defined by the Wrapper internally and can not be overwritten.\n  Ignoring redefinition on line #%d of configuration file: %s\n  Fixed Value %s=%s\n  Ignored Value %s=%s"),
-                    propertyNameTrim, lineNum, (filename ? filename : TEXT("<NULL>")), propertyNameTrim, property->value, propertyNameTrim, propertyValueTrim);
-            } else if (property->finalValue) {
-                setValue = FALSE;
-                log_printf(WRAPPER_SOURCE_WRAPPER, logLevelOnOverwrite,
-                    TEXT("The \"%s\" property was defined on the Wrapper command line and can not be overwritten.\n  Ignoring redefinition on line #%d of configuration file: %s\n  Fixed Value %s=%s\n  Ignored Value %s=%s"),
-                    propertyNameTrim, lineNum, (filename ? filename : TEXT("<NULL>")), propertyNameTrim, property->value, propertyNameTrim, propertyValueTrim);
+        /* The property was already set.  Only change it if non final and non internal */
+        if (property->internal || property->finalValue) {
+            setValue = FALSE;
+        }
+        
+        /* On preload we set properties->debugProperties to false as we don't want to log anything nor to stop the Wrapper at this stage. */  
+        if (properties->debugProperties) {
+            /* Preload was already done so the logging system is ready. */
+            logLevelOnOverwrite = GetLogLevelOnOverwrite(properties);
+            /* From version 3.5.27, the Wrapper will also log messages if the command line contains duplicated properties or attempts to set an internal environment variable. */
+            if (finalValue) {
+                if (property->internal) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, logLevelOnOverwrite,
+                        TEXT("The \"%s\" property is defined by the Wrapper internally and can not be overwritten.\n  Ignoring redefinition on the Wrapper command line.\n  Fixed Value %s=%s\n  Ignored Value %s=%s"),
+                        propertyNameTrim, propertyNameTrim, property->value, propertyNameTrim, propertyValueTrim);
+                } else if (property->finalValue) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, logLevelOnOverwrite,
+                        TEXT("The \"%s\" property was already defined on the Wrapper command line and can not be overwritten.\n  Ignoring redefinition on the Wrapper command line.\n  Fixed Value %s=%s\n  Ignored Value %s=%s"),
+                        propertyNameTrim, propertyNameTrim, property->value, propertyNameTrim, propertyValueTrim);
+                }
             } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, logLevelOnOverwrite,
-                    TEXT("The \"%s\" property was redefined on line #%d of configuration file: %s\n  Old Value %s=%s\n  New Value %s=%s"),
-                    propertyNameTrim, lineNum, (filename ? filename : TEXT("<NULL>")), propertyNameTrim, property->value, propertyNameTrim, propertyValueTrim);
+                if (property->internal) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, logLevelOnOverwrite,
+                        TEXT("The \"%s\" property is defined by the Wrapper internally and can not be overwritten.\n  Ignoring redefinition on line #%d of configuration file: %s\n  Fixed Value %s=%s\n  Ignored Value %s=%s"),
+                        propertyNameTrim, lineNum, (filename ? filename : TEXT("<NULL>")), propertyNameTrim, property->value, propertyNameTrim, propertyValueTrim);
+                } else if (property->finalValue) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, logLevelOnOverwrite,
+                        TEXT("The \"%s\" property was defined on the Wrapper command line and can not be overwritten.\n  Ignoring redefinition on line #%d of configuration file: %s\n  Fixed Value %s=%s\n  Ignored Value %s=%s"),
+                        propertyNameTrim, lineNum, (filename ? filename : TEXT("<NULL>")), propertyNameTrim, property->value, propertyNameTrim, propertyValueTrim);
+                } else {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, logLevelOnOverwrite,
+                        TEXT("The \"%s\" property was redefined on line #%d of configuration file: %s\n  Old Value %s=%s\n  New Value %s=%s"),
+                        propertyNameTrim, lineNum, (filename ? filename : TEXT("<NULL>")), propertyNameTrim, property->value, propertyNameTrim, propertyValueTrim);
+                }
             }
             
             if (properties->exitOnOverwrite) {

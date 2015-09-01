@@ -6547,6 +6547,7 @@ void _tmain(int argc, TCHAR **argv) {
          *  it is necessary to load the configuration twice.
          * The first time, we want to ignore the return value.  Any errors will be
          *  suppressed and will get reported again the second time through. */
+        /* From version 3.5.27, the community edition will also preload the configuration properties. */ 
         wrapperLoadConfigurationProperties(TRUE);
         if (wrapperLoadConfigurationProperties(FALSE)) {
             /* Unable to load the configuration.  Any errors will have already
@@ -7246,6 +7247,15 @@ BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParamet
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("WaitThread for Backend-Process: %s failed! (%d): %s"), TEXT("GetExitCodeProcess"), GetLastError(), getLastErrorText());
                                 ret = TRUE;
                             }
+#ifdef WRAPPERW
+                            /* At this point we know that the Wrapper could launch and retrieve the termination status of the elevated process without critical problem. 
+                             *  The parent process will later exit with the same error code as its child elevated process, which means a dialogbox will be shown for each processes if running with wrapperw.
+                             *  This may be annoying because the parent doesn't have any problem to report in reality. A solution is to disable the dialogbox for the parent process.
+                             */
+                            else {
+                                setDialogLogEnabled(FALSE);
+                            }
+#endif
                         } else {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("The elevated Wrapper process is still alive. Trying to kill it. (%d): %s"), GetLastError(), getLastErrorText());
                             if (TerminateProcess(shex.hProcess, 1) == 0) {

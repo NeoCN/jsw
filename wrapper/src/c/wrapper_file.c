@@ -252,7 +252,7 @@ int configFileReader_Read(ConfigFileReader *reader,
         return CONFIG_FILE_READER_FAIL;
     }
 
-    if (depth == 0 && !reader->preload) {
+    if (depth == 0) {
         /* At least log with LEVEL_DEBUG to help support. */
         reader->logLevelOnOverwrite = LEVEL_DEBUG;
     }
@@ -503,18 +503,17 @@ int configFileReader_Read(ConfigFileReader *reader,
                                 break;
                             }
                         }
-                    } else if (!reader->preload && _tcsstr(trimmedBuffer, TEXT("#properties.")) == trimmedBuffer) {
+                    } else if (_tcsstr(trimmedBuffer, TEXT("#properties.")) == trimmedBuffer) {
                         if(_tcsstr(trimmedBuffer, TEXT("#properties.on_overwrite.exit=")) == trimmedBuffer) {
                             trimmedBuffer += 30;
                             if (_tcsicmp(trimmedBuffer, TEXT("TRUE")) == 0) {
                                 reader->exitOnOverwrite = TRUE;
-                            } else {
+                            } else if (_tcsicmp(trimmedBuffer, TEXT("FALSE")) == 0) {
                                 reader->exitOnOverwrite = FALSE;
-                                if (_tcsicmp(trimmedBuffer, TEXT("FALSE")) != 0) {
-                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                                        TEXT("Encountered an invalid boolean value for directive #properties.on_overwrite.exit=%s (line %d).  Resolving to FALSE."),
-                                        trimmedBuffer, lineNumber);
-                                }
+                            } else if (!reader->preload) {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                                    TEXT("Encountered an invalid boolean value for directive #properties.on_overwrite.exit=%s (line %d).  Ignoring this directive."),
+                                    trimmedBuffer, lineNumber);
                             }
                         } else if (_tcsstr(trimmedBuffer, TEXT("#properties.on_overwrite.loglevel=")) == trimmedBuffer) {
                             trimmedBuffer += 34;
@@ -524,7 +523,7 @@ int configFileReader_Read(ConfigFileReader *reader,
                                 reader->logLevelOnOverwrite = LEVEL_DEBUG;
                             } else if (logLevelOnOverwrite != LEVEL_UNKNOWN) {
                                 reader->logLevelOnOverwrite = logLevelOnOverwrite;
-                            } else {
+                            } else if (!reader->preload) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                                     TEXT("Encountered an invalid value for directive #properties.on_overwrite.loglevel=%s (line %d).  Ignoring this directive."),
                                     trimmedBuffer, lineNumber);
@@ -542,6 +541,15 @@ int configFileReader_Read(ConfigFileReader *reader,
         lineNumber++;
     } while (c != NULL);
 
+    /* Call the callback after reading the file completely in order to copy reader->exitOnOverwrite & reader->logLevelOnOverwrite into the properties structure. 
+     *  (we want to keep these values after preload for logging potential problems on properties defined in the command line)
+     *  This is needed if directives are set at the end of the file with no properties after. */
+    if (reader->preload) {
+        if (!(*reader->callback)(reader->callbackParam, NULL, -1, NULL, reader->exitOnOverwrite, reader->logLevelOnOverwrite)) {
+            readResult = CONFIG_FILE_READER_HARD_FAIL;
+        }
+    }
+    
     /* Close the file */
     fclose(stream);
 

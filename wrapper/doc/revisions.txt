@@ -6,7 +6,7 @@ Java Service Wrapper Revision History.
   error message on Windows.
 * Handle system exit codes with descriptions (Windows only).  
 * Add new configuration file directives (#properties.on_overwrite.loglevel and 
-  #properties.on_overwrite.exit) to better control how the wrapper should 
+  #properties.on_overwrite.exit) to better control how the Wrapper should 
   behave when detecting duplicate property definitions.
 * Fix: No longer tries to resume a Windows service that is already running, 
   or pause a service that is already paused.
@@ -16,17 +16,17 @@ Java Service Wrapper Revision History.
 * Fix the console flicker bug. Happened when wrapper.ntservice.generate_console
   was set to TRUE, which is required for thread dumping.
 * Fix a problem on Windows with the consoleless version of the Wrapper. If a 
-  splash screen was set at launch time, and if the wrapper eventually failed to
+  splash screen was set at launch time, and if the Wrapper eventually failed to
   start normally, the splash screen did not disappear and remained on the top 
   of the log window.
 * Fix a problem on Windows platforms that caused the log window to overlap all 
   the other forms even when the focus was set on an other application.
-* Add the ability to define CPU affinity for the wrapper and JVM processes
+* Add the ability to define CPU affinity for the Wrapper and JVM processes
   (Windows and Linux systems, professional edition).
 * The wrapper can now be executed with a '--setup' option in order to install 
   components under elevated mode on Windows. During the installation, the 
   wrapper will register the application to the Windows Event Log system. 
-  After the wrapper is executed with the '--setup' option, the Event Viewer 
+  After the Wrapper is executed with the '--setup' option, the Event Viewer 
   will no longer report that the installation was corrupted.
 * wrapper.exe and wrapper.dll are now manifested for compatibility with newer
   versions of Windows (8.1 and above).
@@ -51,14 +51,20 @@ Java Service Wrapper Revision History.
   native code prior to opening it in Java.  The Wrapper worked correctly, but
   a Windows issue was causing warnings in the EventLog if the port had an
   existing socket in the TIME_WAIT state from a previous JVM invocation.
-* Fix a problem on AIX with OpenJRE where the wrapper failed to load the
+* Fix a problem on AIX with OpenJRE where the Wrapper failed to load the
   native library. The native library now has a '.so' extension like on other 
   UNIX platforms.
 * Fix a problem on HP-UX when listing HostIds. If several HostIds were 
-  available on the machine, the wrapper could only get the first one and 
+  available on the machine, the Wrapper could only get the first one and 
   reported DLPI errors when attempting to get the others.
 * Fix path to remove files when uninstalling the Wrapper daemon process on 
   HPUX.
+* Added Linux Itanium binaries in the "Delta Pack". It was removed since 
+  version 3.5.18.
+* Fix an encoding conversion error when sending email on HP-UX.
+* On MacOSX, set the launchd KeepAlive key to "false" by default as 
+  recommended by Apple. However, it is possible to set it to "true" by editing 
+  the new MACOSX_KEEP_RUNNING variable in the script file.
   
 3.5.26
 * Improve the log messages when a JVM restart is requested when the Wrapper is
