@@ -1224,6 +1224,7 @@ wrapper.filter.action.999=NONE]]></replacevalue>
                 <include name="src/c/*.bmp" />
                 <include name="src/c/*.bin" />
                 <include name="src/c/*.manifest" />
+                <include name="external/**" />
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
@@ -1418,7 +1419,6 @@ original tar distribution due to a lack of support for long path names in some t
                 <include name="jdoc/**" />
                 <include name="doc/**" />
                 <include name="conf/demoapp.conf" />
-                <include name="src/c/*.manifest" />
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
@@ -1861,7 +1861,7 @@ original tar distribution due to a lack of support for long path names in some t
         <release-delta-extract-platform osname="hpux" osarch="ia" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
         <release-delta-extract-platform osname="hpux" osarch="parisc" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".sl" archivetype="tar.gz"/>
         <release-delta-extract-platform osname="hpux" osarch="parisc" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".sl" archivetype="tar.gz"/>
-<!--        <release-delta-extract-platform osname="linux" osarch="ia" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/> -->
+        <release-delta-extract-platform osname="linux" osarch="ia" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
         <release-delta-extract-platform osname="linux" osarch="ppc" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
         <release-delta-extract-platform osname="linux" osarch="ppc" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
         <release-delta-extract-platform osname="linux" osarch="x86" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>

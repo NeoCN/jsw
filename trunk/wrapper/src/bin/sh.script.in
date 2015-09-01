@@ -134,9 +134,14 @@ USE_UPSTART=
 # OS service management tool: flag for using systemd when installing
 USE_SYSTEMD=
 
-# When installing on On Mac OSX platforms, the following domain will be used to
+# When installing on Mac OSX platforms, the following domain will be used to
 #  prefix the plist file name.
 PLIST_DOMAIN=org.tanukisoftware.wrapper
+
+# When installing on Mac OSX platforms, this parameter controls whether the daemon
+# is to be kept continuously running or to let demand and conditions control the 
+# invocation.
+MACOSX_KEEP_RUNNING="false"
 
 # The following two lines are used by the chkconfig command. Change as is
 #  appropriate for your application.  They should remain commented.
@@ -369,7 +374,9 @@ then
         DIST_BITS="32"
         KEY_KEEP_ALIVE="OnDemand"
     else
+        # Note: "OnDemand" has been deprecated and replaced from Mac OS X 10.5 by "KeepAlive"
         KEY_KEEP_ALIVE="KeepAlive"
+        
         if [ "X`/usr/sbin/sysctl -n hw.cpu64bit_capable`" == "X1" ]  
         then
             DIST_BITS="64"
@@ -742,8 +749,8 @@ checkUser() {
             shift
         done
 
-        # Use "runuser" if this exists.  runuser should be used on RedHat in preference to su.
-        #
+        # Use "runuser" if this exists.
+        # runuser should be used on RedHat in preference to su.
         if test -f "/sbin/runuser"
         then
             /sbin/runuser - $RUN_AS_USER -c "\"$REALPATH\" $ADDITIONAL_PARA"
@@ -755,11 +762,13 @@ checkUser() {
         # we check if the previous command has failed
         if [ $RUN_AS_USER_EXITCODE -ne 0 ]
         then
-            eval echo `gettext 'Advice: One possible cause of failure is when the user \(\"$RUN_AS_USER\"\) has no shell. Two solutions are available:'`
-            eval echo `gettext '1. you can set the shell to use with \"SU_OPTS\"'`
-            eval echo `gettext 'For example, at the top of the script file you can set: SU_OPTS=\"-s /bin/bash\"'`
-            eval echo `gettext '2. you can use a OS service management tool'`
-            eval echo `gettext 'Supported OS service management tools are described at the top of the script file.'`
+             if [ $RUN_AS_USER_EXITCODE -eq 1 ]
+             then
+                 checkForkCommand
+             else
+                 eval echo `gettext 'Error executing the requested command with user \"$RUN_AS_USER\" \(error code $RUN_AS_USER_EXITCODE\).'`
+                 echo ""
+            fi
         fi
         
         # Now that we are the original user again, we may need to clean up the lock file.
@@ -777,6 +786,31 @@ checkUser() {
         fi
 
         exit $RUN_AS_USER_EXITCODE
+    fi
+}
+
+# Try to fork by executing a simple command.
+# With this function, we want to make sure we are able to fork.
+checkForkCommand() {
+    
+    if test -f "/sbin/runuser"
+    then
+        /sbin/runuser - $RUN_AS_USER -c "ls \"$REALPATH\"" > /dev/null 2>&1 &
+    else
+        $SU_BIN - $RUN_AS_USER -c "ls \"$REALPATH\"" $SU_OPTS > /dev/null 2>&1 &
+    fi
+    CHECK_EXITCODE=$?
+    
+    if [ $CHECK_EXITCODE -ne 0 ]
+    then
+        # clearly a problem with forking
+        eval echo `gettext 'Error: unable to create fork process.'`
+        eval echo `gettext 'Advice:'`
+        eval echo `gettext 'One possible cause of failure is when the user \(\"$RUN_AS_USER\"\) has no shell.'`
+        eval echo `gettext 'In this case, two solutions are available by editing the script file:'`
+        eval echo `gettext '1. Use \"SU_OPTS\" to set the shell for the user.'`
+        eval echo `gettext '2. Use a OS service management tool (only available on some platforms).'`
+        echo ""
     fi
 }
 
@@ -1100,6 +1134,14 @@ macosxStop() {
         eval echo `gettext '$APP_LONG_NAME is not running.'`
         exit 1
     else
+        if [ "$MACOSX_KEEP_RUNNING" = "true" ] ; then
+            echo ""
+            eval echo `gettext 'Daemon is set to be kept continuously running and it will be automatically restarted.'`
+            eval echo `gettext 'To stop the daemon you need to uninstall it.'`
+            eval echo `gettext 'If you want to use the \"stop\" argument, you need to find MACOSX_KEEP_RUNNING'`
+            eval echo `gettext 'at the beginning of the script file and set it to \"false\".'`
+            echo ""
+        fi
         launchctl stop ${APP_PLIST_BASE}
     fi
 }
@@ -1114,8 +1156,14 @@ macosxRestart() {
         eval echo `gettext '$APP_LONG_NAME is not running.'`
         exit 1
     else
-        launchctl unload "/Library/LaunchDaemons/${APP_PLIST}"
-        launchctl load   "/Library/LaunchDaemons/${APP_PLIST}"
+        if [ "$MACOSX_KEEP_RUNNING" = "true" ] ; then
+            # by stopping it, launchd will automatically restart it
+            launchctl stop ${APP_PLIST_BASE}
+        else
+            launchctl unload "/Library/LaunchDaemons/${APP_PLIST}"
+            sleep 1
+            launchctl load   "/Library/LaunchDaemons/${APP_PLIST}"
+        fi
     fi
     
     startwait
@@ -1540,28 +1588,28 @@ installdaemon() {
             if [ -f "${REALDIR}/${APP_PLIST}" ] ; then
                 ln -s "${REALDIR}/${APP_PLIST}" "/Library/LaunchDaemons/${APP_PLIST}"
             else
-                echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > "/Library/LaunchDaemons/${APP_PLIST}"
+                echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"                       > "/Library/LaunchDaemons/${APP_PLIST}"
                 echo "<!DOCTYPE plist PUBLIC \"-//Apple Computer//DTD PLIST 1.0//EN\"" >> "/Library/LaunchDaemons/${APP_PLIST}"
-                echo "\"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">" >> "/Library/LaunchDaemons/${APP_PLIST}"
-                echo "<plist version=\"1.0\">" >> "/Library/LaunchDaemons/${APP_PLIST}"
-                echo "    <dict>" >> "/Library/LaunchDaemons/${APP_PLIST}"
-                echo "        <key>Label</key>" >> "/Library/LaunchDaemons/${APP_PLIST}"
-                echo "        <string>${APP_PLIST_BASE}</string>" >> "/Library/LaunchDaemons/${APP_PLIST}"
-                echo "        <key>ProgramArguments</key>" >> "/Library/LaunchDaemons/${APP_PLIST}"
-                echo "        <array>" >> "/Library/LaunchDaemons/${APP_PLIST}"
-                echo "            <string>${REALPATH}</string>" >> "/Library/LaunchDaemons/${APP_PLIST}"
-                echo "            <string>launchdinternal</string>" >> "/Library/LaunchDaemons/${APP_PLIST}"
-                echo "        </array>" >> "/Library/LaunchDaemons/${APP_PLIST}"
-                echo "        <key>${KEY_KEEP_ALIVE}</key>" >> "/Library/LaunchDaemons/${APP_PLIST}"
-                echo "        <true/>" >> "/Library/LaunchDaemons/${APP_PLIST}"
-                echo "        <key>RunAtLoad</key>" >> "/Library/LaunchDaemons/${APP_PLIST}"
-                echo "        <true/>" >> "/Library/LaunchDaemons/${APP_PLIST}"
+                echo "\"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">"             >> "/Library/LaunchDaemons/${APP_PLIST}"
+                echo "<plist version=\"1.0\">"                                         >> "/Library/LaunchDaemons/${APP_PLIST}"
+                echo "    <dict>"                                                      >> "/Library/LaunchDaemons/${APP_PLIST}"
+                echo "        <key>Label</key>"                                        >> "/Library/LaunchDaemons/${APP_PLIST}"
+                echo "        <string>${APP_PLIST_BASE}</string>"                      >> "/Library/LaunchDaemons/${APP_PLIST}"
+                echo "        <key>ProgramArguments</key>"                             >> "/Library/LaunchDaemons/${APP_PLIST}"
+                echo "        <array>"                                                 >> "/Library/LaunchDaemons/${APP_PLIST}"
+                echo "            <string>${REALPATH}</string>"                        >> "/Library/LaunchDaemons/${APP_PLIST}"
+                echo "            <string>launchdinternal</string>"                    >> "/Library/LaunchDaemons/${APP_PLIST}"
+                echo "        </array>"                                                >> "/Library/LaunchDaemons/${APP_PLIST}"
+                echo "        <key>${KEY_KEEP_ALIVE}</key>"                            >> "/Library/LaunchDaemons/${APP_PLIST}"
+                echo "        <${MACOSX_KEEP_RUNNING}/>"                               >> "/Library/LaunchDaemons/${APP_PLIST}"
+                echo "        <key>RunAtLoad</key>"                                    >> "/Library/LaunchDaemons/${APP_PLIST}"
+                echo "        <true/>"                                                 >> "/Library/LaunchDaemons/${APP_PLIST}"
                 if [ "X$RUN_AS_USER" != "X" ] ; then
-                    echo "        <key>UserName</key>" >> "/Library/LaunchDaemons/${APP_PLIST}"
-                    echo "        <string>${RUN_AS_USER}</string>" >> "/Library/LaunchDaemons/${APP_PLIST}"
+                    echo "        <key>UserName</key>"                                 >> "/Library/LaunchDaemons/${APP_PLIST}"
+                    echo "        <string>${RUN_AS_USER}</string>"                     >> "/Library/LaunchDaemons/${APP_PLIST}"
                 fi
-                echo "    </dict>" >> "/Library/LaunchDaemons/${APP_PLIST}"
-                echo "</plist>" >> "/Library/LaunchDaemons/${APP_PLIST}"
+                echo "    </dict>"                                                     >> "/Library/LaunchDaemons/${APP_PLIST}"
+                echo "</plist>"                                                        >> "/Library/LaunchDaemons/${APP_PLIST}"
             fi
             chmod 555 "/Library/LaunchDaemons/${APP_PLIST}"
         fi
@@ -1864,8 +1912,13 @@ docommand() {
             ;;
     
         'start')
-            if [ "$DIST_OS" = "macosx" -a -f "/Library/LaunchDaemons/${APP_PLIST}" ] ; then
-                macosxStart
+            if [ "$DIST_OS" = "macosx" ] ; then 
+                if [ ! -f "/Library/LaunchDaemons/${APP_PLIST}" ] ; then
+                    # inform the user that the application was not installed
+                    status
+                else
+                    macosxStart
+                fi
             elif [ "$DIST_OS" = "linux" -a -f "/etc/init/${APP_NAME}.conf" ] ; then
                 upstartstart
             elif [ "$DIST_OS" = "linux" -a -n "$USE_SYSTEMD" -a -z "$SYSD" ] ; then
@@ -1897,8 +1950,12 @@ docommand() {
             ;;
     
         'restart')
-            if [ "$DIST_OS" = "macosx" -a -f "/Library/LaunchDaemons/${APP_PLIST}" ] ; then
-                macosxRestart
+            if [ "$DIST_OS" = "macosx" ] ; then 
+                if [ ! -f "/Library/LaunchDaemons/${APP_PLIST}" ] ; then
+                    eval echo `gettext '$APP_NAME was not installed.'`
+                else
+                    macosxRestart
+                fi
             elif [ "$DIST_OS" = "linux" -a -f "/etc/init/${APP_NAME}.conf" ] ; then
                 upstartRestart
             elif [ "$DIST_OS" = "linux" -a -n "$USE_SYSTEMD" -a -z "$SYSD" ] ; then

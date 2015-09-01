@@ -1994,6 +1994,7 @@ int main(int argc, char **argv) {
      *  it is necessary to load the configuration twice.
      * The first time, we want to ignore the return value.  Any errors will be
      *  suppressed and will get reported again the second time through. */
+    /* From version 3.5.27, the community edition will also preload the configuration properties. */ 
     wrapperLoadConfigurationProperties(TRUE);
     if (wrapperLoadConfigurationProperties(FALSE)) {
         /* Unable to load the configuration.  Any errors will have already

@@ -75,6 +75,7 @@ struct Property {
 
 typedef struct Properties Properties;
 struct Properties {
+    int debugProperties;                /* TRUE if debug information on Properties should be shown. */
     int exitOnOverwrite;                /* If TRUE, causes the wrapper to exit when any property is overwritten in the config files. */
     int logLevelOnOverwrite;            /* Defines the log level of the messages reported when properties are overwritten. */
     int overwrittenPropertyCausedExit;  /* Flag to keep trace whether at least one property was overridden */
@@ -159,7 +160,7 @@ extern int loadProperties(Properties *properties,
  * Create a Properties structure.  Must call disposeProperties to free up
  *  allocated memory.
  */
-extern Properties* createProperties();
+extern Properties* createProperties(int debug, int logLevelOnOverwrite, int exitOnOverwrite);
 
 /**
  * Free all memory allocated by a Properties structure.  The properties

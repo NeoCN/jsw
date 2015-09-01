@@ -9,11 +9,24 @@
     <!-- Local build properties -->
     <property file="${user.home}/.ant.local.properties" />
     
+    <!-- Java version -->
+    <condition property="is.java 1.5 or lower">
+        <or>
+            <equals arg1="${ant.java.version}" arg2="1.0" />
+            <equals arg1="${ant.java.version}" arg2="1.1" />
+            <equals arg1="${ant.java.version}" arg2="1.2" />
+            <equals arg1="${ant.java.version}" arg2="1.3" />
+            <equals arg1="${ant.java.version}" arg2="1.4" />
+            <equals arg1="${ant.java.version}" arg2="1.5" />
+        </or>
+    </condition>
+    
     <!-- platform -->
     <property name="is.${os.name}" value="true"/>
     
     <property name="test.dir"      value="${basedir}/test"/>
     <property name="src.dir"       value="${basedir}/src"/>
+    <property name="external.test.dir"       value="${basedir}/external/test"/> 
     
     <!-- =================================================================== -->
     <!-- Help on usage                                                       -->
@@ -90,11 +103,86 @@
     <!-- =================================================================== -->
     <target name="init" depends="init-windows, init-linux, init-solaris, init-aix, init-hpux, init-macosx, init-osf1, init-freebsd, init-irix">
     </target>
+
+    <!-- =================================================================== -->
+    <!-- Resolve Classpaths                                                  -->
+    <!-- =================================================================== -->
+    <!-- Classpath for script tests -->
+    <target name="set-classpath.scriptLibs" if="is.java 1.5 or lower">
+        <path id="classpath.scriptLibs">
+            <fileset dir="${external.test.dir}/scriptLibs/">
+                <include name="*.jar"/>
+            </fileset>
+        </path>
+    </target>
+
+    <target name="default-classpath.scriptLibs" unless="is.java 1.5 or lower">
+        <!-- empty path: we don't need any additional libs because they are already included in Java 1.6 and upper -->
+        <path id="classpath.scriptLibs"/>
+    </target>
+
+    <target name="init-classpath.scriptLibs" depends="set-classpath.scriptLibs, default-classpath.scriptLibs"/>
+
+    <!-- =================================================================== -->
+    <!-- Check if the required libs exist                                    -->
+    <!-- =================================================================== -->
+    <!-- Check libs for script tests -->
+    <target name="check-libs-exist.scriptLibs">
+        <available file="${external.test.dir}/scriptLibs/js-1.6R7.jar" property="js.exists"/>
+        <available file="${external.test.dir}/scriptLibs/bsf.jar" property="bsf.exists"/>
+        <available file="${external.test.dir}/scriptLibs/commons-logging-1.2.jar" property="cl.exists"/>
+        <condition property="libs-exist.scriptLibs">
+            <and>
+                <istrue value="${js.exists}"/>
+                <istrue value="${bsf.exists}"/>
+                <istrue value="${cl.exists}"/>
+            </and>
+        </condition>
+    </target>
+    
+    <target name="check-script-tests-setup-common" depends="check-libs-exist.scriptLibs">
+        <condition property="script-tests-setup-common-ok">
+            <or>
+                <istrue value="${libs-exist.scriptLibs}"/>
+                <isfalse value="${is.java 1.5 or lower}"/>
+            </or>
+        </condition>
+    </target>
+    
+    <target name="script-tests-setup-common-not-ok" depends="check-script-tests-setup-common" unless="script-tests-setup-common-ok">
+        <echo message="*******************************************************************"/>
+        <echo message="* WARNING"/>
+        <echo message="* The tests are being built with Java version ${ant.java.version} which doesn't"/>
+        <echo message="* include the Scripting API.  "/>
+        <echo message="* Apache Commons Logging, Apache Commons BSF and Rhino are required"/>
+        <echo message="* when using a Java version older than 6 but these libraries could"/>
+        <echo message="* not be found in '${external.test.dir}/scriptLibs/'. "/>
+        <echo message="* The tests using the Scripting API will not be built."/>
+        <echo message="********************************************************************"/>
+    </target>
+    
+    <target name="check-script-tests-setup-bat" depends="check-script-tests-setup-common, init">
+        <condition property="script-tests-setup-bat-ok">
+            <and>
+                <istrue value="${script-tests-setup-common-ok}"/>
+                <istrue value="${is.shell.bat}"/>
+            </and>
+        </condition>
+    </target>
+
+    <target name="check-script-tests-setup-unix" depends="check-script-tests-setup-common, init">
+        <condition property="script-tests-setup-unix-ok">
+            <and>
+                <istrue value="${script-tests-setup-common-ok}"/>
+                <istrue value="${is.Unix}"/>
+            </and>
+        </condition>
+    </target>
     
     <!-- =================================================================== -->
-    <!-- Test Setup target (Common)                                          -->
+    <!-- Test Setup target (Init - Common)                                   -->
     <!-- =================================================================== -->
-    <target name="test-setup-common" depends="init">
+    <target name="test-setup-common-init" depends="init">
         <!-- Create a template wrapper.conf file that will be used to create the files for
             each of the additional conf files for each test. -->
         <delete file="${test.dir}/template.conf"/>
@@ -108,7 +196,6 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <replace file="${test.dir}/template.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
-
        
         <!-- Delete old files to help with version upgrade. -->
         <delete>
@@ -117,7 +204,12 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                 <include name="TestAdditionalParameterFile-0?-*.*"/>
             </fileset>
         </delete>
+    </target>
         
+    <!-- =================================================================== -->
+    <!-- General Tests Setup target (Common)                                 -->
+    <!-- =================================================================== -->
+    <target name="general-tests-setup-common" depends="test-setup-common-init">
         <!-- Background Threads Test -->
         <delete file="${test.dir}/backgroundthreads.conf"/>
         <filter token="app.name"          value="backgroundthreads"/>
@@ -541,72 +633,6 @@ wrapper.java.classpath.missing.loglevel=NONE]]></replacevalue>
             <replacetoken>wrapper.java.classpath.2=../lib/wrapper.jar</replacetoken>
             <replacevalue><![CDATA[wrapper.java.classpath.2=../lib/wrapper.jar
 wrapper.java.classpath.3=../lib/%WRAPPER_COMMAND_FILLER_32767%.jar
-wrapper.java.classpath.missing.loglevel=NONE]]></replacevalue>
-        </replace>
-        
-        <!-- Huge Classpath Env Max Size Test -->
-        <delete file="${test.dir}/hugeclasspathenvmaxsize.conf"/>
-        <filter token="app.name"          value="hugeclasspathenvmaxsize"/>
-        <filter token="app.long.name"     value="Huge Classpath Env Max Size Case" />
-        <copy file="${test.dir}/template.conf"
-              tofile="${test.dir}/hugeclasspathenvmaxsize.conf"
-              filtering="on"/>
-        <replace file="${test.dir}/hugeclasspathenvmaxsize.conf"
-                 token="#wrapper.java.command.loglevel=INFO"
-                 value="wrapper.java.command.loglevel=INFO" />
-        <replace file="${test.dir}/hugeclasspathenvmaxsize.conf"
-                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
-                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.QuickComplete" />
-        <echo file="${test.dir}/hugeclasspathenvmaxsize-path.conf" append="false" message="#encoding=UTF-8${line.separator}"/>
-        <script language="javascript">
-            echo = project.createTask("echo");
-            echo.setFile(new java.io.File(project.getProperty("test.dir"), "hugeclasspathenvmaxsize-path.conf"));
-            echo.setAppend(true);
-            for (var i = 1000; i &lt; 2362; i++) {
-                echo.setMessage("wrapper.java.classpath." + i + "=../lib/no-file-" + i + ".jar\n");
-                echo.perform();
-            }
-            echo.setMessage("wrapper.java.classpath.2363=../lib/no-file-2363abc.jar\n");
-            echo.perform();
-        </script>
-        <replace file="${test.dir}/hugeclasspathenvmaxsize.conf">
-            <replacetoken>wrapper.java.classpath.2=../lib/wrapper.jar</replacetoken>
-            <replacevalue><![CDATA[wrapper.java.classpath.2=../lib/wrapper.jar
-#include ../test/hugeclasspathenvmaxsize-path.conf
-wrapper.java.classpath.use_environment=TRUE
-wrapper.java.classpath.missing.loglevel=NONE]]></replacevalue>
-        </replace>
-        
-        <!-- Huge Classpath Env Over Size Test -->
-        <delete file="${test.dir}/hugeclasspathenvoversize.conf"/>
-        <filter token="app.name"          value="hugeclasspathenvoversize"/>
-        <filter token="app.long.name"     value="Huge Classpath Env Over Size Case" />
-        <copy file="${test.dir}/template.conf"
-              tofile="${test.dir}/hugeclasspathenvoversize.conf"
-              filtering="on"/>
-        <replace file="${test.dir}/hugeclasspathenvoversize.conf"
-                 token="#wrapper.java.command.loglevel=INFO"
-                 value="wrapper.java.command.loglevel=INFO" />
-        <replace file="${test.dir}/hugeclasspathenvoversize.conf"
-                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
-                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.QuickComplete" />
-        <echo file="${test.dir}/hugeclasspathenvoversize-path.conf" append="false" message="#encoding=UTF-8${line.separator}"/>
-        <script language="javascript">
-            echo = project.createTask("echo");
-            echo.setFile(new java.io.File(project.getProperty("test.dir"), "hugeclasspathenvoversize-path.conf"));
-            echo.setAppend(true);
-            for (var i = 1000; i &lt; 2362; i++) {
-                echo.setMessage("wrapper.java.classpath." + i + "=../lib/no-file-" + i + ".jar\n");
-                echo.perform();
-            }
-            echo.setMessage("wrapper.java.classpath.2363=../lib/no-file-2363abcd.jar\n");
-            echo.perform();
-        </script>
-        <replace file="${test.dir}/hugeclasspathenvoversize.conf">
-            <replacetoken>wrapper.java.classpath.2=../lib/wrapper.jar</replacetoken>
-            <replacevalue><![CDATA[wrapper.java.classpath.2=../lib/wrapper.jar
-#include ../test/hugeclasspathenvoversize-path.conf
-wrapper.java.classpath.use_environment=TRUE
 wrapper.java.classpath.missing.loglevel=NONE]]></replacevalue>
         </replace>
 
@@ -1129,11 +1155,90 @@ wrapper.java.additional.3.stripquotes=FALSE]]></replacevalue>
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintParam" />
     </target>
+
+    <!-- =================================================================== -->
+    <!-- Script Tests Setup target (Common)                                  -->
+    <!-- =================================================================== -->    
+    <target name="script-tests-setup-common" depends="test-setup-common-init, check-script-tests-setup-common, init-classpath.scriptLibs" if="script-tests-setup-common-ok">
+        <!-- Huge Classpath Env Max Size Test -->
+        <delete file="${test.dir}/hugeclasspathenvmaxsize.conf"/>
+        <filter token="app.name"          value="hugeclasspathenvmaxsize"/>
+        <filter token="app.long.name"     value="Huge Classpath Env Max Size Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/hugeclasspathenvmaxsize.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/hugeclasspathenvmaxsize.conf"
+                 token="#wrapper.java.command.loglevel=INFO"
+                 value="wrapper.java.command.loglevel=INFO" />
+        <replace file="${test.dir}/hugeclasspathenvmaxsize.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.QuickComplete" />
+        <echo file="${test.dir}/hugeclasspathenvmaxsize-path.conf" append="false" message="#encoding=UTF-8${line.separator}"/>
+        <script language="javascript">
+            <classpath refid="classpath.scriptLibs" />
+            echo = project.createTask("echo");
+            echo.setFile(new java.io.File(project.getProperty("test.dir"), "hugeclasspathenvmaxsize-path.conf"));
+            echo.setAppend(true);
+            for (var i = 1000; i &lt; 2362; i++) {
+                echo.setMessage("wrapper.java.classpath." + i + "=../lib/no-file-" + i + ".jar\n");
+                echo.perform();
+            }
+            echo.setMessage("wrapper.java.classpath.2363=../lib/no-file-2363abc.jar\n");
+            echo.perform();
+        </script>
+        <replace file="${test.dir}/hugeclasspathenvmaxsize.conf">
+            <replacetoken>wrapper.java.classpath.2=../lib/wrapper.jar</replacetoken>
+            <replacevalue><![CDATA[wrapper.java.classpath.2=../lib/wrapper.jar
+#include ../test/hugeclasspathenvmaxsize-path.conf
+wrapper.java.classpath.use_environment=TRUE
+wrapper.java.classpath.missing.loglevel=NONE]]></replacevalue>
+        </replace>
+        
+        <!-- Huge Classpath Env Over Size Test -->
+        <delete file="${test.dir}/hugeclasspathenvoversize.conf"/>
+        <filter token="app.name"          value="hugeclasspathenvoversize"/>
+        <filter token="app.long.name"     value="Huge Classpath Env Over Size Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/hugeclasspathenvoversize.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/hugeclasspathenvoversize.conf"
+                 token="#wrapper.java.command.loglevel=INFO"
+                 value="wrapper.java.command.loglevel=INFO" />
+        <replace file="${test.dir}/hugeclasspathenvoversize.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.QuickComplete" />
+        <echo file="${test.dir}/hugeclasspathenvoversize-path.conf" append="false" message="#encoding=UTF-8${line.separator}"/>
+        <script language="javascript">
+            <classpath refid="classpath.scriptLibs" />
+            echo = project.createTask("echo");
+            echo.setFile(new java.io.File(project.getProperty("test.dir"), "hugeclasspathenvoversize-path.conf"));
+            echo.setAppend(true);
+            for (var i = 1000; i &lt; 2362; i++) {
+                echo.setMessage("wrapper.java.classpath." + i + "=../lib/no-file-" + i + ".jar\n");
+                echo.perform();
+            }
+            echo.setMessage("wrapper.java.classpath.2363=../lib/no-file-2363abcd.jar\n");
+            echo.perform();
+        </script>
+        <replace file="${test.dir}/hugeclasspathenvoversize.conf">
+            <replacetoken>wrapper.java.classpath.2=../lib/wrapper.jar</replacetoken>
+            <replacevalue><![CDATA[wrapper.java.classpath.2=../lib/wrapper.jar
+#include ../test/hugeclasspathenvoversize-path.conf
+wrapper.java.classpath.use_environment=TRUE
+wrapper.java.classpath.missing.loglevel=NONE]]></replacevalue>
+        </replace>
+    </target>    
     
     <!-- =================================================================== -->
-    <!-- Test Setup target (Bat files - Windows)                             -->
+    <!-- Test Setup target (Common)                                          -->
     <!-- =================================================================== -->
-    <target name="test-setup-bat" depends="test-setup-common" if="is.shell.bat">
+    <target name="test-setup-common" depends="general-tests-setup-common, script-tests-setup-common">
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- General Tests Setup target (Bat files - Windows)                    -->
+    <!-- =================================================================== -->
+    <target name="general-tests-setup-bat" depends="test-setup-common" if="is.shell.bat">
         <!-- Create the test specific batch files -->
         
         <!-- Background Threads Test -->
@@ -1147,9 +1252,6 @@ wrapper.java.additional.3.stripquotes=FALSE]]></replacevalue>
         <replace file="${test.dir}/TestBackgroundThreads.bat"
                  token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
                  value='set _WRAPPER_CONF_DEFAULT=../test/backgroundthreads.conf' />
-
-      
-
         
         <!-- Long Running Background Threads Test -->
         <delete file="${test.dir}/TestLongRunningBackgroundThreads.bat"/>
@@ -1524,30 +1626,6 @@ set ENV_VAR_4=d]]></replacevalue>
                  token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
                  value='set _WRAPPER_CONF_DEFAULT=../test/hugeclasspathoversize.conf' />
         
-        <!-- Huge Classpath Env Max Size Test -->
-        <delete file="${test.dir}/TestHugeClasspathEnvMaxSize.bat"/>
-        <copy file="${src.dir}/bin/App.bat.in"
-              tofile="${test.dir}/TestHugeClasspathEnvMaxSize.bat"
-              filtering="on"/>
-        <replace file="${test.dir}/TestHugeClasspathEnvMaxSize.bat"
-                 token='set _WRAPPER_BASE=wrapper'
-                 value='set _WRAPPER_BASE=..\bin\wrapper' />
-        <replace file="${test.dir}/TestHugeClasspathEnvMaxSize.bat"
-                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
-                 value='set _WRAPPER_CONF_DEFAULT=../test/hugeclasspathenvmaxsize.conf' />
-        
-        <!-- Huge Classpath Env Over Size Test -->
-        <delete file="${test.dir}/TestHugeClasspathEnvOverSize.bat"/>
-        <copy file="${src.dir}/bin/App.bat.in"
-              tofile="${test.dir}/TestHugeClasspathEnvOverSize.bat"
-              filtering="on"/>
-        <replace file="${test.dir}/TestHugeClasspathEnvOverSize.bat"
-                 token='set _WRAPPER_BASE=wrapper'
-                 value='set _WRAPPER_BASE=..\bin\wrapper' />
-        <replace file="${test.dir}/TestHugeClasspathEnvOverSize.bat"
-                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
-                 value='set _WRAPPER_CONF_DEFAULT=../test/hugeclasspathenvoversize.conf' />
-        
         <!-- Filter Test -->
         <delete file="${test.dir}/TestFilter.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
@@ -1857,6 +1935,41 @@ set ENV_VAR_4=d]]></replacevalue>
     </target>
     
     <!-- =================================================================== -->
+    <!-- Script Tests Setup target (Bat files - Windows)                     -->
+    <!-- =================================================================== -->
+    <target name="script-tests-setup-bat" depends="test-setup-common, check-script-tests-setup-bat" if="script-tests-setup-bat-ok">     
+        <!-- Huge Classpath Env Max Size Test -->
+        <delete file="${test.dir}/TestHugeClasspathEnvMaxSize.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestHugeClasspathEnvMaxSize.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestHugeClasspathEnvMaxSize.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestHugeClasspathEnvMaxSize.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/hugeclasspathenvmaxsize.conf' />
+        
+        <!-- Huge Classpath Env Over Size Test -->
+        <delete file="${test.dir}/TestHugeClasspathEnvOverSize.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestHugeClasspathEnvOverSize.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestHugeClasspathEnvOverSize.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestHugeClasspathEnvOverSize.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/hugeclasspathenvoversize.conf' />
+    </target>    
+    
+    <!-- =================================================================== -->
+    <!-- Test Setup target (Bat files - Windows)                             -->
+    <!-- =================================================================== -->
+    <target name="test-setup-bat" depends="general-tests-setup-bat, script-tests-setup-bat" if="is.shell.bat">
+    </target>
+
+    <!-- =================================================================== -->
     <!-- Test Setup target (sh scripts - Unix, Linux)                        -->
     <!-- =================================================================== -->
     <target name="test-setup-sh" depends="test-setup-common" if="is.shell.sh">
@@ -1870,9 +1983,9 @@ set ENV_VAR_4=d]]></replacevalue>
     </target>
     
     <!-- =================================================================== -->
-    <!-- Test Setup target (Unix)                                            -->
+    <!-- Test Setup target (Init - Unix)                                     -->
     <!-- =================================================================== -->
-    <target name="test-setup-unix" depends="test-setup-sh" if="is.Unix">
+    <target name="test-setup-unix-init" depends="test-setup-sh" if="is.Unix">
         <!-- Create the test specific script files -->
         <replace file="${test.dir}/temp.script.in"
                  token='WRAPPER_CMD="./wrapper"'
@@ -1898,7 +2011,12 @@ set ENV_VAR_4=d]]></replacevalue>
             <replacetoken><![CDATA[#PASS_THROUGH=]]></replacetoken>
             <replacevalue><![CDATA[PASS_THROUGH=]]></replacevalue>
         </replace>
-        
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- General Tests Setup target (Unix)                                   -->
+    <!-- =================================================================== -->
+    <target name="general-tests-setup-unix" depends="test-setup-unix-init" if="is.Unix">
         <!-- Background Threads Test -->
         <filter token="app.name"          value="backgroundthreads"/>
         <filter token="app.long.name"     value="Background Threads Case" />
@@ -2157,22 +2275,6 @@ export ENV_VAR_4=d]]></replacevalue>
               filtering="on"/>
         <chmod file="${test.dir}/hugeclasspathoversize" perm="+x"/>
         
-        <!-- Huge Classpath Env Max Size Test -->
-        <filter token="app.name"          value="hugeclasspathenvmaxsize"/>
-        <filter token="app.long.name"     value="Huge Classpath Env Max Size Case" />
-        <copy file="${test.dir}/temp.script.in"
-              tofile="${test.dir}/hugeclasspathenvmaxsize"
-              filtering="on"/>
-        <chmod file="${test.dir}/hugeclasspathenvmaxsize" perm="+x"/>
-        
-        <!-- Huge Classpath Env Over Size Test -->
-        <filter token="app.name"          value="hugeclasspathenvoversize"/>
-        <filter token="app.long.name"     value="Huge Classpath Env Over Size Case" />
-        <copy file="${test.dir}/temp.script.in"
-              tofile="${test.dir}/hugeclasspathenvoversize"
-              filtering="on"/>
-        <chmod file="${test.dir}/hugeclasspathenvoversize" perm="+x"/>
-        
         <!-- Filter Test -->
         <filter token="app.name"          value="filter"/>
         <filter token="app.long.name"     value="Filter Case" />
@@ -2366,17 +2468,43 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/defaultstripquotes-03-false"
               filtering="on"/>
         <chmod file="${test.dir}/defaultstripquotes-03-false" perm="+x"/>
-
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Script Tests Setup target (Unix)                                    -->
+    <!-- =================================================================== -->
+    <target name="script-tests-setup-unix" depends="test-setup-unix-init, check-script-tests-setup-unix" if="script-tests-setup-unix-ok">
+        <!-- Huge Classpath Env Max Size Test -->
+        <filter token="app.name"          value="hugeclasspathenvmaxsize"/>
+        <filter token="app.long.name"     value="Huge Classpath Env Max Size Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/hugeclasspathenvmaxsize"
+              filtering="on"/>
+        <chmod file="${test.dir}/hugeclasspathenvmaxsize" perm="+x"/>
+        
+        <!-- Huge Classpath Env Over Size Test -->
+        <filter token="app.name"          value="hugeclasspathenvoversize"/>
+        <filter token="app.long.name"     value="Huge Classpath Env Over Size Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/hugeclasspathenvoversize"
+              filtering="on"/>
+        <chmod file="${test.dir}/hugeclasspathenvoversize" perm="+x"/>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Test Setup target (Unix)                                            -->
+    <!-- =================================================================== -->
+    <target name="test-setup-unix" depends="general-tests-setup-unix, script-tests-setup-unix" if="is.Unix">
         <!-- Get rid of the temp script file -->
         <delete file="${test.dir}/temp.script.in"/>
         <delete file="${test.dir}/action.script.in"/>
     </target>
-    
+
     <!-- =================================================================== -->
     <!-- Test Setup target                                                   -->
     <!-- =================================================================== -->
     <target name="test-setup" 
-            depends="test-setup-bat, test-setup-unix">
+            depends="script-tests-setup-common-not-ok, test-setup-bat, test-setup-unix">
     </target>
 
     <!-- =================================================================== -->

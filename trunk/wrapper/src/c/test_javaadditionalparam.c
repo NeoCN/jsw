@@ -35,7 +35,7 @@ int tsJAP_init_properties(void) {
     setConsoleFlush(TRUE);
     setSyslogLevelInt(LEVEL_NONE);
 
-    properties = createProperties();
+    properties = createProperties(FALSE, LEVEL_NONE, FALSE);
     return properties ? 0 : 1;
 }
 

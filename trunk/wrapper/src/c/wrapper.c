@@ -738,9 +738,13 @@ void wrapperLoadLoggingProperties(int preload) {
  * This function provides a log file after proloading the properties.
  *  It will load all configurations related to the logging (loglevel, format, etc.).
  *  For standard editions, it helps us to resolve the language, if specified in the conf file.
+ *
+ * @param logLevelOnOverwriteProperties : use this parameter to keep the value of the last #properties.on_overwrite.loglevel found during the preload phase
+ * @param exitOnOverwriteProperties     : use this parameter to keep the value of the last #properties.on_overwrite.exit found during the preload phase
+ *
  * @return TRUE if something failed.
  */
-int wrapperPreLoadConfigurationProperties() {
+int wrapperPreLoadConfigurationProperties(int *logLevelOnOverwriteProperties, int *exitOnOverwriteProperties) {
     int returnVal;
 
     returnVal = TRUE;
@@ -759,6 +763,9 @@ int wrapperPreLoadConfigurationProperties() {
                 returnVal = TRUE;
             }
         }
+    
+    *logLevelOnOverwriteProperties = properties->logLevelOnOverwrite;
+    *exitOnOverwriteProperties = properties->exitOnOverwrite;
 
     if (properties) {
         disposeProperties(properties);
@@ -775,6 +782,8 @@ int wrapperPreLoadConfigurationProperties() {
  * Return TRUE if there were any problems.
  */
 int wrapperLoadConfigurationProperties(int preload) {
+    static int logLevelOnOverwriteProperties = LEVEL_NONE;
+    static int exitOnOverwriteProperties = FALSE;
     int i;
     int firstCall;
 #ifdef WIN32
@@ -893,14 +902,16 @@ int wrapperLoadConfigurationProperties(int preload) {
     }
 
     /* Create a Properties structure. */
-    properties = createProperties();
+    properties = createProperties(!preload && firstCall, logLevelOnOverwriteProperties, exitOnOverwriteProperties);
+    logLevelOnOverwriteProperties = LEVEL_NONE;
+    exitOnOverwriteProperties = FALSE;
     if (!properties) {
         return TRUE;
     }
     
     setLogPropertyWarnings(properties, !preload);
     
-    /* Is it really useful to call again wrapperAddDefaultProperties() here? The function was already called on preload.
+    /* Not sure we need to call again wrapperAddDefaultProperties() here. The function was already called on preload.
     Use properties->logLevelOnOverwrite to see the concerned properties */
     wrapperAddDefaultProperties();
 
@@ -944,6 +955,7 @@ int wrapperLoadConfigurationProperties(int preload) {
         /* If we are in preload mode, we want to enable log warning messages here so everything below this point has propper warnings. */
         setLogPropertyWarnings(properties, TRUE);
     } else if (properties->overwrittenPropertyCausedExit) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Found duplicated properties.  The wrapper will stop."));
         return TRUE; /* will cause the wrapper to exit with error code 1 */
     }
 
@@ -1026,7 +1038,7 @@ int wrapperLoadConfigurationProperties(int preload) {
         wrapperData->javaStatusFileUmask = getIntProperty(properties, TEXT("wrapper.java.statusfile.umask"), wrapperData->umask);
         wrapperData->anchorFileUmask = getIntProperty(properties, TEXT("wrapper.anchorfile.umask"), wrapperData->umask);
         setLogfileUmask(getIntProperty(properties, TEXT("wrapper.logfile.umask"), wrapperData->umask));
-        return wrapperPreLoadConfigurationProperties();
+        return wrapperPreLoadConfigurationProperties(&logLevelOnOverwriteProperties, &exitOnOverwriteProperties);
     }
 #ifndef WIN32
     /** If in the first call here and the wrapper will deamonize, then we don't need
@@ -6060,6 +6072,11 @@ static int loadParameterFileCallback(void *callbackParam, const TCHAR *fileName,
     int InDelim = FALSE;
     int InQuotes = FALSE;
     int Escaped = FALSE;
+
+    /* special case where the callback should do nothing */
+    if ((fileName == NULL) && (lineNumber == -1) && (config == NULL)) {
+        return TRUE;
+    }
 
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_NOTICE, TEXT("    : %s"), config);
