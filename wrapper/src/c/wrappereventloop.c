@@ -1953,6 +1953,7 @@ void wrapperEventLoop() {
     int uptimeSeconds;
     TICKS lastCycleTicks = wrapperGetTicks();
     int nextSleep;
+
     /* Initialize the tick timeouts. */
     wrapperData->anchorTimeoutTicks = lastCycleTicks;
     wrapperData->commandTimeoutTicks = lastCycleTicks;

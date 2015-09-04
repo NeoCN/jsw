@@ -1410,9 +1410,9 @@ int wrapperInitializeRun() {
     int res;
     TCHAR titleBuffer[80];
     int allocConsoleSucceed;
+    HANDLE process = GetCurrentProcess();
 
     /* Set the process priority. */
-    HANDLE process = GetCurrentProcess();
     if (!SetPriorityClass(process, wrapperData->ntServicePriorityClass)) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
             TEXT("Unable to set the process priority:  %s"), getLastErrorText());
@@ -6560,7 +6560,6 @@ void _tmain(int argc, TCHAR **argv) {
             appExit(1);
             return; /* For clarity. */
         }
-        
 
         /* Set the default umask of the Wrapper process. */
         _umask(wrapperData->umask);
