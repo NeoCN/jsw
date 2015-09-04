@@ -1477,7 +1477,6 @@ int wrapperExecute() {
                 }
             }
             
-            /* we are on the parent side, cpuAffinityConfig will not be used here. A copy will remain for the child. */
             return FALSE;
         }
     }
@@ -2008,14 +2007,6 @@ int main(int argc, char **argv) {
         return 1; /* For compiler. */
     }
 
-
-#if defined(LINUX) && defined(__GLIBC__) && defined(__GLIBC_MINOR__)
-    if (((__GLIBC__ == 2 && __GLIBC_MINOR__ < 21) || (__GLIBC__ < 2)) && 
-        (_tcscmp(getStringProperty(properties, TEXT("wrapper.logfile.maxsize"), TEXT("0")), TEXT("0")) != 0)) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("The wrapper detected that the current version of the GNU C Library\n(glibc) is %d.%d. This library has a known bug that causes memory leaks\nfor versions lower than 2.21. Please upgrade it to a more recent\nversion.\n"), __GLIBC__, __GLIBC_MINOR__);
-    }
-#endif
-        
     /* Set the default umask of the Wrapper process. */
     umask(wrapperData->umask);
     if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate"))) {
