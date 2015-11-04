@@ -3995,6 +3995,9 @@ void logChildOutput(const char* log) {
  #ifdef WIN32
     GetLocaleInfo(GetThreadLocale(), LOCALE_IDEFAULTANSICODEPAGE, buffer, sizeof(buffer));
     cp = _ttoi(buffer);
+    if ((_tcsstr(wrapperData->language, TEXT("ja")) == wrapperData->language) && !(wrapperCheckCodePageSupport(cp, LANG_JAPANESE))) {
+         cp = 932;
+    }
     size = MultiByteToWideChar(cp, 0, log, -1 , NULL, 0);
     if (size <= 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,

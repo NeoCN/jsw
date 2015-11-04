@@ -76,6 +76,7 @@ import org.tanukisoftware.wrapper.event.WrapperControlEvent;
 import org.tanukisoftware.wrapper.event.WrapperEvent;
 import org.tanukisoftware.wrapper.event.WrapperEventListener;
 import org.tanukisoftware.wrapper.event.WrapperLogFileChangedEvent;
+import org.tanukisoftware.wrapper.event.WrapperSecondInvocationEvent;
 import org.tanukisoftware.wrapper.event.WrapperPingEvent;
 import org.tanukisoftware.wrapper.event.WrapperServiceActionEvent;
 import org.tanukisoftware.wrapper.event.WrapperServiceControlEvent;
@@ -172,6 +173,7 @@ public final class WrapperManager
     private static final byte WRAPPER_MSG_RESUME         = (byte)139;
     private static final byte WRAPPER_MSG_GC             = (byte)140;
     private static final byte WRAPPER_MSG_FIRE_USER_EVENT= (byte)141;
+    private static final byte WRAPPER_MSG_SECOND_INVOCATION_EVENT = (byte)142;
     
     /** Received when the user presses CTRL-C in the console on Windows or UNIX platforms. */
     public static final int WRAPPER_CTRL_C_EVENT         = 200;
@@ -1343,7 +1345,7 @@ public final class WrapperManager
      * @param file File to look for.
      * @param path Path to be searched.
      *
-     * @return Reference to thr file object if found, otherwise null.
+     * @return Reference to the file object if found, otherwise null.
      */
     private static File locateFileOnPath( String file, String path )
     {
@@ -3852,6 +3854,11 @@ public final class WrapperManager
                 }
                 sb.append( WrapperEventPermission.EVENT_TYPE_CONTROL );
             }
+            if ( ( mask & WrapperEventListener.EVENT_FLAG_REMOTE_CONTROL ) != 0 )
+            {
+                first = false;
+                sb.append( WrapperEventPermission.EVENT_TYPE_REMOTE_CONTROL );
+            }
             if ( ( mask & WrapperEventListener.EVENT_FLAG_CORE ) != 0 )
             {
                 if ( first )
@@ -5077,8 +5084,14 @@ public final class WrapperManager
         } catch ( IOException e ) {
             m_outInfo.println( "write error " + e );
             e.printStackTrace();
+            
+            closeBackend();
+            return;
         } catch (Exception ex) {
            ex.printStackTrace();
+            
+            closeBackend();
+            return;
         }
         m_backendConnected = true;
     }
@@ -5098,6 +5111,9 @@ public final class WrapperManager
         
         if ( !m_backendConnected )
         {
+            m_outError.println( getRes().getString( "The backend could not be initialized.  Restart to resync with the Wrapper." ) );
+            restart();
+            // Will not get here.
             return;
         }
         
@@ -5340,6 +5356,10 @@ public final class WrapperManager
     
         case WRAPPER_MSG_FIRE_USER_EVENT:
             name ="FIRE_USER_EVENT";
+            break;
+    
+        case WRAPPER_MSG_SECOND_INVOCATION_EVENT:
+            name ="SECOND_INVOCATION_EVENT";
             break;
     
         default:
@@ -5715,6 +5735,11 @@ public final class WrapperManager
                             m_logFile = new File( msg );
                             WrapperLogFileChangedEvent event = new WrapperLogFileChangedEvent( m_logFile );
                             fireWrapperEvent( event );
+                            break;
+                        case WRAPPER_MSG_SECOND_INVOCATION_EVENT:
+                            WrapperSecondInvocationEvent secondInvocationEvent = new WrapperSecondInvocationEvent( );
+                            fireWrapperEvent( secondInvocationEvent );
+                            sendCommand(WRAPPER_MSG_SECOND_INVOCATION_EVENT, secondInvocationEvent.isConsumed() ? "consumed" : "not consumed");
                             break;
                             
                         default:

@@ -79,6 +79,7 @@ typedef long intptr_t;
   #include <errno.h>
  #else /* LINUX */
   #include <asm/errno.h>
+  #include <gnu/libc-version.h>
  #endif
 
 #endif
@@ -179,7 +180,8 @@ void sendLoginfoMessage( int source_id, int level, const TCHAR *szBuff );
 #ifdef WIN32
 int writeToConsole( HANDLE hdl, TCHAR *lpszFmt, ...);
 #endif
-void checkAndRollLogs(const TCHAR *nowDate);
+int doesFtellCauseMemoryLeak();
+void checkAndRollLogs(const TCHAR *nowDate, size_t printBufferSize);
 int lockLoggingMutex();
 int releaseLoggingMutex();
 
@@ -1289,6 +1291,78 @@ TCHAR* preparePrintBuffer(size_t reqSize) {
     return threadPrintBuffer;
 }
 
+/* Returns the number of columns and come up with a required length for the printBuffer. */
+int GetColumnsAndReqSizeForPrintBuffer(const TCHAR *format, const TCHAR *message, size_t *reqSize) {
+    int i;
+    int numColumns;
+
+    *reqSize = 0;
+    for( i = 0, numColumns = 0; i < (int)_tcslen( format ); i++ ) {
+        switch( format[i] ) {
+        case TEXT('P'):
+        case TEXT('p'):
+            *reqSize += 8 + 3;
+            numColumns++;
+            break;
+
+        case TEXT('L'):
+        case TEXT('l'):
+            *reqSize += 6 + 3;
+            numColumns++;
+            break;
+
+        case TEXT('D'):
+        case TEXT('d'):
+            *reqSize += 7 + 3;
+            numColumns++;
+            break;
+
+        case TEXT('Q'):
+        case TEXT('q'):
+            *reqSize += 1 + 3;
+            numColumns++;
+            break;
+
+        case TEXT('T'):
+        case TEXT('t'):
+            *reqSize += 19 + 3;
+            numColumns++;
+            break;
+
+        case TEXT('Z'):
+        case TEXT('z'):
+            *reqSize += 23 + 3;
+            numColumns++;
+            break;
+
+        case TEXT('U'):
+        case TEXT('u'):
+            *reqSize += 8 + 3;
+            numColumns++;
+            break;
+
+        case TEXT('R'):
+        case TEXT('r'):
+            *reqSize += 8 + 3;
+            numColumns++;
+            break;
+
+        case TEXT('G'):
+        case TEXT('g'):
+            *reqSize += 10 + 3;
+            numColumns++;
+            break;
+
+        case TEXT('M'):
+        case TEXT('m'):
+            *reqSize += _tcslen( message ) + 3;
+            numColumns++;
+            break;
+        }
+    }
+    return numColumns;
+}
+
 /* Writes to and then returns a buffer that is reused by the current thread.
  *  It should not be released. */
 TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, struct tm *nowTM, int nowMillis, time_t durationMillis, const TCHAR *format, const TCHAR *defaultFormat, const TCHAR *message) {
@@ -1300,72 +1374,8 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
     int       handledFormat;
     int       temp;
     int       len;
-
-    /* Decide the number of columns and come up with a required length for the printBuffer. */
-    reqSize = 0;
-    for( i = 0, numColumns = 0; i < (int)_tcslen( format ); i++ ) {
-        switch( format[i] ) {
-        case TEXT('P'):
-        case TEXT('p'):
-            reqSize += 8 + 3;
-            numColumns++;
-            break;
-
-        case TEXT('L'):
-        case TEXT('l'):
-            reqSize += 6 + 3;
-            numColumns++;
-            break;
-
-        case TEXT('D'):
-        case TEXT('d'):
-            reqSize += 7 + 3;
-            numColumns++;
-            break;
-
-        case TEXT('Q'):
-        case TEXT('q'):
-            reqSize += 1 + 3;
-            numColumns++;
-            break;
-
-        case TEXT('T'):
-        case TEXT('t'):
-            reqSize += 19 + 3;
-            numColumns++;
-            break;
-
-        case TEXT('Z'):
-        case TEXT('z'):
-            reqSize += 23 + 3;
-            numColumns++;
-            break;
-
-        case TEXT('U'):
-        case TEXT('u'):
-            reqSize += 8 + 3;
-            numColumns++;
-            break;
-
-        case TEXT('R'):
-        case TEXT('r'):
-            reqSize += 8 + 3;
-            numColumns++;
-            break;
-
-        case TEXT('G'):
-        case TEXT('g'):
-            reqSize += 10 + 3;
-            numColumns++;
-            break;
-
-        case TEXT('M'):
-        case TEXT('m'):
-            reqSize += _tcslen( message ) + 3;
-            numColumns++;
-            break;
-        }
-    }
+    
+    numColumns = GetColumnsAndReqSizeForPrintBuffer(format, message, &reqSize);
     
     if ((reqSize == 0) && (defaultFormat != NULL)) {
         /* This means that the specified format was completely invalid.
@@ -1647,6 +1657,9 @@ int log_printf_message_logFileInner(int source_id, int level, int threadId, int 
     const TCHAR *tempBufferLastErrorText;
     size_t tempBufferLen;
     TCHAR *tempBuffer;
+    size_t reqSize = 0;
+    char *messageMB;
+    size_t messageMBMaxLen = 0;
     
     /* If the log file was set to a blank value then it will not be used. */
     if (logFilePath && (_tcslen(logFilePath) > 0)) {
@@ -1657,8 +1670,29 @@ int log_printf_message_logFileInner(int source_id, int level, int threadId, int 
             nowDate[0] = TEXT('\0');
         }
 
+        /* If ftell() can't be used, we need the size of the logging message in order to calculate the size of the buffered data that is not flushed.  */
+        if (doesFtellCauseMemoryLeak()) {
+            /* We will not use ftell(), so we have to take into account the size of the buffered data that have not been flushed yet. */
+            GetColumnsAndReqSizeForPrintBuffer(logfileFormat, message, &reqSize);
+            /* The previous function will process the length of message in number of characters. We want it in bytes. */
+            messageMBMaxLen = _tcslen(message) * sizeof(TCHAR);
+            if (messageMBMaxLen > 0) {
+                messageMB = malloc(messageMBMaxLen);
+                if (!messageMB) {
+                    outOfMemoryQueued(TEXT("LPME"), 0);
+                } else {
+                    wcstombs(messageMB, message, messageMBMaxLen);
+                    
+                    reqSize -= _tcslen(message);
+                    reqSize += strlen(messageMB);
+                    /* Actually GetColumnsAndReqSizeForPrintBuffer() return 3 characters more than needed, but we need to add 2 more caracters for carriage return. */
+                    reqSize -= 1;
+                }
+                free(messageMB);
+            }
+        }
         /* Make sure that the log file does not need to be rolled. */
-        checkAndRollLogs(nowDate);
+        checkAndRollLogs(nowDate, reqSize);
 
         /* If the file needs to be opened then do so. */
         if (logfileFP == NULL) {
@@ -3215,17 +3249,135 @@ void rollLogs() {
     currentLogFileName[0] = TEXT('\0'); /* Log file was rolled, so we want to cause a logfile change event. */
 }
 
+#ifdef LINUX
+/**
+ * Get description found in a release file. 
+ *  This function will only check for the first line because there is only one line in these files.
+ *
+ * @return TRUE if the description could be found.
+ */
+int getReleaseDescription(TCHAR **description, const TCHAR *releaseFile) {
+    struct stat fileStat;
+    FILE *file = NULL;
+    int result = FALSE;
+    
+    /* check if the file exists */
+    if (_tstat(releaseFile, &fileStat) == 0) {
+        file = _tfopen(releaseFile, TEXT("r"));
+        if (file != NULL) {
+            *description = malloc(100 * sizeof(TCHAR));
+            if (*description == NULL) {
+                outOfMemoryQueued(TEXT("GRD"), 1);
+            } else if (_fgetts(*description, 100, file) != NULL) {
+                /* got the release description inside the file */
+                result = TRUE;
+            } else {
+                /* _fgetts failed but *description remains unchanged. Free it up. */
+                free(*description);
+                *description = NULL;
+            }
+            fclose(file);
+        }
+    }
+    return result;
+}
+
+static TCHAR distroDescription[100];
+
+/**
+ * Get a description of the linux distribution. 
+ */
+const TCHAR *getDistro() {
+    static int firstCall = TRUE;
+    TCHAR *sysDescription = NULL;
+    TCHAR *rhelDescription = NULL;
+    int foundSysDescription;
+    int foundRhelDescription;
+    const TCHAR *centosPattern = TEXT("CentOS Linux");
+    const TCHAR *amiPattern = TEXT("Amazon Linux AMI");
+    const TCHAR *linuxPattern = TEXT("Linux");
+    
+    if (firstCall) {
+        firstCall = FALSE;
+
+        foundSysDescription = getReleaseDescription(&sysDescription, TEXT("/etc/system-release"));
+        foundRhelDescription = getReleaseDescription(&rhelDescription, TEXT("/etc/redhat-release"));
+        
+        if ((foundRhelDescription && _tcsstr(rhelDescription, centosPattern) != NULL) || 
+            (foundSysDescription  && _tcsstr(sysDescription,  centosPattern) != NULL)) {
+            _tcsncpy(distroDescription, centosPattern, 100);
+        } else if (foundSysDescription && _tcsstr(sysDescription, amiPattern) != NULL) {
+            _tcsncpy(distroDescription, amiPattern, 100);
+        } else {
+            _tcsncpy(distroDescription, linuxPattern, 100);
+        }
+        if (sysDescription) {
+            free(sysDescription);    
+        }
+        if (rhelDescription) {
+            free(rhelDescription);
+        }
+    }
+    
+    return distroDescription;
+}
+
+int isCentos() {
+    static int result = -1;
+    return result != -1 ? result : (_tcsicmp(getDistro(), TEXT("CentOS Linux")) == 0);
+}
+
+int isAMI() {
+    static int result = -1;
+    return result != -1 ? result : (_tcsicmp(getDistro(), TEXT("Amazon Linux AMI")) == 0);
+}
+
+/**
+ * Check if the glibc version of the user is upper to given numbers. 
+ */
+int wrapperAssertGlibcUserBis(unsigned int maj, unsigned int min, unsigned int rev) {
+    unsigned int vmaj=0;
+    unsigned int vmin=0;
+    unsigned int vrev=0;
+
+    TCHAR versionW[10];
+    
+    mbstowcs(versionW, gnu_get_libc_version(), 10);
+    _stscanf(versionW, TEXT("%d.%d.%d"), &vmaj, &vmin, &vrev);
+    return ((vmaj == maj && vmin == min &&  vrev >= rev) || (vmaj == maj && vmin > min) || vmaj > maj);
+}
+#endif
+
+/**
+ * Check if the system is Centos with glibc < 2.21 as there is a memory leak issue under these conditions.
+ */
+int doesFtellCauseMemoryLeak() {
+    static int result = -1;
+#ifdef LINUX
+    if (result == -1) {
+        if ((isCentos() || isAMI()) && !wrapperAssertGlibcUserBis(2, 21, 0)){
+            result = 1;
+        } else {
+            result = 0;
+        }
+    }
+#endif
+    return (result > 0);
+}
+
 /**
  * Check to see whether or not the log file needs to be rolled.
  *  This is only called when synchronized.
  */
-void checkAndRollLogs(const TCHAR *nowDate) {
-    long position;
+void checkAndRollLogs(const TCHAR *nowDate, size_t printBufferSize) {
+    size_t position;
 #if defined(WIN32) && !defined(WIN64)
     struct _stat64i32 fileStat;
 #else
     struct stat fileStat;
 #endif
+    static size_t unflushedBufferSize = -2; /* initial value to -2: no carriage return for the last message beeing logged. */
+    static size_t previousFileSize = 0;
 
     /* Depending on the roll mode, decide how to roll the log file. */
     if (logFileRollMode & ROLL_MODE_SIZE) {
@@ -3236,14 +3388,14 @@ void checkAndRollLogs(const TCHAR *nowDate) {
 
         /* Find out the current size of the file.  If the file is currently open then we need to
          *  use ftell to make sure that the buffered data is also included. */
-        if (logfileFP != NULL) {
+        if (logfileFP != NULL && !doesFtellCauseMemoryLeak()) {
             /* File is open */
             if ((position = ftell(logfileFP)) < 0) {
                 _tprintf(TEXT("Unable to get the current logfile size with ftell: %s\n"), getLastErrorText());
                 return;
             }
         } else {
-            /* File is not open */
+            /* File is not open or we can't use ftell because of memory leak issue */
             if (_tstat(logFilePath, &fileStat) != 0) {
                 if (getLastError() == 2) {
                     /* File does not yet exist. */
@@ -3257,6 +3409,20 @@ void checkAndRollLogs(const TCHAR *nowDate) {
                 }
             } else {
                 position = fileStat.st_size;
+                if (doesFtellCauseMemoryLeak()) {
+                    if (previousFileSize != position) {
+                        /* the file has been flushed */
+                        previousFileSize = position;
+                        if (position == 0) {
+                            /* initial value to -2: no carriage return for the last message beeing logged. */
+                            unflushedBufferSize = -2;
+                        } else {
+                            unflushedBufferSize = 0;
+                        }
+                    }
+                    unflushedBufferSize += printBufferSize;
+                    position += unflushedBufferSize;
+                }
             }
         }
 

@@ -275,7 +275,7 @@ extern int getIntProperty(Properties *properties, const TCHAR *propertyName, int
 
 extern int getBooleanProperty(Properties *properties, const TCHAR *propertyName, int defaultValue);
 
-extern int getBooleanProperties(Properties *properties, const TCHAR *propertyNameHead, const TCHAR *propertyNameTail, int all, int matchAny, TCHAR ***propertyNames, int **propertyValues, long unsigned int **propertyIndices);
+extern int getBooleanProperties(Properties *properties, const TCHAR *propertyNameHead, const TCHAR *propertyNameTail, int all, int matchAny, TCHAR ***propertyNames, int **propertyValues, long unsigned int **propertyIndices, int defaultValue);
 
 extern void freeBooleanProperties(TCHAR **propertyNames, int *propertyValues, long unsigned int *propertyIndices);
 

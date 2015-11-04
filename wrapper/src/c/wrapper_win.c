@@ -33,6 +33,9 @@
  */
 
 #ifdef WIN32
+#include <shlwapi.h>
+#include <shobjidl.h>
+#include <shlobj.h>
 #include <direct.h>
 #include <io.h>
 #include <math.h>
@@ -316,6 +319,7 @@ int initInvocationMutex() {
         mutexName = malloc(sizeof(TCHAR) * (30 + _tcslen(wrapperData->serviceName) + 1));
         if (!mutexName) {
             outOfMemory(TEXT("IIM"), 1);
+            wrapperData->exitCode = 1;
             return 1;
         }
         _sntprintf(mutexName, 30 + _tcslen(wrapperData->serviceName) + 1, TEXT("Global\\Java Service Wrapper - %s"), wrapperData->serviceName);
@@ -328,11 +332,13 @@ int initInvocationMutex() {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                     TEXT("ERROR: Another instance of the %s application is already running."),
                     wrapperData->serviceName);
+                wrapperData->exitCode = 1;
                 return 1;
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                     TEXT("ERROR: Unable to create the single invocation mutex. %s"),
                     getLastErrorText());
+                wrapperData->exitCode = 1;
                 return 1;
             }
         } else {
@@ -343,10 +349,12 @@ int initInvocationMutex() {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 TEXT("ERROR: Another instance of the %s application is already running."),
                 wrapperData->serviceName);
+            wrapperData->exitCode = 1;
             return 1;
         }
     }
 
+    wrapperData->exitCode = 0;
     return 0;
 }
 
@@ -661,173 +669,200 @@ int wrapperBuildJavaCommand() {
 }
 
 /**
- * Function that returns the position of the top-bottom corner of the user's screen.
- *
- * @return 8-byte hexadecimal value. The first four bytes (high word) represent the position of the window on the X (horizontal) axis. The last four bytes (low word) represent the position of the window on the Y (vertical) axis. If the function fails, 0 will be returned.
- */
-DWORD wrapperGetRightBottomCornerPosition() {
-    RECT workarea;
-	TCHAR hex[9];
-	DWORD result;
-
-	if(!SystemParametersInfo(SPI_GETWORKAREA, 0, &workarea, 0)) {
-        return 0;
-    }
-
-	_sntprintf(hex, 9, TEXT("%04x%04x"), workarea.bottom, workarea.right);
-	result = (DWORD)_tcstol((const TCHAR*)hex, NULL, 16);
-
-    return result;
-}
-
-/**
- * Function that allocates an hidden console by editing the registry (fix for the console flicker bug).
- *  The function will edit the registry in order to minimize the size of the console and to position it in the right-bottom hand corner of the screen.
- *  The registry key will be removed just after the console is allocated. As a precaution, it is also set volatile and will not persist on system restart. 
+ * Allocates an hidden console. (fix for the console flicker bug).
+ *  The size of the console will be minimized and its position will be set outside of the screen.
  *  
  * @return TRUE if the console was allocated, FALSE if it could not be allocated.
  */
 int wrapperAllocHiddenConsole() {
+    static RECT defaultWorkarea = { 0, 0, 7680, 4320};
     int result;
-	LONG nError;
+    int propertiesInShortcut = FALSE;
     DWORD errorAlloc = ERROR_SUCCESS;
-	HKEY hRootKey = HKEY_CURRENT_USER;
-	HKEY hKey;
-    TCHAR* strConsoleSubKey;
-	TCHAR* strConsoleSubKeyBase = TEXT("Console\\");
-	TCHAR* strValueSize = TEXT("WindowSize");
-	TCHAR* strValuePosi = TEXT("WindowPosition");
-	DWORD size = 0x00010001; /* set the size the smallest as one can */
-	DWORD posi;
-	size_t nSubKeyLen = 0;
-	int i = 0;
-	const int nMaxRestoreAttempts = 10;
-	int nAttempts = 1;
-    int isService;
-    
-    if (isWin10OrHigher()) {
-        size = 0x00000001; /* windows 10 allow height of 0px */
+    RECT workarea;
+    DWORD size, posi;
+    TCHAR hexPosi[9];
+    LONG nError;
+    HKEY hRootKey = HKEY_CURRENT_USER;
+    HKEY hKey;
+    const TCHAR* consoleSubKeyBase = TEXT("Console\\");
+    const TCHAR* valueSize = TEXT("WindowSize");
+    const TCHAR* valuePosi = TEXT("WindowPosition");
+    TCHAR* consoleSubKey;
+    size_t nSubKeyLen = 0;
+    int i = 0;
+    const int nMaxRestoreAttempts = 10;
+    int nAttempts = 1;
+    IShellLink* psl;
+    IPersistFile* ppf;
+    IShellLinkDataList* psldl;
+    NT_CONSOLE_PROPS* pncp;
+    STARTUPINFO startupInfo;
+    TCHAR *startupTitle;
+    TCHAR *shortcutName;
+    HRESULT hres;
+
+    /* First get the coordinates of the right-bottom corner of the screen. We will then set the console origin to this position. 
+     *  There are cases where the console reappears on the screen if its position is set entierely outside the work area, 
+     *  so it is best to have at least one corner of the console touching the boundaries of the screen. 
+     *  We choose the right-bottom corner because there is no need to subtract the console dimensions (which are actually unknown). */
+    if(!SystemParametersInfo(SPI_GETWORKAREA, 0, &workarea, 0)) {
+        /* If the function fails, lets assume a very big workarea (8K) to make sure the console position will be set out of the screen. */
+        workarea = defaultWorkarea; 
     }
-
-    isService = ( (wrapperData->argc > 1) && (strcmpIgnoreCase(wrapperData->argv[1], TEXT("-s")) == 0) );
- 
-    /* STEP 1: lets try to position the console at right-bottom hand corner of the screen. For other corners, it would be necessary to either subtract the console's height or the console's width which can't be known exactly.
-    TODO: check this is correct in multi-screens. */
-    posi = wrapperGetRightBottomCornerPosition();
-
-    if (posi == 0) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Failed to get the position of the right-bottom corner of the screen. Error: %s"), getLastErrorText());
-        return AllocConsole(); /* Allocates the console normally */
-    }
     
-    
-    /* STEP 2: edit the registry */
-	nSubKeyLen = _tcslen(strConsoleSubKeyBase);
+    /* Edit the console properties before allocation. Those properties can either be stored in the registry or in the shortcut that launched the application. */
+    GetStartupInfo(&startupInfo);
+    startupTitle = startupInfo.lpTitle;
+    if(_tcslen(startupTitle) > 4 && !_tcscmp(startupTitle + _tcslen(startupTitle) - 4, TEXT(".lnk"))) {
+        /* The wrapper was launched from a shortcut. If the shorctut contains console properties, they have priority to those defined in the registry. */
+        hres = CoInitialize(NULL);
+        if (!hres) {
+            /* Create a IShellLink instance */
+            hres = CoCreateInstance(&CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, &IID_IShellLink, (void**)&psl);
+            if (!hres) {
+                /* Get a IPersistFile instance in order to load and save our shorctut */
+                hres = psl->lpVtbl->QueryInterface(psl, &IID_IPersistFile, (void**)&ppf);
+                if (!hres) {
+                    /* Load the shorctut from the path stored in startupTitle */
+                    hres = ppf->lpVtbl->Load(ppf, startupTitle, STGM_READ);
+                    if (!hres) {
+                        /* Get the IShellLinkDataList associated to our shell link */
+                        hres = psl->lpVtbl->QueryInterface(psl, &IID_IShellLinkDataList, (void**)&psldl);
+                        if (!hres) {
+                            /* Get a copy of the data block that holds console properties */
+                            hres = psldl->lpVtbl->CopyDataBlock(psldl, NT_CONSOLE_PROPS_SIG, (void**)&pncp);
+                            if (!hres) {
+                                /* Console properties found in the shell link */
+                                propertiesInShortcut = TRUE;
+                                
+                                /* Set new styles to the console */
+                                pncp->dwWindowSize.X = 1;
+                                pncp->dwWindowSize.Y = (isWin10OrHigher() ? 1 : 0); /* windows 10 allows height of 0px */
+                                pncp->dwWindowOrigin.X = (SHORT)workarea.right;
+                                pncp->dwWindowOrigin.Y = (SHORT)workarea.bottom;
+                                pncp->bAutoPosition = FALSE;
 
-	for (i = 0; i < (isService ? 1 : wrapperData->argc); i++) {
-		nSubKeyLen += _tcslen(wrapperData->argv[i]) + 1; /* For each item : size of the item + 1 space (or + '\0' for the last item). */
-	}
-    if (!isService && wrapperData->argc > 1 && isVista()) {
-        nSubKeyLen++; /* In the registry key name, for recent windows systems, there must be 2 spaces between application name and the first argument. */
-    }
-
-	strConsoleSubKey = (TCHAR*)malloc(sizeof(TCHAR) * nSubKeyLen);
-	if (strConsoleSubKey == NULL) {
-        outOfMemory(TEXT("WHCBA"), 1);
-		return TRUE;
-	}
-	_tcsncpy(strConsoleSubKey, strConsoleSubKeyBase, nSubKeyLen);
-
-	_tcsncat(strConsoleSubKey, wrapperData->argv[0], nSubKeyLen - _tcslen(strConsoleSubKey));
-
-    /* if the console is run in a windows service context, the key should only contain the name of the process. */
-    if (!isService) {
-        if (wrapperData->argc > 1) {
-            if (isVista()) {
-                _tcsncat(strConsoleSubKey, TEXT("  "), nSubKeyLen - _tcslen(strConsoleSubKey));
-            } else {
-                _tcsncat(strConsoleSubKey, TEXT(" "), nSubKeyLen - _tcslen(strConsoleSubKey));
+                                /* Now we have to remove the old data block, replace it by the modified one, and save. */
+                                hres = psldl->lpVtbl->RemoveDataBlock(psldl, NT_CONSOLE_PROPS_SIG);
+                                if (!hres) {
+                                    hres = psldl->lpVtbl->AddDataBlock(psldl, pncp);
+                                    if (!hres) {
+                                        /* If saved properly, the modified styles will apply next time the console will be allocated. */
+                                        hres = ppf->lpVtbl->Save(ppf, NULL, TRUE);
+                                    }
+                                }
+                            }
+                            psldl->lpVtbl->Release(psldl);
+                        }
+                    }
+                    ppf->lpVtbl->Release(ppf);
+                }
+                psl->lpVtbl->Release(psl);
             }
-            
-            for (i = 1; i < wrapperData->argc - 1; i++) {
-                _tcsncat(strConsoleSubKey, wrapperData->argv[i], nSubKeyLen - _tcslen(strConsoleSubKey));
-                _tcsncat(strConsoleSubKey, TEXT(" "), nSubKeyLen - _tcslen(strConsoleSubKey));
-            }
-            _tcsncat(strConsoleSubKey, wrapperData->argv[wrapperData->argc - 1], nSubKeyLen - _tcslen(strConsoleSubKey));
+            CoUninitialize();
+        }
+        if (hres) {
+            /* If any error occured let's try to set console properties in the registry. They will actually apply only if those properties are not embedded in the shell link. */
+            propertiesInShortcut = FALSE;
+            /* The title of the console is made by the name of the shortcut without extension */
+            shortcutName = PathFindFileName(startupTitle);
+            PathRemoveExtension(shortcutName);
+            _tcscpy(startupTitle, shortcutName);
         }
     }
-
-    /* In the registry key name, '\\' are replaced by '_' to avoid confusion with sub key. We start replacing after strConsoleSubKeyBase */
-    for (i = (int)_tcslen(strConsoleSubKeyBase); i < (int)nSubKeyLen; i++) {
-        if (strConsoleSubKey[i] == TEXT('\\')) {
-            strConsoleSubKey[i] = TEXT('_');
-        }
-    }
-
-    /* If the key or its values already exists, they will simply be overwritten without returning an error. (should not happen though) */
-	nError = RegCreateKeyEx(hRootKey, strConsoleSubKey, 0, NULL, REG_OPTION_VOLATILE, KEY_WRITE, NULL, &hKey, NULL);
     
-    if (nError != ERROR_SUCCESS) {
-        RegCloseKey( hKey );
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-            TEXT("Failed to create key 'HKEY_CURRENT_USER\\%s' in registry. Error: %ld"), strConsoleSubKey, nError);
-    } else {
-        nError = RegSetValueEx(hKey, strValueSize, 0, REG_DWORD, (LPBYTE)&size, sizeof(DWORD));
+    if (!propertiesInShortcut) {
+        /* In the registry we can store console properties by adding keys with names matching the console title. */
+        
+        /* First build the key name */
+        nSubKeyLen = _tcslen(consoleSubKeyBase) + _tcslen(startupTitle) + 1;
+    
+        consoleSubKey = (TCHAR*)malloc(sizeof(TCHAR) * nSubKeyLen);
+        if (consoleSubKey == NULL) {
+            outOfMemory(TEXT("WHCBA"), 1);
+            return TRUE;
+        }
+        
+        _tcsncpy(consoleSubKey, consoleSubKeyBase, nSubKeyLen);
+        _tcsncat(consoleSubKey, startupTitle, nSubKeyLen - _tcslen(consoleSubKey));
+
+        /* The characters '\\' are reserved for sub key delimiters and thus should replaced by '_' in the key name (starting after consoleSubKeyBase). */
+        for (i = (int)_tcslen(consoleSubKeyBase); i < (int)nSubKeyLen; i++) {
+            if (consoleSubKey[i] == TEXT('\\')) {
+                consoleSubKey[i] = TEXT('_');
+            }
+        }
+
+        /* Now create the registry key with its size and position properties
+         *  (as a precaution, the key is set volatile and will not persist on system restart) */
+        nError = RegCreateKeyEx(hRootKey, consoleSubKey, 0, NULL, REG_OPTION_VOLATILE, KEY_WRITE, NULL, &hKey, NULL);
         
         if (nError != ERROR_SUCCESS) {
             RegCloseKey( hKey );
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                TEXT("Failed to set the value %s for the key 'HKEY_CURRENT_USER\\%s' in registry. Error: %ld"), strValueSize, strConsoleSubKey, nError);
+                TEXT("Failed to create key 'HKEY_CURRENT_USER\\%s' in registry. Error: %ld"), consoleSubKey, nError);
         } else {
-            nError = RegSetValueEx(hKey, strValuePosi, 0, REG_DWORD, (LPBYTE)&posi, sizeof(DWORD));
-            RegCloseKey( hKey );
-        
+            size = isWin10OrHigher() ? 0x00000001 : 0x00010001; /* windows 10 allows height of 0px */
+            nError = RegSetValueEx(hKey, valueSize, 0, REG_DWORD, (LPBYTE)&size, sizeof(DWORD));
+            
             if (nError != ERROR_SUCCESS) {
+                RegCloseKey( hKey );
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                    TEXT("Failed to set the value %s for the key 'HKEY_CURRENT_USER\\%s' in registry. Error: %ld"), strValuePosi, strConsoleSubKey, nError);
+                    TEXT("Failed to set the value %s for the key 'HKEY_CURRENT_USER\\%s' in registry. Error: %ld"), valueSize, consoleSubKey, nError);
+            } else {
+                _sntprintf(hexPosi, 9, TEXT("%04x%04x"), workarea.bottom, workarea.right);
+                /* The first four bytes represent the position of the window on the X axis. The last four bytes represent the position of the window on the Y axis.*/
+                posi = (DWORD)_tcstol((const TCHAR*)hexPosi, NULL, 16);
+                nError = RegSetValueEx(hKey, valuePosi, 0, REG_DWORD, (LPBYTE)&posi, sizeof(DWORD));
+                RegCloseKey( hKey );
+            
+                if (nError != ERROR_SUCCESS) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                        TEXT("Failed to set the value %s for the key 'HKEY_CURRENT_USER\\%s' in registry. Error: %ld"), valuePosi, consoleSubKey, nError);
+                }
             }
         }
+        /* Rem: If the key could not be set properly, a brief flicker may be visible when the console is shown and then hidden. */
     }
-    /* Rem: If the key could not be set properly, a brief flicker may be visible when the console is shown and then hidden. */
- 
- 
-    /* STEP 3: Allocates a new console for the calling process.*/    
+    
+    /* Allocates a new console for the calling process.*/    
     result = AllocConsole();
     if (!result) {
         errorAlloc = GetLastError();
     }
-    
-    
-    /* STEP 4: Restore the registry.*/    
-    /* no matter if the registry key was created properly or not, and no matter if the console was allocated or not, 
-    lets clean up the registry so that any further calls to AllocConsole() does not edit undesirably the console location & size */ 
-    while (TRUE) {
-        /* RegDeleteKeyEx() is for deleting platform specific key, which is not our case.*/
-        nError = RegDeleteKey(hRootKey, strConsoleSubKey);
-        if (nError != ERROR_SUCCESS) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                TEXT("Attempt #%d to delete key 'HKEY_CURRENT_USER\\%s' in registry failed. Error: %ld"), nAttempts, strConsoleSubKey, nError);
-            if (++nAttempts < nMaxRestoreAttempts) {
-                wrapperSleep(200);
-                continue;
+            
+    if (!propertiesInShortcut) {
+        /* Restore the registry. 
+         *  No matter if the previous actions succeeded or not, lets clean up the keys so that the modified properties do not apply on future console allocations.
+         *  This is required as the console may later be set visible. */
+        while (TRUE) {
+            /* RegDeleteKeyEx() is for deleting platform specific key, which is not our case.*/
+            nError = RegDeleteKey(hRootKey, consoleSubKey);
+            if (nError != ERROR_SUCCESS) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                    TEXT("Attempt #%d to delete key 'HKEY_CURRENT_USER\\%s' in registry failed. Error: %ld"), nAttempts, consoleSubKey, nError);
+                if (++nAttempts < nMaxRestoreAttempts) {
+                    wrapperSleep(200);
+                    continue;
+                }
             }
+            break;    
+        } 
+        /* Rem: If the key could not be restored properly, an exception could (unlikely!) happen: 
+         *  Next time AllocConsole() is called with the exact same application parameters, 
+         *  if the registry key remains and if wrapperData->ntHideWrapperConsole is set to FALSE, then the console will appear out of the screen. 
+         *   => As a precaution we could try again to remove the registry key at that time (not implemented yet). */
+
+        if (nAttempts == nMaxRestoreAttempts) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                TEXT("Unable to delete key 'HKEY_CURRENT_USER\\%s' in registry."), consoleSubKey);
         }
-        break;    
-    } 
-    /*Rem: If the key could not be restored properly, an exception could (unlikely!) happen: 
-    Next time AllocConsole() is called with the exact same application parameters, 
-    if the registry key remains and if wrapperData->ntHideWrapperConsole is set to FALSE, then the console will appear out of the screen. 
-        => As a precaution we could try again to remove the registry key at that time (not implemented yet). */
 
-    if (nAttempts == nMaxRestoreAttempts) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-            TEXT("Unable to delete key 'HKEY_CURRENT_USER\\%s' in registry."), strConsoleSubKey);
+        free(consoleSubKey);
     }
-
-    free(strConsoleSubKey);
     
-    
-    /* STEP 5 : Set the errorAlloc as the last error and return whether if failed or not.*/    
+    /* Finally, lets set the errorAlloc as the last error and return whether if failed or not.*/    
     if (!result) {
         SetLastError(errorAlloc);
     }
@@ -2577,7 +2612,6 @@ void disposeProfileCounters() {
     }
 }
 
-
 /******************************************************************************
  * NT Service Methods
  *****************************************************************************/
@@ -3058,7 +3092,7 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
         
         /* Initialize the invocation mutex as necessary, exit if it already exists. */
         if (initInvocationMutex()) {
-            appExit(1);
+            appExit(wrapperData->exitCode);
             return; /* For clarity. */
         }
 
@@ -5315,6 +5349,7 @@ int wrapperRequestThreadDump() {
  * 4: Startup Mode: Manual. (16)
  * 5: Startup Mode: Disabled. (32)
  * 6: Service Running but Paused. (64)
+ * 15: Error. (32768)
  */
 int wrapperServiceStatus(int consoleOutput) {
     SC_HANDLE   schService;
@@ -5324,6 +5359,12 @@ int wrapperServiceStatus(int consoleOutput) {
     DWORD reqSize;
 
     int result = 0;
+
+#ifdef WRAPPERW
+    /* always show the result in the dialogbox except if silent */
+    wrapperData->forceDialogLog = consoleOutput;
+    setDialogLogEnabled(consoleOutput);
+#endif
 
     schSCManager = OpenSCManager(NULL,
                                  NULL,
@@ -5347,7 +5388,8 @@ int wrapperServiceStatus(int consoleOutput) {
             if (!pQueryServiceConfig) {
                 outOfMemory(TEXT("WSS"), 1);
                 CloseServiceHandle(schSCManager);
-                return 0;
+                result |= 32768;
+                return result;
             }
             if (QueryServiceConfig(schService, pQueryServiceConfig, reqSize, &reqSize)) {
                 switch (pQueryServiceConfig->dwStartType) {
@@ -5397,6 +5439,7 @@ int wrapperServiceStatus(int consoleOutput) {
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to query the configuration of the %s service - %s"),
                     wrapperData->serviceDisplayName, getLastErrorText());
+                result |= 32768;
             }
 
             /* Find out what the current status of the service is so we can decide what to do. */
@@ -5424,6 +5467,7 @@ int wrapperServiceStatus(int consoleOutput) {
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to query the status of the %s service - %s"),
                     wrapperData->serviceDisplayName, getLastErrorText());
+                result |= 32768;
             }
 
             /* Close this service object's handle to the service control manager */
@@ -5435,6 +5479,7 @@ int wrapperServiceStatus(int consoleOutput) {
                 if (isVista() && !isElevated()) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Performing this action requires that you run as an elevated process."));
                 }
+                result |= 32768;
             } else {
                 if (consoleOutput) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
@@ -5448,6 +5493,7 @@ int wrapperServiceStatus(int consoleOutput) {
     } else {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to query the status of the %s service - %s"),
             wrapperData->serviceDisplayName, getLastErrorText());
+        result |= 32768;
     }
 
     return result;
@@ -6455,7 +6501,7 @@ void _tmain(int argc, TCHAR **argv) {
         appExit(1);
         return; /* For clarity. */
     }
-    SetThreadLocale(GetUserDefaultLCID());
+
     /* Main thread initialized in wrapperInitialize. */
 
     /* Enclose the rest of the program in a try catch block so we can
@@ -6785,7 +6831,7 @@ void _tmain(int argc, TCHAR **argv) {
 
             /* Initialize the invocation mutex as necessary, exit if it already exists. */
             if (initInvocationMutex()) {
-                appExit(1);
+                appExit(wrapperData->exitCode);
                 return; /* For clarity. */
             }
 

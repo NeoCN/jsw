@@ -1854,7 +1854,22 @@ int setWorkingDir(TCHAR *app) {
     free(szPath);
     return 0;
 }
+#ifdef LINUX
+/**
+ * Check if the glibc version of the user is upper to given numbers. 
+ */
+int wrapperAssertGlibcUser(unsigned int maj, unsigned int min, unsigned int rev) {
+    unsigned int vmaj=0;
+    unsigned int vmin=0;
+    unsigned int vrev=0;
 
+    TCHAR versionW[10];
+    
+    mbstowcs(versionW, gnu_get_libc_version(), 10);
+    _stscanf(versionW, TEXT("%d.%d.%d"), &vmaj, &vmin, &vrev);
+    return ((vmaj == maj && vmin == min &&  vrev >= rev) || (vmaj == maj && vmin > min) || vmaj > maj);
+}
+#endif
 
 /*******************************************************************************
  * Main function                                                               *

@@ -85,11 +85,13 @@ public class WrapperEventPermission
     public static String EVENT_TYPE_SERVICE = "service";
     public static String EVENT_TYPE_CONTROL = "control";
     public static String EVENT_TYPE_CORE = "core";
+    public static String EVENT_TYPE_REMOTE_CONTROL = "remote control";
     
     private static int MASK_SERVICE = 1;
     private static int MASK_CONTROL = 2;
+    private static int MASK_REMOTE_CONTROL = 8;
     private static int MASK_CORE = 65536;
-    private static int MASK_ALL = MASK_SERVICE | MASK_CONTROL | MASK_CORE;
+    private static int MASK_ALL = MASK_SERVICE | MASK_CONTROL | MASK_REMOTE_CONTROL | MASK_CORE;
     
     private int m_eventTypeMask;
     
