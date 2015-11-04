@@ -21,10 +21,11 @@
     </condition>
  
     <!-- Java vendor -->
-    <condition property="is.JavaSunOracle">
+    <condition property="is.JavaSunOracleApple">
         <or>
             <equals arg1="${java.vendor}" arg2="Sun Microsystems Inc."/>
             <equals arg1="${java.vendor}" arg2="Oracle Corporation"/>
+            <equals arg1="${java.vendor}" arg2="Apple Inc."/>
         </or>
     </condition>
  
@@ -32,7 +33,7 @@
     <condition property="java-includes-jsEngine">
         <and>
             <isfalse value="${is.java 1.5 or lower}"/>
-            <istrue  value="${is.JavaSunOracle}"/>
+            <istrue  value="${is.JavaSunOracleApple}"/>
         </and>
     </condition>
  

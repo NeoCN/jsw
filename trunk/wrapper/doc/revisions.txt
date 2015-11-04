@@ -1,6 +1,62 @@
 Java Service Wrapper Revision History.
 --------------------------------------
-
+3.5.28
+* Fix a memory leak on CentOS and Amazon Linux AMI. It happened when activating
+  log rolling in size mode. This memory leak comes from an issue in the GNU C 
+  Library (glibc) which was fixed on version 2.21. However, a workaround was 
+  added so that the Wrapper can run without problem on any version of glibc.
+* Fix a problem on z/OS platforms caused by the ps command truncating to 78 
+  characters the command names in the processes list. If the full path to the 
+  Wrapper was longer than this limit, the Wrapper script�$could not assert the 
+  process was indeed the wrapper. It thus reported a stale PID file when 
+  starting the application as a daemon process and later failed to stop it 
+  because it could not find that PID file.
+* Fix the console flicker bug that was still happening when launching the 
+  Wrapper from a Windows shortcut.
+* Add the possibility to configure cpu affinity for AIX, FreeBSD, HP-UX and 
+  Solaris. For HP-UX and Solaris it is only possible to bind one CPU per 
+  process.
+* Fix a problem where boolean configuration properties were not assigned their
+  default values if a wrong value was set. The Wrapper always resolved unknown
+  value to FALSE even though the default value should be TRUE.
+* Add a new event 'WrapperSecondInvocationEvent' that can be consumed in the 
+  Java Application on Windows. The event will be fired whenever a second 
+  instance of the Wrapper tries to start whereas single invocation mode has 
+  been specified. This enables you to execute custom tasks like showing a 
+  message or bringing a window of your application to the front.
+* Add a new property to be used in single invocation mode. It allows to 
+  activate the foreground window of the running Java Application whenever the 
+  user tries to launch a second instance. If no window can be found, an attempt
+  will be made to give the focus to a window of the Wrapper on which the 
+  application is running. This feature can be used in combination with the 
+  event handling to activate any window that was brought to the top.
+* Fix bug when RUN_AS_USER was ignored when running the Wrapper as a service 
+  controlled by systemd. The service was always running as root.
+* Add a new bit flag (0x8000) to indicate that an error occurred when querying 
+  the status of a Windows service. If the query is silent (-qs option), 
+  wrapperw.exe will no longer display error messages in the dialogbox, but 
+  these errors will still be logged in the log file.
+* Add new system property to WrapperStartStopApp (integration method #2) to 
+  handle passthrough parameters. These parameters can be passed to the start 
+  or stop method (or both) of your Java application. By default the 
+  passthrough parameters are ignored (see the javadocs of the 
+  WrapperStartStopApp class for details).
+* Fix bug on AIX when running the Wrapper as a service would not use the System 
+  Resource Controller (SRC) and ignore RUN_AS_USER value.
+* On Windows, the Wrapper will now check that the code page of the console
+  supports the specified language. If it doesn't it will fall back to English.
+* Add two new values for the wrapper.lang property: 'desktop' and 'system'.
+  These values are used on Windows and ignored on other systems. The first,
+  which is the default, specifies that the language of the Wrapper will be
+  resolved according to the UI language. The second will cause to use the
+  system language for Non-Unicode programs. Before the Wrapper used the
+  language identifier of the Region Format settings.
+* Fixed a bug where messages in Japanese coming from the JVM were badly 
+  encoded. It happened on Windows when the language for non-unicode programs 
+  was not set to Japanese.
+* Improve the error message if there are any problems initializing the backend
+  pipe or socket.
+  
 3.5.27
 * Fix a misleading error message when there is a problem processing a system
   error message on Windows.
@@ -78,8 +134,7 @@ Java Service Wrapper Revision History.
   (Solaris, MacOS, etc.) show an error message because '-o' is not a valid
   parameter.  Now we hide this error message to avoid confusion and we can
   guess that Cygwin is not running.
-* Add the ability to control running the service with systemd using the script
-  file.
+* Add the ability to control the service with systemd using the script file.
 * On Mac OS X, fix a typo, add another alternative way to find Java to set
   the JAVA_HOME environment variable, and use the full path to execute sysctl
   in case it's not in the path. Thanks to Dannes Wessels for pointing this

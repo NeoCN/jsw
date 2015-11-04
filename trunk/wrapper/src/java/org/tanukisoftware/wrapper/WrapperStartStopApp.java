@@ -60,6 +60,16 @@ import java.lang.reflect.Modifier;
  *  FALSE):
  *  -Dorg.tanukisoftware.wrapper.WrapperStartStopApp.ignoreMainExceptions=TRUE
  * <p>
+ * By default, passthrough parameters are ignored, however it is possible to 
+ * specify a different behaviour using the following system property:
+ *  -Dorg.tanukisoftware.wrapper.WrapperStartStopApp.passthroughMode=START
+ * Possible values are:
+ *  START: add passthrough parameters to the parameters list for the start method
+ *  STOP: add passthrough parameters to the parameters list for the stop method
+ *  BOTH: add passthrough parameters to both parameters lists for the start 
+ *   and stop method
+ *  IGNORE: (default) ignore the passthrough parameters
+ * <p>
  * It is possible to extend this class but make absolutely sure that any
  *  overridden methods call their super method or the class will fail to
  *  function correctly.  Most users will have no need to override this
@@ -166,6 +176,26 @@ public class WrapperStartStopApp
      */
     private Throwable m_initException;
     
+    /**
+     * Params passed by passthrough are ignored.
+     */
+    private final String PASSTHROUGH_MODE_IGNORE = "ignore";
+    
+    /**
+     * Params passed by passthrough are added in the start arguments list and stop arguments list. 
+     */
+    private final String PASSTHROUGH_MODE_BOTH   = "both";
+    
+    /**
+     * Params passed by passthrough are added in the start arguments list.
+     */
+    private final String PASSTHROUGH_MODE_START  = "start";
+    
+    /**
+     * Params passed by passthrough are added in the stop arguments list. 
+     */
+    private final String PASSTHROUGH_MODE_STOP   = "stop";
+    
     /*---------------------------------------------------------------
      * Constructors
      *-------------------------------------------------------------*/
@@ -191,7 +221,7 @@ public class WrapperStartStopApp
         
         // startArgs will be an args array with the main class name and stop args stripped off.
         String[] startArgs;
-        
+     
         // Get the class name of the application
         if ( args.length < 5 )
         {
@@ -206,57 +236,109 @@ public class WrapperStartStopApp
         {
             // Look for the start main method.
             m_startMainMethod = getMainMethod( args[0] );
-            // Get the start arguments
-            startArgs = getArgs( args, 1 );
-            if ( startArgs == null )
+            
+            int argCount = getArgCount( args, 1 );
+            if ( argCount < 0 ) 
             {
                 // Failed, but we need an empty array for the start method below.
                 startArgs = new String[0];
-                
+                    
                 // m_initFailed and m_initError already set.
             }
             else
             {
-                // Where do the stop arguments start
-                int stopArgBase = 2 + startArgs.length;
-                if ( args.length < stopArgBase + 3 )
+                // Get the start arguments
+                startArgs = getArgs( args, 1, argCount );
+                if ( startArgs == null )
                 {
-                    m_initFailed = true;
-                    m_initError = WrapperManager.getRes().getString( "Not enough argments. Minimum 3 after start arguments." );
-                    m_initShowUsage = true;
+                    // Failed, but we need an empty array for the start method below.
+                    startArgs = new String[0];
+                    
+                    // m_initFailed and m_initError already set.
                 }
                 else
                 {
-                    // Look for the stop main method.
-                    m_stopMainMethod = getMainMethod( args[stopArgBase] );
-                    // Get the stopWait flag
-                    if ( args[stopArgBase + 1].equalsIgnoreCase( "true" ) )
+                    // Where do the stop arguments start
+                    int stopArgBase = 2 + startArgs.length;
+                    if ( args.length < stopArgBase + 3 )
                     {
-                        m_stopWait = true;
-                    }
-                    else if ( args[stopArgBase + 1].equalsIgnoreCase( "false" ) )
-                    {
-                        m_stopWait = false;
+                        m_initFailed = true;
+                        m_initError = WrapperManager.getRes().getString( "Not enough argments. Minimum 3 after start arguments." );
+                        m_initShowUsage = true;
                     }
                     else
                     {
-                        m_initFailed = true;
-                        m_initError = WrapperManager.getRes().getString( "The stop_wait argument must be either true or false." );
-                        m_initShowUsage = true;
-                    }
-                    
-                    if ( !m_initFailed )
-                    {
-                        // Get the start arguments
-                        m_stopMainArgs = getArgs( args, stopArgBase + 2 );
-                        if ( m_stopMainArgs == null )
+                        // Look for the stop main method.
+                        m_stopMainMethod = getMainMethod( args[stopArgBase] );
+                        // Get the stopWait flag
+                        if ( args[stopArgBase + 1].equalsIgnoreCase( "true" ) )
                         {
-                            // m_initFailed and m_initError already set.
+                            m_stopWait = true;
+                        }
+                        else if ( args[stopArgBase + 1].equalsIgnoreCase( "false" ) )
+                        {
+                            m_stopWait = false;
+                        }
+                        else
+                        {
+                            m_initFailed = true;
+                            m_initError = WrapperManager.getRes().getString( "The stop_wait argument must be either true or false." );
+                            m_initShowUsage = true;
+                        }
+                        
+                        if ( !m_initFailed )
+                        {
+                            argCount = getArgCount( args, stopArgBase + 2 );
+                            if ( argCount < 0 ) 
+                            {
+                                // m_initFailed and m_initError already set.
+                            }
+                            else
+                            {    
+                                // Get the stop arguments
+                                m_stopMainArgs = getArgs( args, stopArgBase + 2, argCount );
+                                if ( m_stopMainArgs == null )
+                                {
+                                    // m_initFailed and m_initError already set.
+                                }
+                                else
+                                {
+                                    // Let's see if there is any passthrough params.
+                                    // Calculate the expected size of args if there is no passthrough params
+                                    int expectedSize = stopArgBase + 2 + argCount + 1;
+                                    
+                                    if ( expectedSize < args.length ) {
+                                        // Passthrough parameters are present. Read passthrough mode, this will tell us
+                                        // to which array we should add these params.
+                                        String passthroughMode = WrapperSystemPropertyUtil.getStringProperty(
+                                            WrapperStartStopApp.class.getName() + ".passthroughMode", PASSTHROUGH_MODE_IGNORE );
+                                        
+                                        if ( passthroughMode.equalsIgnoreCase( PASSTHROUGH_MODE_BOTH ) ) 
+                                        {
+                                            startArgs      = addPassthroughParams( startArgs,      args, expectedSize );
+                                            m_stopMainArgs = addPassthroughParams( m_stopMainArgs, args, expectedSize );  
+                                        } 
+                                        else if ( passthroughMode.equalsIgnoreCase( PASSTHROUGH_MODE_START ) ) 
+                                        {
+                                            startArgs = addPassthroughParams( startArgs, args, expectedSize );
+                                        } 
+                                        else if ( passthroughMode.equalsIgnoreCase( PASSTHROUGH_MODE_STOP ) ) 
+                                        {
+                                            m_stopMainArgs = addPassthroughParams( m_stopMainArgs, args, expectedSize );
+                                        } 
+                                        else 
+                                        { 
+                                            // By default, ignore the extra parameters. Nothing to do.
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
         }
+        
         
         // Start the application.  If the JVM was launched from the native
         //  Wrapper then the application will wait for the native Wrapper to
@@ -789,23 +871,14 @@ public class WrapperStartStopApp
     /**
      * Parses a set of arguments starting with a count.
      *
+     * @param args List of arguments.
+     * @param argBase From which index we want to copy the args.
+     * @param argCount Count of the number of available arguments.
      * @return the Argument list, or null if there was a problem.
      */
-    private String[] getArgs( String[] args, int argBase )
+    private String[] getArgs( String[] args, int argBase, int argCount )
     {
-        // The arg at the arg base should be a count of the number of available arguments.
-        int argCount;
-        try
-        {
-            argCount = Integer.parseInt( args[argBase] );
-        }
-        catch ( NumberFormatException e )
-        {
-            m_initFailed = true;
-            m_initError = WrapperManager.getRes().getString( "Illegal argument count: {0}", args[argBase] );
-            m_initShowUsage = true;
-            return null;
-        }
+        // Make sure argCount is a valid value.
         if ( argCount < 0 )
         {
             m_initFailed = true;
@@ -829,6 +902,88 @@ public class WrapperStartStopApp
         
         return mainArgs;
     }
+    
+    /**
+     * Convert a String to an int.
+     * @param args List of Strings.
+     * @param argBase Index at which we expect to find an int.
+     * @return Arguments count or -1 if error.
+     */
+    private int getArgCount ( String[] args, int argBase )
+    {
+        int argCount;
+        try
+        {
+            argCount = Integer.parseInt( args[argBase] );
+        }
+        catch ( NumberFormatException e )
+        {
+            m_initFailed = true;
+            m_initError = WrapperManager.getRes().getString( "Illegal argument count: {0}", args[argBase] );
+            m_initShowUsage = true;
+            return -1;
+        }
+        return argCount;
+    }
+    
+    /**
+     * Add remaining elements from array 'extra' starting at position 'position'
+     * to array 'source'.
+     * Concat both arrays, but only use elements of second array from index position.
+     * source = { "a", "b", "c" };
+     * extra  = { "d", "e", "f", "g" };
+     * position = 2;
+     * result = { "a", "b", "c", "f", "g" };
+     * 
+     * @param source   The source array. All its elements are added to the
+     *                 return value.
+     * @param extra    Array of extra values to concact.
+     * @param position Indicate from which index to concat the values of 'extra'.
+     * @return Array containing values of 'source' and 'extra' from index 'position'.
+     *         Return an empty array if error.
+     */
+    private String[] addPassthroughParams( String[] source, String[] extra, int position )
+    {
+        
+        if ( (extra == null ) || ( extra.length == 0 ) || ( position >= extra.length ) ) 
+        {
+            if (source == null) 
+            {
+                return new String[0];
+            }
+            else
+            {
+                return source;
+            }
+        }
+        
+        // Count how many extra elements we need to add
+        int numberExtraElements = extra.length - position;
+        
+        int sizeSource = 0;
+        
+        if ( source != null ) 
+        {
+            sizeSource = source.length;
+        }
+        
+        String[] result = new String[sizeSource + numberExtraElements];
+        
+        // add all elements from 'source'
+        for ( int i = 0; i < sizeSource; i++)
+        {
+            result[i] = source[i];
+        }
+                
+        // add elements from 'extra' starting from index 'position'
+        for ( int i = 0; i < numberExtraElements; i++ )
+        {
+            result[sizeSource + i] = extra[position + i];
+        }
+        
+        return result;
+    }
+        
     
     /**
      * Displays application usage

@@ -469,9 +469,6 @@ struct WrapperConfig {
 };
 
 
-
-
-
 #define WRAPPER_SIGNAL_MODE_IGNORE   (char)100
 #define WRAPPER_SIGNAL_MODE_RESTART  (char)101
 #define WRAPPER_SIGNAL_MODE_SHUTDOWN (char)102
@@ -801,18 +798,9 @@ extern void wrapperSetJavaState(int jState, TICKS nowTicks, int delay);
  * Platform specific methods
  *****************************************************************************/
 #ifdef WIN32
-
 /**
- * Function that returns the position of the top-bottom corner of the user's screen.
- *
- * @return 8-byte hexadecimal value. The first four bytes (high word) represent the position of the window on the X (horizontal) axis. The last four bytes (low word) represent the position of the window on the Y (vertical) axis. If the function fails, NULL will be returned.
- */
-extern DWORD wrapperGetRightBottomCornerPosition();
-
-/**
- * Function that allocates an hidden console by editing the registry (fix for the console flicker bug).
- *  The function will edit the registry in order to minimize the size of the console and to position it in the right-bottom hand corner of the screen.
- *  The registry key will be removed just after the console is allocated. As a precaution, it is also set volatile and will not persist on system restart. 
+ * Allocates an hidden console. (fix for the console flicker bug).
+ *  The size of the console will be minimized and its position will be set outside of the screen.
  *  
  * @return TRUE if the console was allocated, FALSE if it could not be allocated.
  */
@@ -837,6 +825,11 @@ extern void wrapperMaintainControlCodes();
 #else
 extern void wrapperMaintainSignals();
 extern TCHAR* findPathOf(const TCHAR *exe, const TCHAR* name);
+
+/**
+ * Check if the glibc version of the user is upper to given numbers. 
+ */
+extern int wrapperAssertGlibcUser(unsigned int maj, unsigned int min, unsigned int rev);
 #endif
 
 /**

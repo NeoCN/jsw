@@ -55,12 +55,19 @@ public final class WrapperPropertyUtil
     public static boolean getBooleanProperty( String name, boolean defaultValue )
     {
         String val = getStringProperty( name, null );
-        if ( val == null )
+        if ( val != null )
         {
-            return defaultValue;
+            if ( val.equalsIgnoreCase( "TRUE" ) )
+            {
+                return true;
+            }
+            else if ( val.equalsIgnoreCase( "FALSE" ) )
+            {
+                return false;
+            }
         }
         
-        return val.equalsIgnoreCase( "TRUE" );
+        return defaultValue;
     }
     
     /**

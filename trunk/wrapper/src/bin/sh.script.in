@@ -16,7 +16,7 @@
 
 #-----------------------------------------------------------------------------
 # These settings can be modified to fit the needs of your application
-# Optimized for use with version 3.5.27 of the Wrapper.
+# Optimized for use with version 3.5.28-a of the Wrapper.
 
 # IMPORTANT - Please always stop and uninstall an application before making
 #             any changes to this file.  Failure to do so could remove the
@@ -124,6 +124,11 @@ SU_BIN=su
 # The workaround for GNU/Linux system is to specify which bash to use with 
 #  the '-s' option.
 #SU_OPTS="-s /bin/bash"
+
+# Set the full path to the 'id' command.
+# For example:
+#  ID_BIN=/usr/bin/id
+ID_BIN=id
 
 # By default we show a detailed usage block.  Uncomment to show brief usage.
 #BRIEF_USAGE=true
@@ -494,8 +499,10 @@ ECHOTEST=`echo -n "x"`
 if [ "$ECHOTEST" = "x" ]
 then
     ECHOOPT="-n "
+    ECHOOPTC=""
 else
     ECHOOPT=""
+    ECHOOPTC="\c"
 fi
 
 
@@ -876,6 +883,14 @@ getpid() {
                         'hpux')
                             pidtest=`$PS_BIN -p $pid -x -o args | grep -F "$WRAPPER_CMD" | tail -1`
                             ;;
+                        'zos')
+                            TRUNCATED_CMD=`$PS_BIN -p $pid -o args | tail -1`
+                            COUNT=`echo $TRUNCATED_CMD | wc -m`
+                            COUNT=`echo ${COUNT}`
+                            COUNT=`expr $COUNT - 1`
+                            TRUNCATED_CMD=`echo $WRAPPER_CMD | cut -c1-$COUNT`
+                            pidtest=`$PS_BIN -p $pid -o args | grep -F "$TRUNCATED_CMD" | tail -1`
+                            ;;
                         *)
                             pidtest=`$PS_BIN -p $pid -o args | grep -F "$WRAPPER_CMD" | tail -1`
                             ;;
@@ -1001,7 +1016,7 @@ launchinternal() {
         prepAdditionalParams "$@"
 
         # The string passed to eval must handles spaces in paths correctly.
-        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.daemonize=TRUE $APPNAMEPROP $ANCHORPROP $IGNOREPROP $STATUSPROP $COMMANDPROP $LOCKPROP wrapper.script.version=3.5.27 $ADDITIONAL_PARA"
+        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.daemonize=TRUE $APPNAMEPROP $ANCHORPROP $IGNOREPROP $STATUSPROP $COMMANDPROP $LOCKPROP wrapper.script.version=3.5.28-a $ADDITIONAL_PARA"
         eval $COMMAND_LINE
     else
         eval echo `gettext '$APP_LONG_NAME is already running.'`
@@ -1024,7 +1039,7 @@ console() {
         prepAdditionalParams "$@"
 
         # The string passed to eval must handles spaces in paths correctly.
-        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" $APPNAMEPROP $ANCHORPROP $STATUSPROP $COMMANDPROP $LOCKPROP wrapper.script.version=3.5.27 $ADDITIONAL_PARA"
+        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" $APPNAMEPROP $ANCHORPROP $STATUSPROP $COMMANDPROP $LOCKPROP wrapper.script.version=3.5.28-a $ADDITIONAL_PARA"
         eval $COMMAND_LINE
     else
         eval echo `gettext '$APP_LONG_NAME is already running.'`
@@ -1034,12 +1049,12 @@ console() {
 
 waitforjavastartup() {
     getstatus
-    eval echo $ECHOOPT `gettext 'Waiting for $APP_LONG_NAME...'`
+    eval echo $ECHOOPT `gettext 'Waiting for $APP_LONG_NAME...$ECHOOPTC'` 
     
     # Wait until the timeout or we have something besides Unknown.
     counter=15
     while [ "$JAVASTATUS" = "Unknown" -a $counter -gt 0 -a -n "$JAVASTATUS" ] ; do
-        echo $ECHOOPT"."
+        echo $ECHOOPT".$ECHOOPTC"
         sleep 1
         getstatus
         counter=`expr $counter - 1`
@@ -1051,14 +1066,12 @@ waitforjavastartup() {
         counter=120
     fi
     while [ "$JAVASTATUS" != "STARTED" -a "$JAVASTATUS" != "Unknown" -a $counter -gt 0 -a -n "$JAVASTATUS" ] ; do
-        echo $ECHOOPT"."
+        echo $ECHOOPT".$ECHOOPTC"
         sleep 1
         getstatus
         counter=`expr $counter - 1`
     done
-    if [ "X$ECHOOPT" != "X" ] ; then
-        echo ""
-    fi
+    echo ""
 }
  
 startwait() {
@@ -1073,7 +1086,7 @@ startwait() {
     while [ $i -lt $WAIT_AFTER_STARTUP ]
     do
         sleep 1
-        echo $ECHOOPT"."
+        echo $ECHOOPT".$ECHOOPTC"
         i=`expr $i + 1`
     done
     if [ $WAIT_AFTER_STARTUP -gt 0 -o $WAIT_FOR_STARTED_STATUS = true ]
@@ -1230,6 +1243,9 @@ systemdInstall() {
         echo "Type=forking"                     >> "${SYSTEMD_SERVICE_FILE}"
         echo "ExecStart=${REALPATH} start sysd" >> "${SYSTEMD_SERVICE_FILE}"
         echo "ExecStop=${REALPATH} stop sysd"   >> "${SYSTEMD_SERVICE_FILE}"
+        if [ "X${RUN_AS_USER}" != "X" ] ; then
+          echo "User=${RUN_AS_USER}"            >> "${SYSTEMD_SERVICE_FILE}"
+        fi
         echo ""                                 >> "${SYSTEMD_SERVICE_FILE}"
         echo "[Install]"                        >> "${SYSTEMD_SERVICE_FILE}"
         echo "WantedBy=multi-user.target"       >> "${SYSTEMD_SERVICE_FILE}"
@@ -1260,7 +1276,7 @@ systemdStart() {
 systemdStop() {
     systemctl stop $APP_NAME
     if [ $? -ne 0 ] ; then
-        eval echo `gettext 'Failed to stop $APP_NAME'`
+        eval echo `gettext 'Failed to stop service $APP_NAME'`
         exit 1
     fi
 }
@@ -1268,7 +1284,7 @@ systemdStop() {
 systemdRestart() {
     systemctl restart $APP_NAME
     if [ $? -ne 0 ] ; then
-        eval echo `gettext 'Failed to restart $APP_NAME'`
+        eval echo `gettext 'Failed to restart service $APP_NAME'`
         exit 1
     fi
     
@@ -1283,6 +1299,41 @@ systemdRemove() {
     systemctl daemon-reload
 }
 
+srcInstall() {
+    if [ "X$RUN_AS_USER" = "X" ] ; then
+        USERID="0"
+    else
+        USERID=`$ID_BIN -u "$RUN_AS_USER"`
+        if [ $? -ne 0 ] ; then 
+            eval echo `gettext 'Failed to get user id for $RUN_AS_USER'`
+            exit 1
+        fi
+    fi
+    /usr/bin/mkssys -s "$APP_NAME" -p "$REALPATH" -a "launchdinternal" -u "$USERID" -f 9 -n 15 -S
+    /usr/sbin/mkitab "$APP_NAME":2:once:"/usr/bin/startsrc -s \"${APP_NAME}\" >/dev/console 2>&1"
+}
+
+srcStart() {
+    startsrc -s "${APP_NAME}"
+    if [ $? -ne 0 ] ; then
+        eval echo `gettext 'Failed to start service $APP_NAME'`
+        exit 1
+    fi
+}
+
+srcStop() {
+    stopsrc -s "${APP_NAME}"
+    if [ $? -ne 0 ] ; then
+        eval echo `gettext 'Failed to stop service $APP_NAME'`
+        exit 1
+    fi
+}
+
+srcRestart() {
+    srcStop
+    srcStart
+}
+
 start() {
     eval echo `gettext 'Starting $APP_LONG_NAME...'`
     getpid
@@ -1291,7 +1342,7 @@ start() {
         prepAdditionalParams "$@"
 
         # The string passed to eval must handles spaces in paths correctly.
-        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.daemonize=TRUE $APPNAMEPROP $ANCHORPROP $IGNOREPROP $STATUSPROP $COMMANDPROP $LOCKPROP wrapper.script.version=3.5.27 $ADDITIONAL_PARA"
+        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.daemonize=TRUE $APPNAMEPROP $ANCHORPROP $IGNOREPROP $STATUSPROP $COMMANDPROP $LOCKPROP wrapper.script.version=3.5.28-a $ADDITIONAL_PARA"
         eval $COMMAND_LINE
     else
         eval echo `gettext '$APP_LONG_NAME is already running.'`
@@ -1537,8 +1588,7 @@ installdaemon() {
                 eval echo `gettext ' Removing unexpected file before proceeding: $i'`
                 rm -f $i
             done
-            /usr/bin/mkssys -s "$APP_NAME" -p "$REALPATH" -a "launchdinternal" -u 0 -f 9 -n 15 -S
-            /usr/sbin/mkitab "$APP_NAME":2:once:"/usr/bin/startsrc -s \"${APP_NAME}\" >/dev/console 2>&1"
+            srcInstall
         fi
     elif [ "$DIST_OS" = "freebsd" ] ; then
         eval echo `gettext 'Detected FreeBSD:'`                
@@ -1923,6 +1973,8 @@ docommand() {
                 upstartstart
             elif [ "$DIST_OS" = "linux" -a -n "$USE_SYSTEMD" -a -z "$SYSD" ] ; then
                 systemdStart
+            elif [ "$DIST_OS" = "aix" -a -n "`/usr/bin/lssrc -S -s $APP_NAME`" ] ; then
+                srcStart
             else
                 if [ -n "$SYSD" ] ; then
                     shift
@@ -1943,6 +1995,8 @@ docommand() {
                 upstartStop
             elif [ "$DIST_OS" = "linux" -a -n "$USE_SYSTEMD" -a -z "$SYSD" ] ; then
                 systemdStop
+            elif [ "$DIST_OS" = "aix" -a -n "`/usr/bin/lssrc -S -s $APP_NAME`" ] ; then
+                srcStop
             else
                 checkUser "" "$COMMAND"
                 stopit "0"
@@ -1960,6 +2014,8 @@ docommand() {
                 upstartRestart
             elif [ "$DIST_OS" = "linux" -a -n "$USE_SYSTEMD" -a -z "$SYSD" ] ; then
                 systemdRestart
+            elif [ "$DIST_OS" = "aix" -a -n "`/usr/bin/lssrc -S -s $APP_NAME`" ] ; then
+                srcRestart
             else
                 if [ -n "$SMF" ] ; then
                     shift

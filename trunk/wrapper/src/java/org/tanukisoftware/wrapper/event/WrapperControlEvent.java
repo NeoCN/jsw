@@ -48,7 +48,7 @@ package org.tanukisoftware.wrapper.event;
  * @author Leif Mortenson <leif@tanukisoftware.com>
  */
 public class WrapperControlEvent
-    extends WrapperEvent
+    extends WrapperConsumableEvent
 {
     /**
      * Serial Version UID.
@@ -60,9 +60,6 @@ public class WrapperControlEvent
     
     /** The name of the event. */
     private String m_controlEventName;
-    
-    /** True if the event has been consumed. */
-    private boolean m_consumed;
     
     /*---------------------------------------------------------------
      * Constructors
@@ -124,29 +121,6 @@ public class WrapperControlEvent
     public String getControlEventName()
     {
         return m_controlEventName;
-    }
-    
-    /**
-     * Mark the event as consumed.  This should be done if the event
-     *  has been handled.
-     * <p>
-     * On Windows, some events are sent both to the JVM and Wrapper processes.
-     *  Event if the CTRL-C event is ignored within the JVM, the Wrapper
-     *  process may still initiate a shutdown.
-     */
-    public void consume()
-    {
-        m_consumed = true;
-    }
-    
-    /**
-     * Returns true if the event has been consumed.
-     *
-     * @return True if the event has been consumed.
-     */
-    public boolean isConsumed()
-    {
-        return m_consumed;
     }
     
     /**

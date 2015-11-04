@@ -1689,9 +1689,9 @@ int getBooleanProperty(Properties *properties, const TCHAR *propertyName, int de
     const TCHAR *propertyValue;
     
     if (defaultValue) {
-        defaultValueS = TEXT("true");
+        defaultValueS = TEXT("TRUE");
     } else {
-        defaultValueS = TEXT("false");
+        defaultValueS = TEXT("FALSE");
     }
 
     property = getInnerProperty(properties, propertyName, TRUE);
@@ -1701,18 +1701,18 @@ int getBooleanProperty(Properties *properties, const TCHAR *propertyName, int de
         propertyValue = property->value;
     }
     
-    if (strcmpIgnoreCase(propertyValue, TEXT("true")) == 0) {
+    if (strcmpIgnoreCase(propertyValue, TEXT("TRUE")) == 0) {
         return TRUE;
-    } else if (strcmpIgnoreCase(propertyValue, TEXT("false")) == 0) {
+    } else if (strcmpIgnoreCase(propertyValue, TEXT("FALSE")) == 0) {
         return FALSE;
     } else {
         if (properties->logWarnings) {
             log_printf(WRAPPER_SOURCE_WRAPPER, properties->logWarningLogLevel,
                 TEXT("Encountered an invalid boolean value for configuration property %s=%s.  Resolving to %s."),
-                propertyName, propertyValue, TEXT("FALSE"));
+                propertyName, propertyValue, defaultValueS);
         }
         
-        return FALSE;
+        return defaultValue;
     }
 }
 
@@ -1741,7 +1741,7 @@ int getBooleanProperty(Properties *properties, const TCHAR *propertyName, int de
  *
  * @return 0 if successful, -1 if there was an error.
  */
-int getBooleanProperties(Properties *properties, const TCHAR *propertyNameHead, const TCHAR *propertyNameTail, int all, int matchAny, TCHAR ***propertyNames, int **propertyValues, long unsigned int **propertyIndices) {
+int getBooleanProperties(Properties *properties, const TCHAR *propertyNameHead, const TCHAR *propertyNameTail, int all, int matchAny, TCHAR ***propertyNames, int **propertyValues, long unsigned int **propertyIndices, int defaultValue) {
     TCHAR **strPropertyValues;
     int i = 0;
     int count = 0;
@@ -1759,18 +1759,18 @@ int getBooleanProperties(Properties *properties, const TCHAR *propertyNameHead, 
     
     i = 0;
     while (strPropertyValues[i]) {
-        if (strcmpIgnoreCase(strPropertyValues[i], TEXT("true")) == 0) {
+        if (strcmpIgnoreCase(strPropertyValues[i], TEXT("TRUE")) == 0) {
             (*propertyValues)[i] = TRUE;
-        } else if (strcmpIgnoreCase(strPropertyValues[i], TEXT("false")) == 0) {
+        } else if (strcmpIgnoreCase(strPropertyValues[i], TEXT("FALSE")) == 0) {
             (*propertyValues)[i] = FALSE;
         } else {
             if (properties->logWarnings) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, properties->logWarningLogLevel,
                     TEXT("Encountered an invalid boolean value for configuration property %s=%s.  Resolving to %s."),
-                    (*propertyNames)[i], (*propertyValues)[i], TEXT("FALSE"));
+                    (*propertyNames)[i], strPropertyValues[i], defaultValue ? TEXT("TRUE") : TEXT("FALSE"));
             }
             
-            (*propertyValues)[i] = FALSE;
+            (*propertyValues)[i] = defaultValue;
         }
         i++;    
     }

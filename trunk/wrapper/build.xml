@@ -1199,7 +1199,6 @@ wrapper.filter.action.999=NONE]]></replacevalue>
                 <include name="lib/wrapper.jar" />
                 <include name="lib/wrappertest.jar" />
                 <include name="lib/wrapperdemo.jar" />
-                <include name="jdoc/**" />
                 <include name="doc/**" />
                 <include name="src/bin/**" />
                 <include name="src/conf/**" />
@@ -1281,25 +1280,7 @@ wrapper.filter.action.999=NONE]]></replacevalue>
         </copy>
         <fixcrlf srcdir="${intermdir}" encoding="UTF-8" outputencoding="UTF-8" includes="README_*.txt" eol="lf"/>
         
-        <!-- For tar files, the javadocs are stored in a jdoc.tar file to avoid problems with
-             long file names and some tar implementations. -->
-        <tar tarfile="${intermdir}/jdoc.tar">
-            <tarfileset dir="${intermdir}">
-                <include name="jdoc/**"/>
-            </tarfileset>
-        </tar>
-        <gzip zipfile="${intermdir}/jdoc.tar.gz" src="${intermdir}/jdoc.tar" />
-        <delete file="${intermdir}/jdoc.tar"/>
-        <delete dir="${intermdir}/jdoc"/>
-        <!-- Create a dummy jdoc dir which directs the user to expand the actual javadocs. -->
-        <mkdir dir="${intermdir}/jdoc"/>
-        <echo file="${intermdir}/jdoc/index.html">&lt;html&gt;&lt;body&gt;
-The javadocs for this application are found in $WRAPPER_HOME/jdoc.tar.gz.  Please extract this
-archive into the $WRAPPER_HOME directory.&lt;p&gt;The javadocs could not be included directly in the
-original tar distribution due to a lack of support for long path names in some tar implementations.
-&lt;/body&gt;&lt;/html&gt;</echo>
-        <fixcrlf srcdir="${intermdir}/jdoc" eol="lf" />
-        
+        <!-- Create the pre-release package -->
         <tar tarfile="${build.dir}/${intermfile}.tar">
             <tarfileset dir="${build.dir}" mode="755">
                 <include name="${intermfile}/build32.sh"/>
@@ -1334,7 +1315,6 @@ original tar distribution due to a lack of support for long path names in some t
         <property name="intermdir" value="${build.dir}/${intermfile}"/>
         
         <available property="pre-release.exists" value="true" file="${build.dir}/${intermmarker}"/>
-        <available property="pre-release.jdocs" value="true" file="jdoc.tar.gz"/>
     </target>
     <target name="pre-release:check" depends="pre-release:check-init" unless="pre-release.exists">
         <echo/>
@@ -1344,11 +1324,6 @@ original tar distribution due to a lack of support for long path names in some t
         <echo>* pre-release distribution.                              *</echo>
         <echo>**********************************************************</echo>
         <fail message="pre-release files not found."/>
-    </target>
-    <target name="pre-release:restore-jdocs" depends="pre-release:check-init" if="pre-release.jdocs">
-        <delete dir="jdoc"/>
-        <gunzip src="jdoc.tar.gz" dest="jdoc.tar"/>
-        <untar src="jdoc.tar" dest="${basedir}"/>
     </target>
     
     <target name="code-sign-check" if="is.windows">
@@ -1392,7 +1367,7 @@ original tar distribution due to a lack of support for long path names in some t
     <!-- =================================================================== -->
     <!-- Release (Windows)                                                   -->
     <!-- =================================================================== -->
-    <target name="release-windows" depends="code-sign-check, pre-release:check, pre-release:restore-jdocs, compile-c" if="is.windows">
+    <target name="release-windows" depends="code-sign-check, pre-release:check, compile-c" if="is.windows">
 
         <property name="releasedir" value="${build.dir}/${releasefile}"/>
         <delete dir="${releasedir}"/>
@@ -1416,7 +1391,6 @@ original tar distribution due to a lack of support for long path names in some t
                 <include name="logs" />
                 <include name="src/bin/*.bat.in" />
                 <include name="src/conf/**" />
-                <include name="jdoc/**" />
                 <include name="doc/**" />
                 <include name="conf/demoapp.conf" />
                 <exclude name="**/CVS/*" />
@@ -1528,7 +1502,7 @@ wrapper.filter.action.999=NONE]]></replacevalue>
     <!-- =================================================================== -->
     <!-- Release (Unix)                                                      -->
     <!-- =================================================================== -->
-    <target name="release-unix" depends="pre-release:check, pre-release:restore-jdocs, compile-c" if="is.unix">
+    <target name="release-unix" depends="pre-release:check, compile-c" if="is.unix">
         <property name="releasedir" value="${build.dir}/${releasefile}"/>
         <delete dir="${releasedir}"/>
         <mkdir dir="${releasedir}"/>
@@ -1551,7 +1525,6 @@ wrapper.filter.action.999=NONE]]></replacevalue>
                 <include name="lib/${wrapper.lib.name}" />
                 <include name="logs" />
                 <include name="src/conf/**" />
-                <include name="jdoc/**" />
                 <include name="doc/**" />
                 <include name="src/bin/*.script.in" />
                 <include name="conf/demoapp.conf" />
@@ -1611,25 +1584,6 @@ wrapper.filter.action.999=NONE]]></replacevalue>
         </copy>
         <fixcrlf srcdir="${releasedir}" encoding="UTF-8" outputencoding="UTF-8" includes="README_*.txt" eol="lf"/>
 
-        
-        <!-- For tar files, the javadocs are stored in a jdoc.tar file to avoid problems with
-             long file names and some tar implementations. -->
-        <tar tarfile="${releasedir}/jdoc.tar">
-            <tarfileset dir="${releasedir}">
-                <include name="jdoc/**"/>
-            </tarfileset>
-        </tar>
-        <gzip zipfile="${releasedir}/jdoc.tar.gz" src="${releasedir}/jdoc.tar" />
-        <delete file="${releasedir}/jdoc.tar"/>
-        <delete dir="${releasedir}/jdoc"/>
-        <!-- Create a dummy jdoc dir which directs the user to expand the actual javadocs. -->
-        <mkdir dir="${releasedir}/jdoc"/>
-        <echo file="${releasedir}/jdoc/index.html">&lt;html&gt;&lt;body&gt;
-The javadocs for this application are found in $WRAPPER_HOME/jdoc.tar.gz.  Please extract this
-archive into the $WRAPPER_HOME directory.&lt;p&gt;The javadocs could not be included directly in the
-original tar distribution due to a lack of support for long path names in some tar implementations.
-&lt;/body&gt;&lt;/html&gt;</echo>
-        <fixcrlf srcdir="${releasedir}/jdoc" eol="lf" />
 
         <antcall target="release-unix:strip-symbols"/>
 
@@ -1876,7 +1830,7 @@ original tar distribution due to a lack of support for long path names in some t
         <release-delta-extract-platform osname="linux" osarch="armel" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
         <release-delta-extract-platform osname="linux" osarch="armhf" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
     </target>
-    <target name="release-delta" depends="pre-release:check, release-delta:init, pre-release:restore-jdocs, release-delta:extract-platforms">
+    <target name="release-delta" depends="pre-release:check, release-delta:init, release-delta:extract-platforms">
         <property name="deltareleasefile" value="wrapper-delta-pack-${version}"/>
         <property name="releasedir" value="${build.dir}/${deltareleasefile}"/>
         <delete dir="${releasedir}"/>
@@ -1906,7 +1860,6 @@ original tar distribution due to a lack of support for long path names in some t
                 <include name="src/bin/*.bat.in"/>
                 <include name="src/bin/sh.script.in"/>
                 <include name="src/conf/**"/>
-                <include name="jdoc/**"/>
                 <include name="doc/**"/>
                 <exclude name="**/CVS/*"/>
             </fileset>
@@ -2010,25 +1963,6 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         </copy>
         <fixcrlf srcdir="${releasedir}" encoding="UTF-8" outputencoding="UTF-8" includes="README_*.txt" eol="lf"/>
         
-        <!-- For tar files, the javadocs are stored in a jdoc.tar file to avoid problems with
-             long file names and some tar implementations. -->
-        <tar tarfile="${releasedir}/jdoc.tar">
-            <tarfileset dir="${releasedir}">
-                <include name="jdoc/**"/>
-            </tarfileset>
-        </tar>
-        <gzip zipfile="${releasedir}/jdoc.tar.gz" src="${releasedir}/jdoc.tar" />
-        <delete file="${releasedir}/jdoc.tar"/>
-        <delete dir="${releasedir}/jdoc"/>
-        <!-- Create a dummy jdoc dir which directs the user to expand the actual javadocs. -->
-        <mkdir dir="${releasedir}/jdoc"/>
-        <echo file="${releasedir}/jdoc/index.html">&lt;html&gt;&lt;body&gt;
-The javadocs for this application are found in $WRAPPER_HOME/jdoc.tar.gz.  Please extract this
-archive into the $WRAPPER_HOME directory.&lt;p&gt;The javadocs could not be included directly in the
-original tar distribution due to a lack of support for long path names in some tar implementations.
-&lt;/body&gt;&lt;/html&gt;</echo>
-        <fixcrlf srcdir="${releasedir}/jdoc" eol="lf" />
-
         <tar tarfile="${build.dir}/${deltareleasefile}.tar">
             <tarfileset dir="${build.dir}" mode="755">
                 <include name="${deltareleasefile}/bin/wrapper-*"/>

@@ -52,6 +52,8 @@ import org.tanukisoftware.wrapper.WrapperManager;
 import org.tanukisoftware.wrapper.WrapperResources;
 import org.tanukisoftware.wrapper.WrapperSystemPropertyUtil;
 import org.tanukisoftware.wrapper.event.WrapperEventListener;
+import org.tanukisoftware.wrapper.event.WrapperSecondInvocationEvent;
+import org.tanukisoftware.wrapper.event.WrapperEvent;
 
 /**
  * This is a Test / Example program which can be used to test the
@@ -278,6 +280,7 @@ public class Main
             buildCommand( panel, gridBag, c, getRes().getString( "Is Standard?" ), "is_standard", getRes().getString( "Prints true if this is a Standard Edition." ) );
             
             addWindowListener( this );
+            WrapperManager.addWrapperEventListener( Main.this, WrapperEventListener.EVENT_FLAG_REMOTE_CONTROL );
         }
         
         private void buildCommand( Container container,
@@ -437,6 +440,35 @@ public class Main
         }
     }
     
+    /*---------------------------------------------------------------
+     * WrapperEventListener Methods
+     *-------------------------------------------------------------*/
+    /**
+     * Called whenever a WrapperEvent is fired.  The exact set of events that a
+     *  listener will receive will depend on the mask supplied when
+     *  WrapperManager.addWrapperEventListener was called to register the
+     *  listener.
+     *
+     * Listener implementations should never assume that they will only receive
+     *  events of a particular type.   To assure that events added to future
+     *  versions of the Wrapper do not cause problems with user code, events
+     *  should always be tested with "if ( event instanceof {EventClass} )"
+     *  before casting it to a specific event type.
+     *
+     * @param event WrapperEvent which was fired.
+     */
+    public void fired( WrapperEvent event )
+    {
+        if (event instanceof WrapperSecondInvocationEvent )
+        {
+            // bring the window to front
+            if (bringToFront(m_frame)) {
+                // consume the event
+                ((WrapperSecondInvocationEvent)event).consume();
+            }
+        }
+    }
+
     /*---------------------------------------------------------------
      * WrapperListener Methods
      *-------------------------------------------------------------*/
@@ -670,6 +702,23 @@ public class Main
             }
         }
         return m_res;
+    }
+    
+    /**
+     * Helper method to bring a window to the front
+     */
+    private boolean bringToFront(MainFrame frame) {
+        try {
+            // use reflection as setAlwaysOnTop() requires java 1.5
+            java.lang.reflect.Method m = MainFrame.class.getMethod("setAlwaysOnTop", new Class[] { boolean.class } );
+            m.invoke(frame, new Object[] { new Boolean(true) });
+            m.invoke(frame, new Object[] { new Boolean(false) });
+            return true;
+        } 
+        catch (Exception e)
+        {
+            return false;
+        }
     }
     
     /*---------------------------------------------------------------
