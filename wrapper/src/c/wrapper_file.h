@@ -39,8 +39,8 @@ struct ConfigFileReader {
     int enableIncludes;
     int preload;
     int debugIncludes;                  /* debugIncludes controls whether or not debug output is logged. It is set using directives in the file being read. */
-    int exitOnOverwrite;	            /* If TRUE, causes the wrapper to exit when any property is overwritten in the config files. */
-    int logLevelOnOverwrite;	        /* Defines the log level of the messages reported when properties are overwritten. */
+    int exitOnOverwrite;                /* If TRUE, causes the wrapper to exit when any property is overwritten in the config files. */
+    int logLevelOnOverwrite;            /* Defines the log level of the messages reported when properties are overwritten. */
 };
 
 /**

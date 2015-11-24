@@ -8,7 +8,7 @@
 # http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
 
 
-COMPILE = gcc -O3 -fpic -Wall --pedantic -mlp64 -L/usr/local/lib/hpux32 -liconv -DHPUX_IA -DHPUX -DJSW64 -D_INCLUDE__STDC_A1_SOURCE -DUNICODE -D_UNICODE
+COMPILE = gcc -O3 -fpic -Wall --pedantic -mlp64 -DHPUX_IA -DHPUX -DJSW64 -D_INCLUDE__STDC_A1_SOURCE -DUNICODE -D_UNICODE
 
 INCLUDE=$(JAVA_HOME)/include
 

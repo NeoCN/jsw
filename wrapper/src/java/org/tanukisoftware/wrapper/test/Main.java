@@ -462,10 +462,7 @@ public class Main
         if (event instanceof WrapperSecondInvocationEvent )
         {
             // bring the window to front
-            if (bringToFront(m_frame)) {
-                // consume the event
-                ((WrapperSecondInvocationEvent)event).consume();
-            }
+            bringToFront(m_frame);
         }
     }
 

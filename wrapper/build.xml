@@ -934,6 +934,10 @@ rem ********************************************************************]]></rep
         <copy file="${src.dir}/bin/SetupApp.bat.in"
               tofile="${bin.dir}/Setup${app.caps.name}.bat"
               filtering="on"/>
+
+        <copy file="${src.dir}/bin/TeardownApp.bat.in"
+              tofile="${bin.dir}/Teardown${app.caps.name}.bat"
+              filtering="on"/>
     </target>
     
     <!-- =================================================================== -->

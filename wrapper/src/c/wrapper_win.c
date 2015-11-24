@@ -329,9 +329,15 @@ int initInvocationMutex() {
 
             if (GetLastError() == ERROR_ACCESS_DENIED) {
                 /* Most likely the app is running as a service and we tried to run it as a console. */
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                    TEXT("ERROR: Another instance of the %s application is already running."),
-                    wrapperData->serviceName);
+                if (wrapperServiceStatus(FALSE) & 0x2) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                        TEXT("ERROR: Another instance of the %s application is already running as a service."),
+                        wrapperData->serviceName);
+                } else {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                        TEXT("ERROR: Another instance of the %s application is already running on a different user account."),
+                        wrapperData->serviceName);
+                }
                 wrapperData->exitCode = 1;
                 return 1;
             } else {
@@ -671,7 +677,8 @@ int wrapperBuildJavaCommand() {
 /**
  * Allocates an hidden console. (fix for the console flicker bug).
  *  The size of the console will be minimized and its position will be set outside of the screen.
- *  
+ *  This function should be used when running as a Windows interactive service or with wrapperw.
+ *
  * @return TRUE if the console was allocated, FALSE if it could not be allocated.
  */
 int wrapperAllocHiddenConsole() {
@@ -693,84 +700,21 @@ int wrapperAllocHiddenConsole() {
     int i = 0;
     const int nMaxRestoreAttempts = 10;
     int nAttempts = 1;
-    IShellLink* psl;
-    IPersistFile* ppf;
-    IShellLinkDataList* psldl;
-    NT_CONSOLE_PROPS* pncp;
     STARTUPINFO startupInfo;
     TCHAR *startupTitle;
-    TCHAR *shortcutName;
-    HRESULT hres;
 
-    /* First get the coordinates of the right-bottom corner of the screen. We will then set the console origin to this position. 
+    /* First get the coordinates of the right-bottom corner of the screen. We will then set the console origin to this position.
      *  There are cases where the console reappears on the screen if its position is set entierely outside the work area, 
-     *  so it is best to have at least one corner of the console touching the boundaries of the screen. 
+     *  so it is best to have at least one corner of the console touching the boundaries of the screen.
      *  We choose the right-bottom corner because there is no need to subtract the console dimensions (which are actually unknown). */
     if(!SystemParametersInfo(SPI_GETWORKAREA, 0, &workarea, 0)) {
         /* If the function fails, lets assume a very big workarea (8K) to make sure the console position will be set out of the screen. */
-        workarea = defaultWorkarea; 
+        workarea = defaultWorkarea;
     }
     
     /* Edit the console properties before allocation. Those properties can either be stored in the registry or in the shortcut that launched the application. */
     GetStartupInfo(&startupInfo);
     startupTitle = startupInfo.lpTitle;
-    if(_tcslen(startupTitle) > 4 && !_tcscmp(startupTitle + _tcslen(startupTitle) - 4, TEXT(".lnk"))) {
-        /* The wrapper was launched from a shortcut. If the shorctut contains console properties, they have priority to those defined in the registry. */
-        hres = CoInitialize(NULL);
-        if (!hres) {
-            /* Create a IShellLink instance */
-            hres = CoCreateInstance(&CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, &IID_IShellLink, (void**)&psl);
-            if (!hres) {
-                /* Get a IPersistFile instance in order to load and save our shorctut */
-                hres = psl->lpVtbl->QueryInterface(psl, &IID_IPersistFile, (void**)&ppf);
-                if (!hres) {
-                    /* Load the shorctut from the path stored in startupTitle */
-                    hres = ppf->lpVtbl->Load(ppf, startupTitle, STGM_READ);
-                    if (!hres) {
-                        /* Get the IShellLinkDataList associated to our shell link */
-                        hres = psl->lpVtbl->QueryInterface(psl, &IID_IShellLinkDataList, (void**)&psldl);
-                        if (!hres) {
-                            /* Get a copy of the data block that holds console properties */
-                            hres = psldl->lpVtbl->CopyDataBlock(psldl, NT_CONSOLE_PROPS_SIG, (void**)&pncp);
-                            if (!hres) {
-                                /* Console properties found in the shell link */
-                                propertiesInShortcut = TRUE;
-                                
-                                /* Set new styles to the console */
-                                pncp->dwWindowSize.X = 1;
-                                pncp->dwWindowSize.Y = (isWin10OrHigher() ? 1 : 0); /* windows 10 allows height of 0px */
-                                pncp->dwWindowOrigin.X = (SHORT)workarea.right;
-                                pncp->dwWindowOrigin.Y = (SHORT)workarea.bottom;
-                                pncp->bAutoPosition = FALSE;
-
-                                /* Now we have to remove the old data block, replace it by the modified one, and save. */
-                                hres = psldl->lpVtbl->RemoveDataBlock(psldl, NT_CONSOLE_PROPS_SIG);
-                                if (!hres) {
-                                    hres = psldl->lpVtbl->AddDataBlock(psldl, pncp);
-                                    if (!hres) {
-                                        /* If saved properly, the modified styles will apply next time the console will be allocated. */
-                                        hres = ppf->lpVtbl->Save(ppf, NULL, TRUE);
-                                    }
-                                }
-                            }
-                            psldl->lpVtbl->Release(psldl);
-                        }
-                    }
-                    ppf->lpVtbl->Release(ppf);
-                }
-                psl->lpVtbl->Release(psl);
-            }
-            CoUninitialize();
-        }
-        if (hres) {
-            /* If any error occured let's try to set console properties in the registry. They will actually apply only if those properties are not embedded in the shell link. */
-            propertiesInShortcut = FALSE;
-            /* The title of the console is made by the name of the shortcut without extension */
-            shortcutName = PathFindFileName(startupTitle);
-            PathRemoveExtension(shortcutName);
-            _tcscpy(startupTitle, shortcutName);
-        }
-    }
     
     if (!propertiesInShortcut) {
         /* In the registry we can store console properties by adding keys with names matching the console title. */
@@ -826,14 +770,14 @@ int wrapperAllocHiddenConsole() {
         /* Rem: If the key could not be set properly, a brief flicker may be visible when the console is shown and then hidden. */
     }
     
-    /* Allocates a new console for the calling process.*/    
+    /* Allocates a new console for the calling process.*/
     result = AllocConsole();
     if (!result) {
         errorAlloc = GetLastError();
     }
-            
+    
     if (!propertiesInShortcut) {
-        /* Restore the registry. 
+        /* Restore the registry.
          *  No matter if the previous actions succeeded or not, lets clean up the keys so that the modified properties do not apply on future console allocations.
          *  This is required as the console may later be set visible. */
         while (TRUE) {
@@ -847,11 +791,11 @@ int wrapperAllocHiddenConsole() {
                     continue;
                 }
             }
-            break;    
-        } 
-        /* Rem: If the key could not be restored properly, an exception could (unlikely!) happen: 
+            break;
+        }
+        /* Rem: If the key could not be restored properly, an exception could (unlikely!) happen:
          *  Next time AllocConsole() is called with the exact same application parameters, 
-         *  if the registry key remains and if wrapperData->ntHideWrapperConsole is set to FALSE, then the console will appear out of the screen. 
+         *  if the registry key remains and if wrapperData->ntHideWrapperConsole is set to FALSE, then the console will appear out of the screen.
          *   => As a precaution we could try again to remove the registry key at that time (not implemented yet). */
 
         if (nAttempts == nMaxRestoreAttempts) {
@@ -862,7 +806,7 @@ int wrapperAllocHiddenConsole() {
         free(consoleSubKey);
     }
     
-    /* Finally, lets set the errorAlloc as the last error and return whether if failed or not.*/    
+    /* Finally, lets set the errorAlloc as the last error and return whether if failed or not.*/
     if (!result) {
         SetLastError(errorAlloc);
     }
@@ -878,7 +822,7 @@ int hideConsoleWindow(HWND consoleHandle, const TCHAR *name) {
     consolePlacement.length = sizeof(WINDOWPLACEMENT);
     
     /* on Windows 10 the console will reappear at the position 'rcNormalPosition' when calling SetWindowPlacement(). To avoid another brief flicker, lets set this position out of the screen. */
-	if(SystemParametersInfo(SPI_GETWORKAREA, 0, &workarea, 0)) {
+    if(SystemParametersInfo(SPI_GETWORKAREA, 0, &workarea, 0)) {
         normalPositionRect.left = workarea.right;
         normalPositionRect.top = workarea.bottom;
         normalPositionRect.right = workarea.right;
@@ -1445,6 +1389,7 @@ int wrapperInitializeRun() {
     int res;
     TCHAR titleBuffer[80];
     int allocConsoleSucceed;
+    int canDisplayConsole;
     HANDLE process = GetCurrentProcess();
 
     /* Set the process priority. */
@@ -1476,16 +1421,17 @@ int wrapperInitializeRun() {
     /* The Wrapper will not have its own console when running as a service.  We need
      *  to create one here. */
     if ((!wrapperData->isConsole) && (wrapperData->ntAllocConsole)) {
+        canDisplayConsole = wrapperData->ntServiceInteractive;
         if (wrapperData->isDebugging) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Allocating a console for the service."));
         }
-   
-        if (wrapperData->ntHideWrapperConsole) {
+
+        if (canDisplayConsole && wrapperData->ntHideWrapperConsole) {
             allocConsoleSucceed = wrapperAllocHiddenConsole();
         } else {
             allocConsoleSucceed = AllocConsole();
         }
-                
+
         if (!allocConsoleSucceed) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 TEXT("ERROR: Unable to allocate a console for the service: %s"), getLastErrorText());
@@ -3890,23 +3836,61 @@ BOOL wrapperAddPrivileges(TCHAR *account) {
 } 
 
 /**
- * Setup the Wrapper (before running it as a console application)
- *  Some setup require to be executed Elevated (for example writing in the registry). 
- *  Those actions can be executed here once before the running the wrapper in normal mode.
+ * Setup the Wrapper
+ *  Execute installation tasks that require to be elevated.
  *
  * Returns 1 if there were any problems.
  */
-int wrapperSetup() {
+int wrapperSetup(int silent) {
     int result = 0;
     
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Registering to the Event Logging System..."));
-    /* here we don't even check if the registration was made. We force installation in case some key or value were corrupted. */
-    result = registerSyslogMessageFile(TRUE);     
+    if (getSyslogRegister()) {
+        /* don't even check if the registration was made, force installation in case some key or value were out of date. */
+        if (!silent) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Registering to the Event Log system..."));
+        }
+        result = registerSyslogMessageFile(TRUE);
+    } else if (!silent) {
+        /* it can be useful to deactivate the registration from the configuration file, especially if the setup include more tasks in the future. */
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Do not register to the Event Log because the property wrapper.syslog.ident.enable is set to FALSE."));
+    }
 
-    /* we can add here more actions to be processed at Setup time */
+    /* we can add here more actions to be processed */
     
     if (result == 0) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Setup done successfully."));
+        if (!silent) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Setup done successfully."));
+        }
+        return 0;
+    }
+    return 1;
+}
+
+/**
+ * Teardown the Wrapper
+ *  Execute deletion tasks that require to be elevated.
+ *
+ * Returns 1 if there were any problems.
+ */
+int wrapperTeardown(int silent) {
+    int result = 0;
+    
+    /* always make sure to clean the registry when calling teardown. */
+    if (syslogMessageFileRegistered()) {
+        if (!silent) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Unregistering to the Event Log system..."));
+        }
+        result = unregisterSyslogMessageFile(TRUE);
+    } else if (!silent) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("%s was not registered to the Event Log system."), getSyslogEventSourceName());
+    }
+
+    /* we can add here more actions to be processed */
+    
+    if (result == 0) {
+        if (!silent) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Teardown done successfully."));
+        }
         return 0;
     }
     return 1;
@@ -4943,7 +4927,7 @@ int wrapperPauseService() {
     TCHAR *status;
     int msgCntr;
     int result = 0;
-	int ignore = FALSE;
+    int ignore = FALSE;
 
     /* First, get a handle to the service control manager */
     schSCManager = OpenSCManager(NULL,
@@ -4973,7 +4957,7 @@ int wrapperPauseService() {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                         TEXT("The %s service was already paused."),
                         wrapperData->serviceDisplayName);
-					ignore = TRUE;	
+                    ignore = TRUE;
                 } else {
                     /* The service is started, starting, or resuming, so try pausing it. */
                     if (ControlService(schService, SERVICE_CONTROL_PAUSE, &serviceStatus)) {
@@ -5091,7 +5075,7 @@ int wrapperResumeService() {
     TCHAR *status;
     int msgCntr;
     int result = 0;
-	int ignore = FALSE;
+    int ignore = FALSE;
 
     /* First, get a handle to the service control manager */
     schSCManager = OpenSCManager(NULL,
@@ -5126,7 +5110,7 @@ int wrapperResumeService() {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                         TEXT("The %s service is already running."),
                         wrapperData->serviceDisplayName);
-					ignore = TRUE;	
+                    ignore = TRUE;
                 } else {
                     /* The service is paused, so try resuming it. */
                     if (ControlService(schService, SERVICE_CONTROL_CONTINUE, &serviceStatus)) {
@@ -5360,11 +5344,6 @@ int wrapperServiceStatus(int consoleOutput) {
 
     int result = 0;
 
-#ifdef WRAPPERW
-    /* always show the result in the dialogbox except if silent */
-    wrapperData->forceDialogLog = consoleOutput;
-    setDialogLogEnabled(consoleOutput);
-#endif
 
     schSCManager = OpenSCManager(NULL,
                                  NULL,
@@ -6593,7 +6572,7 @@ void _tmain(int argc, TCHAR **argv) {
          *  it is necessary to load the configuration twice.
          * The first time, we want to ignore the return value.  Any errors will be
          *  suppressed and will get reported again the second time through. */
-        /* From version 3.5.27, the community edition will also preload the configuration properties. */ 
+        /* From version 3.5.27, the community edition will also preload the configuration properties. */
         wrapperLoadConfigurationProperties(TRUE);
         if (wrapperLoadConfigurationProperties(FALSE)) {
             /* Unable to load the configuration.  Any errors will have already
@@ -6626,7 +6605,25 @@ void _tmain(int argc, TCHAR **argv) {
                     appExit(1);
                     return;
                 }
-                appExit(wrapperSetup());
+                appExit(wrapperSetup(FALSE));
+            }
+            return; /* For clarity. */
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("td")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-teardown"))) {
+            /* Setup the Wrapper */
+            enterLauncherMode();
+            
+            /* Always auto close the log file to keep the output in synch. */
+            setLogfileAutoClose(TRUE);
+            /* are we elevated ? */
+            if (!isElevated()) {
+                appExit(elevateThis(argc, argv));
+            } else {
+                /* are we launched secondary? */
+                if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
+                    appExit(1);
+                    return;
+                }
+                appExit(wrapperTeardown(FALSE));
             }
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("i")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-install"))) {
@@ -6645,6 +6642,7 @@ void _tmain(int argc, TCHAR **argv) {
                     appExit(1);
                     return;
                 }
+                wrapperSetup(TRUE);
                 appExit(wrapperInstall());
             }
             return; /* For clarity. */
@@ -6663,6 +6661,7 @@ void _tmain(int argc, TCHAR **argv) {
                     appExit(1);
                     return;
                 }
+                wrapperSetup(TRUE);
                 result = wrapperInstall();
                 if (!result) {
                     result = wrapperStartService();
@@ -6684,6 +6683,7 @@ void _tmain(int argc, TCHAR **argv) {
                     appExit(1);
                     return;
                 }
+                /* don't call teardown here because it may be confusing if the user still wants to use the Wrapper as a console. */
                 appExit(wrapperRemove());
             }
             return; /* For clarity. */
@@ -7292,15 +7292,6 @@ BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParamet
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("WaitThread for Backend-Process: %s failed! (%d): %s"), TEXT("GetExitCodeProcess"), GetLastError(), getLastErrorText());
                                 ret = TRUE;
                             }
-#ifdef WRAPPERW
-                            /* At this point we know that the Wrapper could launch and retrieve the termination status of the elevated process without critical problem. 
-                             *  The parent process will later exit with the same error code as its child elevated process, which means a dialogbox will be shown for each processes if running with wrapperw.
-                             *  This may be annoying because the parent doesn't have any problem to report in reality. A solution is to disable the dialogbox for the parent process.
-                             */
-                            else {
-                                setDialogLogEnabled(FALSE);
-                            }
-#endif
                         } else {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("The elevated Wrapper process is still alive. Trying to kill it. (%d): %s"), GetLastError(), getLastErrorText());
                             if (TerminateProcess(shex.hProcess, 1) == 0) {

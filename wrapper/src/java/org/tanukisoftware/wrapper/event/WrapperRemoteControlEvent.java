@@ -18,7 +18,7 @@ package org.tanukisoftware.wrapper.event;
  *  triggered by unauthenticated sources.
  */
 public abstract class WrapperRemoteControlEvent
-    extends WrapperConsumableEvent
+    extends WrapperEvent
 {
     /*---------------------------------------------------------------
      * Constructors

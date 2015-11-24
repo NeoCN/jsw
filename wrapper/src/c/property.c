@@ -561,11 +561,11 @@ int loadProperties(Properties *properties,
 int GetLogLevelOnOverwrite(Properties *properties) {
     /* Should be at least LEVEL_FATAL if exitOnOverwrite is set to TRUE */
     if (properties) {
-		if (properties->exitOnOverwrite) {
+        if (properties->exitOnOverwrite) {
             return __max(properties->logLevelOnOverwrite, LEVEL_FATAL);
-		}
+        }
         return properties->logLevelOnOverwrite;
-	}
+    }
     return LEVEL_UNKNOWN;
 }
 
