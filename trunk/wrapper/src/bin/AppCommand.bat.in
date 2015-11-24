@@ -123,6 +123,8 @@ if [%_COMMAND%]==[console] (
     )
 ) else if [%_COMMAND%]==[setup] (
     call :setup
+) else if [%_COMMAND%]==[teardown] (
+    call :teardown
 ) else if [%_COMMAND%]==[start] (
     call :start
 ) else if [%_COMMAND%]==[stop] (
@@ -132,6 +134,12 @@ if [%_COMMAND%]==[console] (
         %_WRAPPER_EXE% -i "%_WRAPPER_CONF%" %_PARAMETERS%
     ) else (
         %_WRAPPER_EXE% -i "%_WRAPPER_CONF%" -- %_PARAMETERS%
+    )
+) else if [%_COMMAND%]==[installstart] (
+    if [%_PASS_THROUGH%]==[] (
+        %_WRAPPER_EXE% -it "%_WRAPPER_CONF%" %_PARAMETERS%
+    ) else (
+        %_WRAPPER_EXE% -it "%_WRAPPER_CONF%" -- %_PARAMETERS%
     )
 ) else if [%_COMMAND%]==[pause] (
     %_WRAPPER_EXE% -a "%_WRAPPER_CONF%"
@@ -161,9 +169,9 @@ if not [%_COMMAND%]==[] (
     echo.
 )
 if [%_PASS_THROUGH%]==[] ( 
-    echo Usage: %0 [ console : start : pause : resume : stop : restart : install : remove : status ]
+    echo Usage: %0 [ console : setup : teardown : start : pause : resume : stop : restart : install : installstart : remove : status ]
 ) else (
-    echo Usage: %0 [ console {JavaAppArgs} : start : pause : resume : stop : restart : install {JavaAppArgs} : remove : status ]
+    echo Usage: %0 [ console {JavaAppArgs} : setup : teardown : start : pause : resume : stop : restart : install {JavaAppArgs} : installstart {JavaAppArgs} : remove : status ]
 )
 pause
 goto :eof
@@ -171,6 +179,9 @@ goto :eof
 
 :setup
     %_WRAPPER_EXE% -su "%_WRAPPER_CONF%"
+    goto :eof
+:teardown
+    %_WRAPPER_EXE% -td "%_WRAPPER_CONF%"
     goto :eof
 :start
     %_WRAPPER_EXE% -t "%_WRAPPER_CONF%"

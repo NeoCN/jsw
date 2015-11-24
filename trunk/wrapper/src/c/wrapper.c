@@ -711,14 +711,29 @@ void wrapperLoadLoggingProperties(int preload) {
 
     /* Load syslog event source name */
     setSyslogEventSourceName(getStringProperty(properties, TEXT("wrapper.syslog.ident"), getStringProperty(properties, TEXT("wrapper.name"), getStringProperty(properties, TEXT("wrapper.ntservice.name"), TEXT("wrapper")))));
+#ifdef WIN32
+    setSyslogRegister(getBooleanProperty(properties, TEXT("wrapper.syslog.ident.enable"), TRUE));
+#endif
 
-    /* Register the syslog message file if syslog is enabled */
-    /* Now lets register the syslog message file anytime */
-    /* if (getSyslogLevelInt() < LEVEL_NONE) { */
+
+#ifdef WIN32
     if (preload) {
-        registerSyslogMessageFile(FALSE);
+        /* Make sure we are not running in setup or teardown mode. Setup will be executed when installing a service. */
+        /* It may be strange to register when removing the service but we want to give the ability to unregister. */
+        if (strcmpIgnoreCase(wrapperData->argCommand, TEXT("su")) && strcmpIgnoreCase(wrapperData->argCommand, TEXT("-setup")) &&
+            strcmpIgnoreCase(wrapperData->argCommand, TEXT("td")) && strcmpIgnoreCase(wrapperData->argCommand, TEXT("-teardown")) &&
+            strcmpIgnoreCase(wrapperData->argCommand, TEXT("i"))  && strcmpIgnoreCase(wrapperData->argCommand, TEXT("-install")) &&
+            strcmpIgnoreCase(wrapperData->argCommand, TEXT("it")) && strcmpIgnoreCase(wrapperData->argCommand, TEXT("-installstart"))) {
+            if (getSyslogRegister()) {
+                /* Register the syslog message */
+                registerSyslogMessageFile(FALSE);
+            } else {
+                /* Unregister the syslog message */
+                unregisterSyslogMessageFile();
+            }
+        }
     }
-    /*} */
+#endif
 
     /* Get the debug status (Property is deprecated but flag is still used) */
     wrapperData->isDebugging = getBooleanProperty(properties, TEXT("wrapper.debug"), FALSE);
@@ -2902,7 +2917,7 @@ void wrapperDataDispose() {
         }
         free(wrapperData->argv);
         wrapperData->argv = NULL;
-    }    
+    }
     wrapperData->argc = 0;
 #endif
     if (wrapperData->workingDir) {
@@ -3237,6 +3252,7 @@ void wrapperUsage(TCHAR *appName) {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -c  --console run as a Console application"));
 #ifdef WIN32
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -su --setup   SetUp the wrapper"));
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -td --teardown TearDown the wrapper"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -t  --start   starT an NT service"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -a  --pause   pAuse a started NT service"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -e  --resume  rEsume a paused NT service"));
@@ -3285,7 +3301,7 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
     wrapperData->argc = argc;
     wrapperCopyStringArray(&(wrapperData->argv), &argv, argc);
     if (wrapperData->argv == NULL) {
-        return FALSE;        
+        return FALSE;
     }
 #endif
 
@@ -3787,7 +3803,7 @@ void wrapperCopyStringArray(TCHAR*** arrOut, TCHAR*** arrIn, int count) {
     *arrOut = malloc(sizeof(TCHAR *) * (count + 1));
     if (arrOut == NULL) {
         outOfMemory(TEXT("WCSA"), 1);
-        return;        
+        return;
     }
     
     for (i = 0; i < count; i++) {
@@ -3799,8 +3815,8 @@ void wrapperCopyStringArray(TCHAR*** arrOut, TCHAR*** arrIn, int count) {
                 *(*arrOut + j) = NULL;
             }
             free(*arrOut);
-            *arrOut = NULL;            
-            return;        
+            *arrOut = NULL;
+            return;
         }
         _tcsncpy(*(*arrOut + i), *(*arrIn + i), _tcslen(*(*arrIn + i)) + 1);
     }
@@ -3814,11 +3830,11 @@ void wrapperCopyStringArray(TCHAR*** arrOut, TCHAR*** arrIn, int count) {
  *  If there are any space between 2 delimiters, the function will consider it as a token and trim it.
  *
  * @param text Text to be split
- * @param delim Array of delimiters 
+ * @param delim Array of delimiters
  *
  * @return tokens in an Array of TCHAR*
  */
-/* commented because not used, but tested and working: just need to replace _tcsdup() by _tcsncpy() for cross platform compatibility  */ 
+/* commented because not used, but tested and working: just need to replace _tcsdup() by _tcsncpy() for cross platform compatibility  */
 /*
 TCHAR** wrapperSplitText(const TCHAR* text, const TCHAR* delim) {
     TCHAR** result = NULL;
@@ -3995,9 +4011,6 @@ void logChildOutput(const char* log) {
  #ifdef WIN32
     GetLocaleInfo(GetThreadLocale(), LOCALE_IDEFAULTANSICODEPAGE, buffer, sizeof(buffer));
     cp = _ttoi(buffer);
-    if ((_tcsstr(wrapperData->language, TEXT("ja")) == wrapperData->language) && !(wrapperCheckCodePageSupport(cp, LANG_JAPANESE))) {
-         cp = 932;
-    }
     size = MultiByteToWideChar(cp, 0, log, -1 , NULL, 0);
     if (size <= 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
@@ -4560,7 +4573,7 @@ BOOL GetOSDisplayString(TCHAR** pszOS) {
     osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
 
 #pragma warning(push)
-#pragma warning(disable : 4996) /* Visual Studio 2013 deprecates GetVersionEx but we still want to use it. */    
+#pragma warning(disable : 4996) /* Visual Studio 2013 deprecates GetVersionEx but we still want to use it. */
     if (!GetVersionEx((OSVERSIONINFO*) &osvi)) {
          return FALSE;
     }

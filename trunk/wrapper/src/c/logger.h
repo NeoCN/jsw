@@ -247,6 +247,9 @@ extern void setSyslogLevelInt(int loginfo_level);
 extern int getSyslogLevelInt();
 extern void setSyslogLevel( const TCHAR *loginfo_level );
 extern void setSyslogSplitMessages(int splitMessages);
+extern void setSyslogRegister(int sysRegister);
+extern int getSyslogRegister();
+extern TCHAR* getSyslogEventSourceName();
 #ifndef WIN32
 extern void setSyslogFacility( const TCHAR *loginfo_level );
 #endif

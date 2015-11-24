@@ -382,7 +382,7 @@ then
         # Note: "OnDemand" has been deprecated and replaced from Mac OS X 10.5 by "KeepAlive"
         KEY_KEEP_ALIVE="KeepAlive"
         
-        if [ "X`/usr/sbin/sysctl -n hw.cpu64bit_capable`" == "X1" ]  
+        if [ "X`/usr/sbin/sysctl -n hw.cpu64bit_capable`" = "X1" ]  
         then
             DIST_BITS="64"
         else
@@ -642,7 +642,11 @@ then
 fi
 
 # Build app name clause
-if [ -n "$APP_NAME_PASS_TO_WRAPPER" ] && [ $APP_NAME_PASS_TO_WRAPPER = false ]
+if [ ! -n "$APP_NAME_PASS_TO_WRAPPER" ]
+then
+    APP_NAME_PASS_TO_WRAPPER=true
+fi
+if [ $APP_NAME_PASS_TO_WRAPPER = false ]
 then
    APPNAMEPROP=
 else
@@ -681,7 +685,11 @@ fi
 
 prepAdditionalParams() {
     ADDITIONAL_PARA=""
-    if [ -n "$PASS_THROUGH" ] && [ $PASS_THROUGH = true ] ; then
+    if [ ! -n "$PASS_THROUGH" ]
+    then
+        PASS_THROUGH=false
+    fi
+    if [ $PASS_THROUGH = true ] ; then
         ADDITIONAL_PARA="--"
         while [ -n "$1" ] ; do
             ADDITIONAL_PARA="$ADDITIONAL_PARA \"$1\""
@@ -752,7 +760,12 @@ checkUser() {
         # Wrap the parameters so they can be passed.
         ADDITIONAL_PARA=""
         while [ -n "$1" ] ; do
-            ADDITIONAL_PARA="$ADDITIONAL_PARA \"$1\""
+            if [ "$1" = 'installstart' ] ; then
+                # At this point the service is already installed. When we will fork the process we only need to start the service.
+                ADDITIONAL_PARA="$ADDITIONAL_PARA \"start\""
+            else
+                ADDITIONAL_PARA="$ADDITIONAL_PARA \"$1\""
+            fi
             shift
         done
 
@@ -1319,6 +1332,8 @@ srcStart() {
         eval echo `gettext 'Failed to start service $APP_NAME'`
         exit 1
     fi
+    
+    startwait
 }
 
 srcStop() {
@@ -1480,7 +1495,9 @@ installdaemon() {
         eval echo `gettext 'Detected Solaris:'`
         if [ -f "/etc/init.d/$APP_NAME" -o -L "/etc/init.d/$APP_NAME" ] ; then
             eval echo `gettext ' The $APP_LONG_NAME daemon is already installed.'`
-            exit 1
+            if [ "$COMMAND" != 'installstart' ] ; then
+                exit 1
+            fi
         else
             eval echo `gettext ' Installing the $APP_LONG_NAME daemon..'`
             ln -s "$REALPATH" "/etc/init.d/$APP_NAME"
@@ -1496,7 +1513,9 @@ installdaemon() {
             eval echo `gettext 'Detected RHEL or Fedora:'`                  
             if [ -f "/etc/init.d/$APP_NAME" -o -L "/etc/init.d/$APP_NAME" -o -f "/etc/init/${APP_NAME}.conf" ] ; then
                 eval echo `gettext ' The $APP_LONG_NAME daemon is already installed.'`
-                exit 1
+                if [ "$COMMAND" != 'installstart' ] ; then
+                    exit 1
+                fi
             elif [ -n "$USE_SYSTEMD" -a -d "/etc/systemd" ] ; then
                     systemdInstall
             else
@@ -1513,7 +1532,9 @@ installdaemon() {
             eval echo `gettext 'Detected SuSE or SLES:'`
             if [ -f "/etc/init.d/$APP_NAME" -o -L "/etc/init.d/$APP_NAME" ] ; then
                 eval echo `gettext ' The $APP_LONG_NAME daemon is already installed.'`
-                exit 1
+                if [ "$COMMAND" != 'installstart' ] ; then
+                    exit 1
+                fi
             elif [ -n "$USE_SYSTEMD" -a -d "/etc/systemd" ] ; then
                     systemdInstall
             else
@@ -1525,7 +1546,9 @@ installdaemon() {
             eval echo `gettext 'Detected Ubuntu or Debian:'`
             if [ -f "/etc/init.d/$APP_NAME" -o -L "/etc/init.d/$APP_NAME" -o -f "/etc/init/${APP_NAME}.conf" ] ; then
                 eval echo `gettext ' The $APP_LONG_NAME daemon is already installed.'`
-                exit 1
+                if [ "$COMMAND" != 'installstart' ] ; then
+                    exit 1
+                fi
             else
                 if [ -n "$USE_SYSTEMD" -a -d "/etc/systemd" ] ; then
                     systemdInstall
@@ -1541,7 +1564,9 @@ installdaemon() {
             eval echo `gettext 'Detected Linux:'`
             if [ -f "/etc/init.d/$APP_NAME" -o -L "/etc/init.d/$APP_NAME" ] ; then
                 eval echo `gettext ' The $APP_LONG_NAME daemon is already installed.'`
-                exit 1
+                if [ "$COMMAND" != 'installstart' ] ; then
+                    exit 1
+                fi
             else
                 eval echo `gettext ' Installing the $APP_LONG_NAME daemon..'`
                 ln -s "$REALPATH" /etc/init.d/$APP_NAME
@@ -1559,7 +1584,9 @@ installdaemon() {
         eval echo `gettext 'Detected HP-UX:'`          
         if [ -f "/sbin/init.d/$APP_NAME" -o -L "/sbin/init.d/$APP_NAME" ] ; then
             eval echo `gettext ' The $APP_LONG_NAME daemon is already installed.'`
-            exit 1
+            if [ "$COMMAND" != 'installstart' ] ; then
+                exit 1
+            fi
         else
             eval echo `gettext ' Installing the $APP_LONG_NAME daemon..'`
             ln -s "$REALPATH" "/sbin/init.d/$APP_NAME"
@@ -1575,10 +1602,14 @@ installdaemon() {
         validateAppNameLength
         if [ -f "/etc/rc.d/init.d/$APP_NAME" ] ; then
             eval echo `gettext ' The $APP_LONG_NAME daemon is already installed as rc.d script.'`
-            exit 1
+            if [ "$COMMAND" != 'installstart' ] ; then
+                exit 1
+            fi
         elif [ -n "`/usr/sbin/lsitab $APP_NAME`" -a -n "`/usr/bin/lssrc -S -s $APP_NAME`" ] ; then
             eval echo `gettext ' The $APP_LONG_NAME daemon is already installed as SRC service.'`
-            exit 1
+            if [ "$COMMAND" != 'installstart' ] ; then
+                exit 1
+            fi
         else
             eval echo `gettext ' Installing the $APP_LONG_NAME daemon..'`
             if [ -n "`/usr/sbin/lsitab install_assist`" ] ; then 
@@ -1594,7 +1625,9 @@ installdaemon() {
         eval echo `gettext 'Detected FreeBSD:'`                
         if [ -f "/etc/rc.d/$APP_NAME" -o -L "/etc/rc.d/$APP_NAME" ] ; then
             eval echo `gettext ' The $APP_LONG_NAME daemon is already installed.'`
-            exit 1
+            if [ "$COMMAND" != 'installstart' ] ; then
+                exit 1
+            fi
         else
             eval echo `gettext ' Installing the $APP_LONG_NAME daemon..'`
             sed -i .bak "/${APP_NAME}_enable=\"YES\"/d" /etc/rc.conf
@@ -1632,7 +1665,9 @@ installdaemon() {
         eval echo `gettext 'Detected Mac OSX:'`
         if [ -f "/Library/LaunchDaemons/${APP_PLIST}" -o -L "/Library/LaunchDaemons/${APP_PLIST}" ] ; then
             eval echo `gettext ' The $APP_LONG_NAME daemon is already installed.'`
-            exit 1
+            if [ "$COMMAND" != 'installstart' ] ; then
+                exit 1
+            fi
         else
             eval echo `gettext ' Installing the $APP_LONG_NAME daemon..'`
             if [ -f "${REALDIR}/${APP_PLIST}" ] ; then
@@ -1667,7 +1702,9 @@ installdaemon() {
         eval echo `gettext 'Detected z/OS:'`
         if [ -f /etc/rc.bak ] ; then
             eval echo `gettext ' The $APP_LONG_NAME daemon is already installed.'`
-            exit 1
+            if [ "$COMMAND" != 'installstart' ] ; then
+                exit 1
+            fi
         else
             eval echo `gettext ' Installing the $APP_LONG_NAME daemon..'`
             cp /etc/rc /etc/rc.bak
@@ -1678,6 +1715,33 @@ installdaemon() {
     else
         eval echo `gettext 'Install not currently supported for $DIST_OS'`
         exit 1
+    fi
+}
+
+startdaemon() {
+    if [ "$DIST_OS" = "macosx" ] ; then 
+        if [ ! -f "/Library/LaunchDaemons/${APP_PLIST}" ] ; then
+            # inform the user that the application was not installed
+            status
+        else
+            macosxStart
+        fi
+    elif [ "$DIST_OS" = "linux" -a -f "/etc/init/${APP_NAME}.conf" ] ; then
+        upstartstart
+    elif [ "$DIST_OS" = "linux" -a -n "$USE_SYSTEMD" -a -z "$SYSD" ] ; then
+        systemdStart
+    elif [ "$DIST_OS" = "aix" ] && [ -n "`/usr/bin/lssrc -S -s $APP_NAME`" ] ; then
+        srcStart
+    else
+        if [ -n "$SYSD" ] ; then
+            shift
+        fi
+        
+        checkUser touchlock "$@"
+        if [ ! -n "$FIXED_COMMAND" ] ; then
+            shift
+        fi
+        start "$@"
     fi
 }
 
@@ -1909,15 +1973,15 @@ showUsage() {
     else
         if [ -n "$PAUSABLE" ] ; then
             if [ -n "$PASS_THROUGH" ] ; then
-                echo "${MSG} $0 [ console {JavaAppArgs} | start {JavaAppArgs} | stop | restart {JavaAppArgs} | condrestart {JavaAppArgs} | pause | resume | status | install | remove | dump ]"
+                echo "${MSG} $0 [ console {JavaAppArgs} | start {JavaAppArgs} | stop | restart {JavaAppArgs} | condrestart {JavaAppArgs} | pause | resume | status | install | installstart | remove | dump ]"
             else
-                echo "${MSG} $0 [ console | start | stop | restart | condrestart | pause | resume | status | install | remove | dump ]"
+                echo "${MSG} $0 [ console | start | stop | restart | condrestart | pause | resume | status | install | installstart | remove | dump ]"
             fi
         else
             if [ -n "$PASS_THROUGH" ] ; then
-                echo "${MSG} $0 [ console {JavaAppArgs} | start {JavaAppArgs} | stop | restart {JavaAppArgs} | condrestart {JavaAppArgs} | status | install | remove | dump ]"
+                echo "${MSG} $0 [ console {JavaAppArgs} | start {JavaAppArgs} | stop | restart {JavaAppArgs} | condrestart {JavaAppArgs} | status | install | installstart | remove | dump ]"
             else
-                echo "${MSG} $0 [ console | start | stop | restart | condrestart | status | install | remove | dump ]"
+                echo "${MSG} $0 [ console | start | stop | restart | condrestart | status | install | installstart | remove | dump ]"
             fi
         fi
     fi
@@ -1938,6 +2002,7 @@ showUsage() {
             fi
             echo "`gettext '  status       Query the current status.'`"
             echo "`gettext '  install      Install to start automatically when system boots.'`"
+            echo "`gettext '  installstart Install and start running as a daemon process.'`"
             echo "`gettext '  remove       Uninstall.'`"
             echo "`gettext '  dump         Request a Java thread dump if running.'`"
             echo "";
@@ -1962,30 +2027,7 @@ docommand() {
             ;;
     
         'start')
-            if [ "$DIST_OS" = "macosx" ] ; then 
-                if [ ! -f "/Library/LaunchDaemons/${APP_PLIST}" ] ; then
-                    # inform the user that the application was not installed
-                    status
-                else
-                    macosxStart
-                fi
-            elif [ "$DIST_OS" = "linux" -a -f "/etc/init/${APP_NAME}.conf" ] ; then
-                upstartstart
-            elif [ "$DIST_OS" = "linux" -a -n "$USE_SYSTEMD" -a -z "$SYSD" ] ; then
-                systemdStart
-            elif [ "$DIST_OS" = "aix" -a -n "`/usr/bin/lssrc -S -s $APP_NAME`" ] ; then
-                srcStart
-            else
-                if [ -n "$SYSD" ] ; then
-                    shift
-                fi
-                
-                checkUser touchlock "$@"
-                if [ ! -n "$FIXED_COMMAND" ] ; then
-                    shift
-                fi
-                start "$@"
-            fi
+            startdaemon "$@"
             ;;
     
         'stop')
@@ -1995,7 +2037,7 @@ docommand() {
                 upstartStop
             elif [ "$DIST_OS" = "linux" -a -n "$USE_SYSTEMD" -a -z "$SYSD" ] ; then
                 systemdStop
-            elif [ "$DIST_OS" = "aix" -a -n "`/usr/bin/lssrc -S -s $APP_NAME`" ] ; then
+            elif [ "$DIST_OS" = "aix" ] && [ "`/usr/bin/lssrc -S -s $APP_NAME`" ] ; then
                 srcStop
             else
                 checkUser "" "$COMMAND"
@@ -2014,7 +2056,7 @@ docommand() {
                 upstartRestart
             elif [ "$DIST_OS" = "linux" -a -n "$USE_SYSTEMD" -a -z "$SYSD" ] ; then
                 systemdRestart
-            elif [ "$DIST_OS" = "aix" -a -n "`/usr/bin/lssrc -S -s $APP_NAME`" ] ; then
+            elif [ "$DIST_OS" = "aix" ] && [ "`/usr/bin/lssrc -S -s $APP_NAME`" ] ; then
                 srcRestart
             else
                 if [ -n "$SMF" ] ; then
@@ -2061,7 +2103,12 @@ docommand() {
             ;;
     
         'install')
-            installdaemon
+            installdaemon "$@"
+            ;;
+    
+        'installstart')
+            installdaemon "$@"
+            startdaemon "$@"
             ;;
     
         'remove')

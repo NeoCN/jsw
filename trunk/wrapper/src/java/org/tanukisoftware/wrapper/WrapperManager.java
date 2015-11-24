@@ -5739,7 +5739,7 @@ public final class WrapperManager
                         case WRAPPER_MSG_SECOND_INVOCATION_EVENT:
                             WrapperSecondInvocationEvent secondInvocationEvent = new WrapperSecondInvocationEvent( );
                             fireWrapperEvent( secondInvocationEvent );
-                            sendCommand(WRAPPER_MSG_SECOND_INVOCATION_EVENT, secondInvocationEvent.isConsumed() ? "consumed" : "not consumed");
+                            sendCommand(WRAPPER_MSG_SECOND_INVOCATION_EVENT, "");
                             break;
                             
                         default:

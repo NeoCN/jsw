@@ -1170,6 +1170,29 @@ wrapper.java.additional.3.stripquotes=FALSE]]></replacevalue>
         <replace file="${test.dir}/defaultstripquotes-03-false.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintParam" />
+                 
+        <!-- Passthrough Test -->
+        <delete file="${test.dir}/passthrough.conf"/>
+        <filter token="app.name"          value="passthrough"/>
+        <filter token="app.long.name"     value="passthrough Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/passthrough.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/passthrough.conf"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperStartStopApp" />
+        <replace file="${test.dir}/passthrough.conf">
+            <replacetoken><![CDATA[wrapper.app.parameter.1=<YourMainClass>]]></replacetoken>
+            <replacevalue><![CDATA[wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.Passthrough
+wrapper.app.parameter.2=2
+wrapper.app.parameter.3=start
+wrapper.app.parameter.4=-StartParam
+wrapper.app.parameter.5=org.tanukisoftware.wrapper.test.Passthrough
+wrapper.app.parameter.6=FALSE
+wrapper.app.parameter.7=2
+wrapper.app.parameter.8=stop
+wrapper.app.parameter.9=-StopParam]]></replacevalue>
+        </replace>
     </target>
 
     <!-- =================================================================== -->
@@ -1948,6 +1971,11 @@ set ENV_VAR_4=d]]></replacevalue>
         <replace file="${test.dir}/TestDefaultStripquotes-03-false.bat"
                  token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
                  value='set _WRAPPER_CONF_DEFAULT=../test/defaultstripquotes-03-false.conf' />
+
+        <!-- Passthrough Test -->
+        <delete file="${test.dir}/TestPassthrough.bat"/>
+        <touch file="${test.dir}/TestPassthrough.bat"/>
+        <echo  file="${test.dir}/TestPassthrough.bat">TODO</echo>
     </target>
     
     <!-- =================================================================== -->
@@ -2484,6 +2512,15 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/defaultstripquotes-03-false"
               filtering="on"/>
         <chmod file="${test.dir}/defaultstripquotes-03-false" perm="+x"/>
+        
+        <!-- Passthrough Test -->
+        <touch file="${test.dir}/passthrough"/>
+        <echo  file="${test.dir}/passthrough">#! /bin/sh
+../bin/wrapper -c ../test/passthrough.conf wrapper.java.additional.1=-Dorg.tanukisoftware.wrapper.WrapperStartStopApp.passthroughMode=START -- "**** This line should only appear when the application STARTS" 
+../bin/wrapper -c ../test/passthrough.conf wrapper.java.additional.1=-Dorg.tanukisoftware.wrapper.WrapperStartStopApp.passthroughMode=STOP -- "**** This line should only appear when the application STOPS" 
+../bin/wrapper -c ../test/passthrough.conf wrapper.java.additional.1=-Dorg.tanukisoftware.wrapper.WrapperStartStopApp.passthroughMode=BOTH -- "**** This line should appear when the application STARTS and STOPS"
+../bin/wrapper -c ../test/passthrough.conf wrapper.java.additional.1=-Dorg.tanukisoftware.wrapper.WrapperStartStopApp.passthroughMode=IGNORE -- "**** This line should not appear at all."</echo>
+        <chmod file="${test.dir}/passthrough" perm="+x"/>
     </target>
     
     <!-- =================================================================== -->

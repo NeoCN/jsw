@@ -822,6 +822,7 @@ BOOL extern isWin10OrHigher();
 BOOL extern isVista();
 BOOL extern isWinXP();
 extern void wrapperMaintainControlCodes();
+int wrapperServiceStatus(int consoleOutput);
 #else
 extern void wrapperMaintainSignals();
 extern TCHAR* findPathOf(const TCHAR *exe, const TCHAR* name);

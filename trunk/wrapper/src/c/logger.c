@@ -114,6 +114,7 @@ int currentConsoleLevel = LEVEL_UNKNOWN;
 int currentLogfileLevel = LEVEL_UNKNOWN;
 int currentLoginfoLevel = LEVEL_UNKNOWN;
 int currentLogSplitMessages = FALSE;
+int currentLogRegister = TRUE;
 
 /* Default syslog facility is LOG_USER */
 int currentLogfacilityLevel = LOG_USER;
@@ -406,9 +407,6 @@ int initLogging(void (*logFileChanged)(const TCHAR *logFile)) {
  */
 int disposeLogging() {
 #ifdef WIN32
- #ifdef WRAPPERW
-    int i;
- #endif
     
     /* Always call maintain logger once to make sure that all queued messages are logged before we exit. */
     maintainLogger();
@@ -419,14 +417,6 @@ int disposeLogging() {
             return 1;
         }
     }
- #ifdef WRAPPERW
-    for (i = 0; i < dialogLogEntries; i++) {
-        free(dialogLogs[i]);
-        dialogLogs[i] = NULL;
-    }
-    free(dialogLogs);
-    dialogLogs = NULL;
- #endif
 #endif
     if (threadPrintBuffer && threadPrintBufferSize > 0) {
         free(threadPrintBuffer);
@@ -599,9 +589,6 @@ void setLogWarningThreshold(int threshold) {
  */
 void setSilentLogLevels() {
     setConsoleLogLevelInt(LEVEL_NONE);
-#ifdef WRAPPERW
-    setDialogLogLevelInt(LEVEL_NONE);
-#endif
     setLogfileLevelInt(LEVEL_NONE);
     setSyslogLevelInt(LEVEL_NONE);
 }
@@ -1189,6 +1176,18 @@ void setSyslogLevel( const TCHAR *loginfo_level ) {
 
 void setSyslogSplitMessages(int splitMessages) {
     currentLogSplitMessages = splitMessages;
+}
+
+void setSyslogRegister(int sysRegister) {
+    currentLogRegister = sysRegister;
+}
+
+int getSyslogRegister() {
+    return currentLogRegister;
+}
+
+TCHAR* getSyslogEventSourceName() {
+    return loginfoSourceName;
 }
 
 #ifndef WIN32
@@ -2602,12 +2601,12 @@ int registerSyslogMessageFile( int forceInstall ) {
 
 /**
  * Register to the Log Event System
- *  (not used anymore) 
  */
 int unregisterSyslogMessageFile( ) {
 #ifdef WIN32
     /* If we deregister this application, then the event viewer will not work when the program is not running. */
     /* Don't want to clutter up the Registry, but is there another way?  */
+    /* From 3.5.28 we want to allow the user to never register. */
     TCHAR regPath[ 1024 ];
 
     /* Get absolute path to service manager */
@@ -3251,7 +3250,7 @@ void rollLogs() {
 
 #ifdef LINUX
 /**
- * Get description found in a release file. 
+ * Get description found in a release file.
  *  This function will only check for the first line because there is only one line in these files.
  *
  * @return TRUE if the description could be found.
@@ -3283,36 +3282,40 @@ int getReleaseDescription(TCHAR **description, const TCHAR *releaseFile) {
 }
 
 static TCHAR distroDescription[100];
+const TCHAR *centosPattern = TEXT("CentOS Linux");
+const TCHAR *amiPattern = TEXT("Amazon Linux AMI");
+const TCHAR *rhelPattern = TEXT("Red Hat Enterprise Linux");
+const TCHAR *linuxPattern = TEXT("Linux");
 
 /**
- * Get a description of the linux distribution. 
+ * Get a description of the linux distribution.
  */
 const TCHAR *getDistro() {
     static int firstCall = TRUE;
     TCHAR *sysDescription = NULL;
     TCHAR *rhelDescription = NULL;
     int foundSysDescription;
-    int foundRhelDescription;
-    const TCHAR *centosPattern = TEXT("CentOS Linux");
-    const TCHAR *amiPattern = TEXT("Amazon Linux AMI");
-    const TCHAR *linuxPattern = TEXT("Linux");
+    int foundRhDescription;
     
     if (firstCall) {
         firstCall = FALSE;
 
         foundSysDescription = getReleaseDescription(&sysDescription, TEXT("/etc/system-release"));
-        foundRhelDescription = getReleaseDescription(&rhelDescription, TEXT("/etc/redhat-release"));
+        foundRhDescription = getReleaseDescription(&rhelDescription, TEXT("/etc/redhat-release"));
         
-        if ((foundRhelDescription && _tcsstr(rhelDescription, centosPattern) != NULL) || 
-            (foundSysDescription  && _tcsstr(sysDescription,  centosPattern) != NULL)) {
+        if ((foundRhDescription && _tcsstr(rhelDescription, centosPattern) != NULL) || 
+            (foundSysDescription  && _tcsstr(sysDescription, centosPattern) != NULL)) {
             _tcsncpy(distroDescription, centosPattern, 100);
+        } else if ((foundRhDescription && _tcsstr(rhelDescription, rhelPattern) != NULL) || 
+            (foundSysDescription  && _tcsstr(sysDescription, rhelPattern) != NULL)) {
+            _tcsncpy(distroDescription, rhelPattern, 100);
         } else if (foundSysDescription && _tcsstr(sysDescription, amiPattern) != NULL) {
             _tcsncpy(distroDescription, amiPattern, 100);
         } else {
             _tcsncpy(distroDescription, linuxPattern, 100);
         }
         if (sysDescription) {
-            free(sysDescription);    
+            free(sysDescription);
         }
         if (rhelDescription) {
             free(rhelDescription);
@@ -3324,16 +3327,21 @@ const TCHAR *getDistro() {
 
 int isCentos() {
     static int result = -1;
-    return result != -1 ? result : (_tcsicmp(getDistro(), TEXT("CentOS Linux")) == 0);
+    return result != -1 ? result : (result = (_tcsicmp(getDistro(), centosPattern) == 0));
 }
 
 int isAMI() {
     static int result = -1;
-    return result != -1 ? result : (_tcsicmp(getDistro(), TEXT("Amazon Linux AMI")) == 0);
+    return result != -1 ? result : (result = (_tcsicmp(getDistro(), amiPattern) == 0));
+}
+
+int isRHEL() {
+    static int result = -1;
+    return result != -1 ? result : (result = (_tcsicmp(getDistro(), rhelPattern) == 0));
 }
 
 /**
- * Check if the glibc version of the user is upper to given numbers. 
+ * Check if the glibc version of the user is upper to given numbers.
  */
 int wrapperAssertGlibcUserBis(unsigned int maj, unsigned int min, unsigned int rev) {
     unsigned int vmaj=0;
@@ -3355,7 +3363,7 @@ int doesFtellCauseMemoryLeak() {
     static int result = -1;
 #ifdef LINUX
     if (result == -1) {
-        if ((isCentos() || isAMI()) && !wrapperAssertGlibcUserBis(2, 21, 0)){
+        if ((isCentos() || isAMI() || isRHEL()) && !wrapperAssertGlibcUserBis(2, 21, 0)){
             result = 1;
         } else {
             result = 0;
@@ -3376,7 +3384,7 @@ void checkAndRollLogs(const TCHAR *nowDate, size_t printBufferSize) {
 #else
     struct stat fileStat;
 #endif
-    static size_t unflushedBufferSize = -2; /* initial value to -2: no carriage return for the last message beeing logged. */
+    static size_t unflushedBufferSize = 0;
     static size_t previousFileSize = 0;
 
     /* Depending on the roll mode, decide how to roll the log file. */
@@ -3413,12 +3421,7 @@ void checkAndRollLogs(const TCHAR *nowDate, size_t printBufferSize) {
                     if (previousFileSize != position) {
                         /* the file has been flushed */
                         previousFileSize = position;
-                        if (position == 0) {
-                            /* initial value to -2: no carriage return for the last message beeing logged. */
-                            unflushedBufferSize = -2;
-                        } else {
-                            unflushedBufferSize = 0;
-                        }
+                        unflushedBufferSize = 0;
                     }
                     unflushedBufferSize += printBufferSize;
                     position += unflushedBufferSize;
@@ -3427,7 +3430,7 @@ void checkAndRollLogs(const TCHAR *nowDate, size_t printBufferSize) {
         }
 
         /* Does the log file need to rotated? */
-        if (position >= logFileMaxSize) {
+        if ((int)position - 2 >= logFileMaxSize) { /* -2: no carriage return for the last message beeing logged. */
             rollLogs();
         }
     } else if (logFileRollMode & ROLL_MODE_DATE) {
