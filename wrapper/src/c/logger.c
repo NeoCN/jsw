@@ -1178,6 +1178,7 @@ void setSyslogSplitMessages(int splitMessages) {
     currentLogSplitMessages = splitMessages;
 }
 
+#ifdef WIN32
 void setSyslogRegister(int sysRegister) {
     currentLogRegister = sysRegister;
 }
@@ -1189,6 +1190,7 @@ int getSyslogRegister() {
 TCHAR* getSyslogEventSourceName() {
     return loginfoSourceName;
 }
+#endif
 
 #ifndef WIN32
 void setSyslogFacilityInt( int logfacility_level ) {
