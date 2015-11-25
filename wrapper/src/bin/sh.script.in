@@ -1721,8 +1721,7 @@ installdaemon() {
 startdaemon() {
     if [ "$DIST_OS" = "macosx" ] ; then 
         if [ ! -f "/Library/LaunchDaemons/${APP_PLIST}" ] ; then
-            # inform the user that the application was not installed
-            status
+            eval echo `gettext 'The $APP_LONG_NAME daemon is not currently installed.'`
         else
             macosxStart
         fi
