@@ -4715,7 +4715,7 @@ int wrapperStartService() {
                         } else {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("The %s service was launched, but failed to start."),
                                 wrapperData->serviceDisplayName);
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Please check the log file more information: %s"), logFileFullPath);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Please check the log file for more information: %s"), logFileFullPath);
                             result = 1;
                         }
                     } else {
