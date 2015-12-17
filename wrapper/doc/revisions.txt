@@ -68,8 +68,20 @@ Java Service Wrapper Revision History.
   create or delete an identification (also known as source) for the event log. 
   Starting with Windows Vista or Windows Server 2003, this action requires 
   administrative credentials. When running on a lower permission, the Wrapper 
-  will ignore this property and start normally. 
-  
+  will ignore this property and start normally.
+* Fixed a bug where actions specified by wrapper.ping.timeout.action were only
+  performed the first time the JVM became hung. All subsequent hangs were
+  ignored. With the default configuration, this would mean the Wrapper could
+  only restart a hung JVM once. Since 3.5.16.
+* The Wrapper is now signed with a SHA-2 certificate. SHA-2 provides stronger
+  security than the previously used SHA-1 algorithm. The decision to change the
+  certificate was made in compliance with Microsoft's SHA-1 deprecation plan
+  which states that Windows 7 and higher will no longer support SHA-1 after
+  January 1st, 2016. It should be noted that Windows XP SP2 and lower, as well
+  as Windows Server 2003, don't support SHA-2 and the new certificate will not
+  apply on these platforms. The binaries provided for Windows Itanium will also
+  no longer be signed.
+
 3.5.27
 * Fix a misleading error message when there is a problem processing a system
   error message on Windows.

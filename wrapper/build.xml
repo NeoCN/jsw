@@ -203,6 +203,16 @@
         <!-- Generate the release-file base. -->
         <property name="releasefile" value="${name}-${dist.os}-${dist.arch}-${bits}-${version}"/>
         <property name="releaseSymbolsFile" value="${releasefile}-SYMBOLS"/>
+        
+        <!-- Check if the binaries need to be code-signed. -->
+        <condition property="code-sign-required" value="true">
+            <and>
+                <isset property="is.windows"/>
+                <not>
+                    <equals arg1="${dist.arch}" arg2="ia"/>
+                </not>
+            </and>
+        </condition>
     </target>
     <target name="init-windows" depends="init-setup" if="is.windows">
         <!-- Decide on the type of script to generate. -->
@@ -1330,7 +1340,7 @@ wrapper.filter.action.999=NONE]]></replacevalue>
         <fail message="pre-release files not found."/>
     </target>
     
-    <target name="code-sign-check" if="is.windows">
+    <target name="code-sign" depends="release-windows-begin" if="code-sign-required">
         <fail unless="wrapper.cert.password">
           ERROR:
 **************************************************************************
@@ -1358,21 +1368,30 @@ wrapper.filter.action.999=NONE]]></replacevalue>
 * Please specify the path to the certificate in default.properties (cert.dir).
 ****************************************************************************
         </fail>
-        <available property="cert.exists" file="${cert.dir}/codesigncert.pfx"/>
+        <available property="cert.exists" file="${cert.dir}/codesigncert.p12"/>
         <fail unless="cert.exists">            
             ERROR:
 ************************************************************************************************************
-* The directory specified in cert.dir (${cert.dir}) does not exist/or does not contain the certificate codesigncert.pfx.
+* The directory specified in cert.dir (${cert.dir}) does not exist/or does not contain the certificate codesigncert.p12.
 * Please verify the folder contains the file!!
 ************************************************************************************************************
         </fail>
+        
+        <!-- Sign the binaries -->
+        <exec executable="${signtool.dir}/signtool.exe"
+              failonerror="true">
+            <arg line="sign /f &quot;${cert.dir}/codesigncert.p12&quot; /p ${wrapper.cert.password} /t http://timestamp.comodoca.com/authenticode &quot;${releasedir}/bin/${wrapper.bin.name}&quot;" />
+        </exec>
+        <exec executable="${signtool.dir}/signtool.exe"
+              failonerror="true">
+            <arg line="sign /f &quot;${cert.dir}/codesigncert.p12&quot; /p ${wrapper.cert.password} /t http://timestamp.comodoca.com/authenticode &quot;${releasedir}/lib/${wrapper.lib.name}&quot;" />
+        </exec>
     </target>
     
     <!-- =================================================================== -->
     <!-- Release (Windows)                                                   -->
     <!-- =================================================================== -->
-    <target name="release-windows" depends="code-sign-check, pre-release:check, compile-c" if="is.windows">
-
+    <target name="release-windows-begin" depends="pre-release:check, compile-c" if="is.windows">
         <property name="releasedir" value="${build.dir}/${releasefile}"/>
         <delete dir="${releasedir}"/>
         <mkdir dir="${releasedir}"/>
@@ -1438,15 +1457,9 @@ wrapper.filter.action.999=NONE]]></replacevalue>
         <!-- Need an empty log file so that the logs directory will be included -->
         <mkdir dir="${releasedir}/logs"/>
         <touch file="${releasedir}/logs/wrapper.log"/>
-        <!-- Sign the binaries -->
-        <exec executable="${signtool.dir}/signtool.exe"
-              failonerror="true">
-            <arg line="sign /f &quot;${cert.dir}/codesigncert.pfx&quot; /p ${wrapper.cert.password} /t http://timestamp.comodoca.com/authenticode &quot;${releasedir}/bin/${wrapper.bin.name}&quot;" />
-        </exec>
-        <exec executable="${signtool.dir}/signtool.exe"
-              failonerror="true">
-            <arg line="sign /f &quot;${cert.dir}/codesigncert.pfx&quot; /p ${wrapper.cert.password} /t http://timestamp.comodoca.com/authenticode &quot;${releasedir}/lib/${wrapper.lib.name}&quot;" />
-        </exec>
+    </target>
+    <target name="release-windows" depends="release-windows-begin, code-sign" if="is.windows">
+
         <!-- Make sure that files are formatted correctly for their platforms -->
         <fixcrlf srcdir="${releasedir}" includes="**/*.bat" eol="crlf" />
         <fixcrlf srcdir="${releasedir}" includes="**/*.bat.in" eol="crlf" />

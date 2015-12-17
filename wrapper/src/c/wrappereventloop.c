@@ -1525,6 +1525,11 @@ void jStateStarted(TICKS nowTicks, int nextSleep) {
             }
         }
         
+        if (wrapperData->pingTimedOut && wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAgeSeconds(wrapperData->jStateTimeoutTicks, nowTicks) < 0)) {
+            /* No longer in a timeout state. Lets reset the flag to allow for further actions if the JVM happens to hang again. */
+            wrapperData->pingTimedOut = FALSE;
+        }
+
         if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAgeSeconds(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
             /* Have we waited too long already.  The jStateTimeoutTicks is reset each time a ping
              *  response is received from the JVM. */
@@ -1533,7 +1538,8 @@ void jStateStarted(TICKS nowTicks, int nextSleep) {
                     TEXT("Ping: Timed out waiting for signal from JVM."), TEXT("ping"));
             } else {
                 if (wrapperData->pingTimedOut == FALSE) {
-                    wrapperPingTimeoutResponded();  
+                    wrapperPingTimeoutResponded();
+                    /* This is to ensure only one call to wrapperPingTimeoutResponded() will be done even if the state of the JVM remains started after processing the actions. */
                     wrapperData->pingTimedOut = TRUE;
                 }
             }

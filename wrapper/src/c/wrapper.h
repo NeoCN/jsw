@@ -823,14 +823,11 @@ BOOL extern isVista();
 BOOL extern isWinXP();
 extern void wrapperMaintainControlCodes();
 int wrapperServiceStatus(int consoleOutput);
+#define OSBUFSIZE 256
+BOOL GetOSDisplayString(TCHAR** pszOS);
 #else
 extern void wrapperMaintainSignals();
 extern TCHAR* findPathOf(const TCHAR *exe, const TCHAR* name);
-
-/**
- * Check if the glibc version of the user is upper to given numbers. 
- */
-extern int wrapperAssertGlibcUser(unsigned int maj, unsigned int min, unsigned int rev);
 #endif
 
 /**

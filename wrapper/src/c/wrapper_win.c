@@ -3180,6 +3180,25 @@ TCHAR *readPassword() {
 }
 
 /**
+ * RETURNS TRUE if the current Windows OS supports SHA-2 code-signning certificates
+ */
+BOOL isSHA2Supported() {
+    OSVERSIONINFOEX osver;
+
+    osver.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+
+#pragma warning(push)
+#pragma warning(disable : 4996) /* Visual Studio 2013 deprecates GetVersionEx but we still want to use it. */
+    if (GetVersionEx((LPOSVERSIONINFO)&osver) && osver.dwPlatformId == VER_PLATFORM_WIN32_NT &&
+        (osver.dwMajorVersion >= 6 || /* Windows Vista/Windows Server 2008 and higher */
+        (osver.dwMajorVersion == 5 && osver.dwMinorVersion == 1 && osver.wServicePackMajor == 3))) { /* Windows XP SP3 (there is no SP3 and thus no SHA-2 support for Win XP 64-bit), Windows server 2003 is also not supported. */
+        return TRUE;
+    }
+#pragma warning(pop)
+    return FALSE;
+}
+
+/**
  * RETURNS TRUE if the current Windows OS is Windows 10 or higher...
  */
 BOOL isWin10OrHigher() {
@@ -6328,6 +6347,8 @@ BOOL verifyEmbeddedSignature() {
     WINTRUST_DATA WinTrustData;
     WINTRUST_FILE_INFO FileData;
     LPTSTR buffer = NULL;
+    TCHAR* szOS;
+    int logLevel;
     
     if (!GetModuleFileName(NULL, pwszSourceFile, _MAX_PATH)) {
         return FALSE;
@@ -6351,6 +6372,8 @@ BOOL verifyEmbeddedSignature() {
     WinTrustData.dwProvFlags = WTD_USE_DEFAULT_OSVER_CHECK;
     WinTrustData.dwUIContext = 0;
     WinTrustData.pFile = &FileData;
+    /* On old versions of Windows (tested with 2000), the last error code is not set by WinVerifyTrust(). We will have to use lStatus instead. */
+    SetLastError(ERROR_SUCCESS);
     lStatus = WinVerifyTrust(NULL, &WVTPolicyGUID, &WinTrustData);
     
     switch (lStatus) {
@@ -6370,13 +6393,18 @@ BOOL verifyEmbeddedSignature() {
 
             /* Get the reason for no signature. */
             dwLastError = GetLastError();
+            if (dwLastError == ERROR_SUCCESS) {
+                dwLastError = TRUST_E_NOSIGNATURE;
+            }
+            lastErrMsg = getErrorText(dwLastError, NULL);
+            
             if ((TRUST_E_SUBJECT_FORM_UNKNOWN == dwLastError) || (TRUST_E_NOSIGNATURE == dwLastError) || (TRUST_E_PROVIDER_UNKNOWN == dwLastError)) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("The file \"%s\" is not signed."), pwszSourceFile);
             } else {
                 /* The signature was not valid or there was an error 
                    opening the file. */
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("An unknown error occurred trying to verify the signature of the \"%s\" file: %s"),
-                    pwszSourceFile, getLastErrorText());
+                    pwszSourceFile, lastErrMsg);
             }
             break;
 
@@ -6423,25 +6451,50 @@ BOOL verifyEmbeddedSignature() {
 
         default:
             dwLastError = GetLastError();
-            lastErrMsg = getLastErrorText();
-            buffer = printWholeCertificateInfo(pwszSourceFile, LEVEL_WARN);   
+            if (dwLastError == ERROR_SUCCESS) {
+                dwLastError = (DWORD)lStatus;
+            }
+            lastErrMsg = getErrorText(dwLastError, NULL);
+            logLevel = isSHA2Supported() ? LEVEL_WARN : LEVEL_DEBUG;
+            buffer = printWholeCertificateInfo(pwszSourceFile, logLevel);
             if (buffer) {
                 if (dwLastError == TRUST_E_BAD_DIGEST  || dwLastError == TRUST_E_CERT_SIGNATURE) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s\n%s\nThe Wrapper will shutdown!"), pwszSourceFile, lStatus, lastErrMsg, buffer);
+                    if (isSHA2Supported()) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s\n%s\nThe Wrapper will shutdown!"), pwszSourceFile, lStatus, lastErrMsg, buffer);
+                    } else {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s\n%s"), pwszSourceFile, lStatus, lastErrMsg, buffer);
+                    }
                 } else {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s\n%sThe error is not directly related to the Wrapper's signature, therefore continue..."), pwszSourceFile, lStatus, lastErrMsg, buffer);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s\n%sThe error is not directly related to the Wrapper's signature, therefore continue..."), pwszSourceFile, lStatus, lastErrMsg, buffer);
                 }
+                free(buffer);
             } else {
                 if (dwLastError == TRUST_E_BAD_DIGEST  || dwLastError == TRUST_E_CERT_SIGNATURE) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s\nThe Wrapper will shutdown!"), pwszSourceFile, lStatus, lastErrMsg);
+                    if (isSHA2Supported()) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s\nThe Wrapper will shutdown!"), pwszSourceFile, lStatus, lastErrMsg);
+                    } else {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s"), pwszSourceFile, lStatus, lastErrMsg);
+                    }
                 } else {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s\nThe error is not directly related to the Wrapper's signature, therefore continue..."), pwszSourceFile, lStatus, lastErrMsg);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s\nThe error is not directly related to the Wrapper's signature, therefore continue..."), pwszSourceFile, lStatus, lastErrMsg);
                 }
             }
 
             if (dwLastError == TRUST_E_BAD_DIGEST  || dwLastError == TRUST_E_CERT_SIGNATURE) {
-                wrapperStopProcess(1, TRUE);
-                wrapperData->wState = WRAPPER_WSTATE_STOPPING;
+                if (isSHA2Supported()) {
+                    /* Stop the Wrapper. */
+                    wrapperStopProcess(1, TRUE);
+                    wrapperData->wState = WRAPPER_WSTATE_STOPPING;
+                } else {
+                    /* Print the OS version for debugging and continue. */
+                    szOS = calloc(OSBUFSIZE, sizeof(TCHAR));
+                    if (szOS) {
+                        if (GetOSDisplayString(&szOS)) {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Operating System ID: %s\nSHA-2 is not supported on this OS, therefore continue..."), szOS);
+                        }
+                        free(szOS);
+                    }
+                }
             }
             break;
     }
