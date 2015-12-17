@@ -4551,7 +4551,6 @@ int checkForTestWrapperScripts() {
 }
 
 #ifdef WIN32
-#define OSBUFSIZE 256
 
 /**
  * Creates a human readable representation of the Windows OS the Wrapper is run on.
