@@ -622,6 +622,7 @@ void wrapperLoadLoggingProperties(int preload) {
     const TCHAR *logfilePath;
     int logfileRollMode;
     int underCygwin = FALSE;
+    int defaultFlushTimeOut = 1;
     
     setLogPropertyWarnings(properties, !preload);
     
@@ -671,7 +672,7 @@ void wrapperLoadLoggingProperties(int preload) {
     setLogfileAutoClose(wrapperData->logfileCloseTimeout == 0);
     
     /* Get the flush timeout. */
-    wrapperData->logfileFlushTimeout = propIntMax(propIntMin(getIntProperty(properties, TEXT("wrapper.logfile.flush.timeout"), 1), 3600), 0);
+    wrapperData->logfileFlushTimeout = propIntMax(propIntMin(getIntProperty(properties, TEXT("wrapper.logfile.flush.timeout"), defaultFlushTimeOut), 3600), 0);
     setLogfileAutoFlush(wrapperData->logfileFlushTimeout == 0);
 
     /* Load console format */

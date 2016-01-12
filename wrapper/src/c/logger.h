@@ -256,6 +256,7 @@ extern TCHAR* getSyslogEventSourceName();
 extern void setSyslogFacility( const TCHAR *loginfo_level );
 #endif
 extern void setSyslogEventSourceName( const TCHAR *event_source_name );
+extern void setThreadMessageBufferInitialSize(int initialValue);
 extern void setWarnSyslogUnregistered(int value);
 extern int syslogMessageFileRegistered();
 extern int registerSyslogMessageFile(int forceInstall);

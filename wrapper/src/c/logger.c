@@ -219,6 +219,7 @@ pthread_t threadIds[WRAPPER_THREAD_COUNT];
 #endif
 TCHAR *threadMessageBuffer = NULL;
 size_t threadMessageBufferSize = 0;
+size_t threadMessageBufferInitialSize = 100;
 TCHAR *threadPrintBuffer = NULL;
 size_t threadPrintBufferSize = 0;
 
@@ -1269,6 +1270,11 @@ int getLowLogLevel() {
     return lowLogLevel;
 }
 
+void setThreadMessageBufferInitialSize(int initialValue) {
+    /* do not allow too big and too small values */
+    threadMessageBufferInitialSize = __min(__max(initialValue, 100), 32768);
+}
+
 TCHAR* preparePrintBuffer(size_t reqSize) {
     if (threadPrintBuffer == NULL) {
         threadPrintBuffer = malloc(sizeof(TCHAR) * reqSize);
@@ -2228,9 +2234,10 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
             if ( threadMessageBufferSize == 0 )
             {
                 /* No buffer yet. Allocate one to get started. */
-                threadMessageBufferSize = 100;
-#if defined(HPUX)
-                /* Due to a bug in the HPUX libc (version < 1403), the length of the buffer passed to _vsntprintf must have a length of 1 + N, where N is a multiple of 8.  Adjust it as necessary. */
+                threadMessageBufferSize = threadMessageBufferInitialSize;
+#if defined(HPUX) || defined(AIX)
+                /* Due to a bug in the HPUX libc (version < 1403), the buffer passed to _vsntprintf must have a length of 1 + N, where N is a multiple of 8.  Adjust it as necessary. */
+                /* Same bug seems to happen on AIX libc. */
                 threadMessageBufferSize = threadMessageBufferSize + (((threadMessageBufferSize - 1) % 8) == 0 ? 0 : 8 - ((threadMessageBufferSize - 1) % 8)); 
 #endif
                 threadMessageBuffer = malloc(sizeof(TCHAR) * threadMessageBufferSize);
@@ -2275,8 +2282,9 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
                  *  1024 or 10% of the current length.
                  * Some platforms will return the required size as count.  Use that if available. */
                 threadMessageBufferSize = __max(threadMessageBufferSize + 1024, __max(threadMessageBufferSize + threadMessageBufferSize / 10, (size_t)count + 1));
-#if defined(HPUX)
-                /* Due to a bug in the HPUX libc (version < 1403), the length of the buffer passed to _vsntprintf must have a length of 1 + N, where N is a multiple of 8.  Adjust it as necessary. */
+#if defined(HPUX) || defined(AIX)
+                /* Due to a bug in the HPUX libc (version < 1403), the buffer passed to _vsntprintf must have a length of 1 + N, where N is a multiple of 8.  Adjust it as necessary. */
+                /* Same bug seems to happen on AIX libc. */
                 threadMessageBufferSize = threadMessageBufferSize + (((threadMessageBufferSize - 1) % 8) == 0 ? 0 : 8 - ((threadMessageBufferSize - 1) % 8)); 
 #endif
 

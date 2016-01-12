@@ -531,6 +531,9 @@ int configFileReader_Read(ConfigFileReader *reader,
                         } else if (strcmpIgnoreCase(trimmedBuffer, TEXT("#properties.debug")) == 0) {
                             reader->logLevelOnOverwrite = LEVEL_STATUS;
                         }
+                    } else if (_tcsstr(trimmedBuffer, TEXT("#log_messages.buffer_size=")) == trimmedBuffer) {
+                        trimmedBuffer += 26;
+                        setThreadMessageBufferInitialSize(_ttoi(trimmedBuffer));
                     }
                 }
             }
