@@ -27,12 +27,6 @@
 #include <string.h>
 #include "logger_base.h"
 
-#ifdef _LIBICONV_VERSION
- #ifdef AIX /* the AIX version of iconv.h doesn't have _LIBICONV_VERSION (need to check the other platforms) */
-  #define USE_LIBICONV_GNU
- #endif
-#endif
-
 #if defined(IRIX)
  #define PATH_MAX FILENAME_MAX
 #endif
@@ -149,7 +143,7 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
     size_t nativeCharLen;
     size_t nativeCharLenCopy;
     size_t multiByteCharsLenStart;
-#if defined(FREEBSD) || defined(SOLARIS) || (defined(AIX) && USE_LIBICONV_GNU)
+#if defined(FREEBSD) || defined(SOLARIS) || (defined(AIX) && defined(USE_LIBICONV_GNU))
     const char* multiByteCharsStart;
 #else
     char* multiByteCharsStart;
@@ -215,7 +209,7 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
             }
             
             multiByteCharsLenStart = multiByteCharsLen;
-#if defined(FREEBSD) || defined(SOLARIS) || (defined(AIX) && USE_LIBICONV_GNU)
+#if defined(FREEBSD) || defined(SOLARIS) || (defined(AIX) && defined(USE_LIBICONV_GNU))
             multiByteCharsStart = multiByteChars;
 #else
             multiByteCharsStart = (char *)multiByteChars;

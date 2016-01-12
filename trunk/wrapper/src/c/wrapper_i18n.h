@@ -455,6 +455,12 @@ typedef unsigned char _TUCHAR;
 extern int multiByteToWideChar(const char *multiByteChars, int encoding, TCHAR **outputBufferW, int localizeErrorMessage);
 #endif
 
+#ifdef _LIBICONV_VERSION
+ #ifdef AIX /* the AIX version of iconv.h doesn't have _LIBICONV_VERSION (need to check the other platforms) */
+  #define USE_LIBICONV_GNU
+ #endif
+#endif
+
 #ifdef FREEBSD
 /*
  * Tries to load libiconv and then fallback in FreeBSD.
