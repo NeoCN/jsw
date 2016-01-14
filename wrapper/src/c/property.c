@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2015 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2016 Tanuki Software, Ltd.
  * http://www.tanukisoftware.comment
  * All rights reserved.
  *
