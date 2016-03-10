@@ -62,13 +62,15 @@ import java.lang.reflect.Modifier;
  * <p>
  * By default, passthrough parameters are ignored, however it is possible to 
  * specify a different behaviour using the following system property:
- *  -Dorg.tanukisoftware.wrapper.WrapperStartStopApp.passthroughMode=START
+ *  -Dorg.tanukisoftware.wrapper.WrapperStartStopApp.passthroughMode=START<br>
  * Possible values are:
- *  START: add passthrough parameters to the parameters list for the start method
- *  STOP: add passthrough parameters to the parameters list for the stop method
- *  BOTH: add passthrough parameters to both parameters lists for the start 
- *   and stop method
- *  IGNORE: (default) ignore the passthrough parameters
+ * <ul>
+ *  <li><b>START</b> : add passthrough parameters to the parameters list of the start method</li>
+ *  <li><b>STOP</b> : add passthrough parameters to the parameters list of the stop method</li>
+ *  <li><b>BOTH</b> : add passthrough parameters to both parameters lists of the start 
+ *   and stop methods</li>
+ *  <li><b>IGNORE</b> : (default) ignore the passthrough parameters</li>
+ * </ul>
  * <p>
  * It is possible to extend this class but make absolutely sure that any
  *  overridden methods call their super method or the class will fail to

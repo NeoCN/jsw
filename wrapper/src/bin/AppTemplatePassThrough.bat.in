@@ -11,7 +11,7 @@ rem You shall use it only in accordance with the terms of the
 rem license agreement you entered into with Tanuki Software.
 rem http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
 rem
-rem Java Service Wrapper general passthrough startup script.
+rem @script.description@
 rem
 
 rem -----------------------------------------------------------------------------
@@ -29,6 +29,8 @@ set _WRAPPER_DIR=
 rem The name and location of the Wrapper configuration file. This will be used
 rem  if the user does not specify a configuration file as the first parameter to
 rem  this script.
+rem If a relative path is specified, please note that the location is based on the 
+rem location of the Wrapper executable.
 set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"
 
 rem Makes it possible to override the Wrapper configuration file by specifying it

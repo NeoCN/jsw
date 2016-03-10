@@ -43,11 +43,12 @@ public interface WrapperEventListener
     static long EVENT_FLAG_LOGGING = 0x4;
     
     /**
-     * Enabling second_invocation events will cause the listener to receive
-     *  WrapperSecondInvocationEvents.  These events are thrown when a second
-     *  instance of the Wrapper starts in single invocation mode.  
-     *  The property 'wrapper.single_invocation.notify' should also 
-     *  exlicitely set to true.
+     * Enabling remote control events will cause the listener to receive
+     *  WrapperRemoteControlEvents. These events are fired when a signal is caught 
+     *  from outside the Wrapper (for example a signal coming from a pipe). 
+     * <p>
+     * WARNING - Those events should be handled carefully as they may be originally 
+     *  triggered by unauthenticated sources.
      */
     static long EVENT_FLAG_REMOTE_CONTROL = 0x8;
     

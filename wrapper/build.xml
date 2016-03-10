@@ -184,9 +184,14 @@
         <!-- Not all JVMs support the sun.arch.data.model property.  Default to 32-bit. -->
         <property name="sun.arch.data.model" value="32"/>
         <condition property="bits-mismatch" value="true">
-            <not>
-                <equals arg1="${sun.arch.data.model}" arg2="${bits}"/>
-            </not>
+            <and>
+                <not>
+                    <equals arg1="${sun.arch.data.model}" arg2="${bits}"/>
+                </not>
+                <not>
+                    <equals arg1="${dist.arch}" arg2="sparc"/>
+                </not>
+            </and>
         </condition>
 
         <condition property="pre-release.disable" value="true">
@@ -1824,28 +1829,29 @@ wrapper.filter.action.999=NONE]]></replacevalue>
         </sequential>
     </macrodef>
     <target name="release-delta:extract-platforms">
-        <release-delta-extract-platform osname="aix" osarch="ppc" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="aix" osarch="ppc" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="freebsd" osarch="x86" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="freebsd" osarch="x86" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="hpux" osarch="ia" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="hpux" osarch="ia" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="hpux" osarch="parisc" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".sl" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="hpux" osarch="parisc" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".sl" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="linux" osarch="ia" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="linux" osarch="ppc" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="linux" osarch="ppc" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="linux" osarch="x86" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="linux" osarch="x86" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="macosx" osarch="universal" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".jnilib" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="macosx" osarch="universal" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".jnilib" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="solaris" osarch="sparc" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="solaris" osarch="sparc" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="solaris" osarch="x86" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="solaris" osarch="x86" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="windows" osarch="x86" bits="32" wrapperbinhead="wrapper" wrapperbintail=".exe" wrapperlibhead="wrapper" wrapperlibtail=".dll" archivetype="zip"/>
-        <release-delta-extract-platform osname="linux" osarch="armel" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="linux" osarch="armhf" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="aix"     osarch="ppc"       bits="32" wrapperbinhead="wrapper" wrapperbintail=""     wrapperlibhead="libwrapper" wrapperlibtail=".so"     archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="aix"     osarch="ppc"       bits="64" wrapperbinhead="wrapper" wrapperbintail=""     wrapperlibhead="libwrapper" wrapperlibtail=".so"     archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="freebsd" osarch="x86"       bits="32" wrapperbinhead="wrapper" wrapperbintail=""     wrapperlibhead="libwrapper" wrapperlibtail=".so"     archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="freebsd" osarch="x86"       bits="64" wrapperbinhead="wrapper" wrapperbintail=""     wrapperlibhead="libwrapper" wrapperlibtail=".so"     archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="hpux"    osarch="ia"        bits="32" wrapperbinhead="wrapper" wrapperbintail=""     wrapperlibhead="libwrapper" wrapperlibtail=".so"     archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="hpux"    osarch="ia"        bits="64" wrapperbinhead="wrapper" wrapperbintail=""     wrapperlibhead="libwrapper" wrapperlibtail=".so"     archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="hpux"    osarch="parisc"    bits="32" wrapperbinhead="wrapper" wrapperbintail=""     wrapperlibhead="libwrapper" wrapperlibtail=".sl"     archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="hpux"    osarch="parisc"    bits="64" wrapperbinhead="wrapper" wrapperbintail=""     wrapperlibhead="libwrapper" wrapperlibtail=".sl"     archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="linux"   osarch="ia"        bits="64" wrapperbinhead="wrapper" wrapperbintail=""     wrapperlibhead="libwrapper" wrapperlibtail=".so"     archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="linux"   osarch="ppc"       bits="32" wrapperbinhead="wrapper" wrapperbintail=""     wrapperlibhead="libwrapper" wrapperlibtail=".so"     archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="linux"   osarch="ppc"       bits="64" wrapperbinhead="wrapper" wrapperbintail=""     wrapperlibhead="libwrapper" wrapperlibtail=".so"     archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="linux"   osarch="ppc64le"   bits="64" wrapperbinhead="wrapper" wrapperbintail=""     wrapperlibhead="libwrapper" wrapperlibtail=".so"     archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="linux"   osarch="x86"       bits="32" wrapperbinhead="wrapper" wrapperbintail=""     wrapperlibhead="libwrapper" wrapperlibtail=".so"     archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="linux"   osarch="x86"       bits="64" wrapperbinhead="wrapper" wrapperbintail=""     wrapperlibhead="libwrapper" wrapperlibtail=".so"     archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="macosx"  osarch="universal" bits="32" wrapperbinhead="wrapper" wrapperbintail=""     wrapperlibhead="libwrapper" wrapperlibtail=".jnilib" archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="macosx"  osarch="universal" bits="64" wrapperbinhead="wrapper" wrapperbintail=""     wrapperlibhead="libwrapper" wrapperlibtail=".jnilib" archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="solaris" osarch="sparc"     bits="32" wrapperbinhead="wrapper" wrapperbintail=""     wrapperlibhead="libwrapper" wrapperlibtail=".so"     archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="solaris" osarch="sparc"     bits="64" wrapperbinhead="wrapper" wrapperbintail=""     wrapperlibhead="libwrapper" wrapperlibtail=".so"     archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="solaris" osarch="x86"       bits="32" wrapperbinhead="wrapper" wrapperbintail=""     wrapperlibhead="libwrapper" wrapperlibtail=".so"     archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="solaris" osarch="x86"       bits="64" wrapperbinhead="wrapper" wrapperbintail=""     wrapperlibhead="libwrapper" wrapperlibtail=".so"     archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="windows" osarch="x86"       bits="32" wrapperbinhead="wrapper" wrapperbintail=".exe" wrapperlibhead="wrapper"    wrapperlibtail=".dll"    archivetype="zip"/>
+        <release-delta-extract-platform osname="linux"   osarch="armel"     bits="32" wrapperbinhead="wrapper" wrapperbintail=""     wrapperlibhead="libwrapper" wrapperlibtail=".so"     archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="linux"   osarch="armhf"     bits="32" wrapperbinhead="wrapper" wrapperbintail=""     wrapperlibhead="libwrapper" wrapperlibtail=".so"     archivetype="tar.gz"/>
     </target>
     <target name="release-delta" depends="pre-release:check, release-delta:init, release-delta:extract-platforms">
         <property name="deltareleasefile" value="wrapper-delta-pack-${version}"/>

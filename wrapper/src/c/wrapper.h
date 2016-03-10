@@ -656,6 +656,7 @@ extern int initializeStartup();
 extern void disposeStartup();
 #endif
 extern void disposeJavaIO();
+extern int initializeTimer();
 extern void disposeTimer();
 
 extern int showHostIds(int logLevel);

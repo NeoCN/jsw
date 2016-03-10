@@ -2235,10 +2235,9 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
             {
                 /* No buffer yet. Allocate one to get started. */
                 threadMessageBufferSize = threadMessageBufferInitialSize;
-#if defined(HPUX) || defined(AIX)
+#if defined(HPUX)
                 /* Due to a bug in the HPUX libc (version < 1403), the buffer passed to _vsntprintf must have a length of 1 + N, where N is a multiple of 8.  Adjust it as necessary. */
-                /* Same bug seems to happen on AIX libc. */
-                threadMessageBufferSize = threadMessageBufferSize + (((threadMessageBufferSize - 1) % 8) == 0 ? 0 : 8 - ((threadMessageBufferSize - 1) % 8)); 
+                threadMessageBufferSize = threadMessageBufferSize + (((threadMessageBufferSize - 1) % 8) == 0 ? 0 : 8 - ((threadMessageBufferSize - 1) % 8));
 #endif
                 threadMessageBuffer = malloc(sizeof(TCHAR) * threadMessageBufferSize);
                 if (!threadMessageBuffer) {
@@ -2282,10 +2281,9 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
                  *  1024 or 10% of the current length.
                  * Some platforms will return the required size as count.  Use that if available. */
                 threadMessageBufferSize = __max(threadMessageBufferSize + 1024, __max(threadMessageBufferSize + threadMessageBufferSize / 10, (size_t)count + 1));
-#if defined(HPUX) || defined(AIX)
+#if defined(HPUX)
                 /* Due to a bug in the HPUX libc (version < 1403), the buffer passed to _vsntprintf must have a length of 1 + N, where N is a multiple of 8.  Adjust it as necessary. */
-                /* Same bug seems to happen on AIX libc. */
-                threadMessageBufferSize = threadMessageBufferSize + (((threadMessageBufferSize - 1) % 8) == 0 ? 0 : 8 - ((threadMessageBufferSize - 1) % 8)); 
+                threadMessageBufferSize = threadMessageBufferSize + (((threadMessageBufferSize - 1) % 8) == 0 ? 0 : 8 - ((threadMessageBufferSize - 1) % 8));
 #endif
 
                 threadMessageBuffer = malloc(sizeof(TCHAR) * threadMessageBufferSize);
@@ -3266,7 +3264,11 @@ void rollLogs() {
  * @return TRUE if the description could be found.
  */
 int getReleaseDescription(TCHAR **description, const TCHAR *releaseFile) {
+#if defined(WIN32) && !defined(WIN64)
+    struct _stat64i32 fileStat;
+#else
     struct stat fileStat;
+#endif
     FILE *file = NULL;
     int result = FALSE;
     

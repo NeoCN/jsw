@@ -34,6 +34,7 @@ import java.awt.Button;
 import java.awt.Checkbox;
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -101,15 +102,26 @@ public class Main
          * Serial Version UID.
          */
         private static final long serialVersionUID = -3847376282833547574L;
+        private float dpiScaleFactor = 1;
 
         MainFrame()
         {
             super( getRes().getString( "TestWrapper Example Application" ) );
             
+            try
+            {
+                dpiScaleFactor = (float)WrapperManager.nativeGetDpiScale() / 96;
+            }
+            catch ( UnsatisfiedLinkError e )
+            {
+                // This can happen if an old native library is used.  Fall through and make sure the scale factor is 1.
+                dpiScaleFactor = 1;
+            }
+            
             init();
             
             setLocation( 10, 10 );
-            setSize( 750, 480 );
+            setSize( (int)(750*dpiScaleFactor), (int)(480*dpiScaleFactor));
             
             setResizable( true );
         }
@@ -292,6 +304,9 @@ public class Main
         {
             Button button = new Button( label );
             button.setActionCommand( command );
+            if (dpiScaleFactor != 1) {
+                button.setFont(new Font("Arial", Font.PLAIN, (int)(12 * dpiScaleFactor)));
+            }
             
             c.fill = GridBagConstraints.BOTH;
             c.gridwidth = 1;
@@ -312,6 +327,9 @@ public class Main
             else
             {
                 desc = new Label( description.toString() );
+            }
+            if (dpiScaleFactor != 1) {
+                desc.setFont(new Font("Arial", Font.PLAIN, (int)(12 * dpiScaleFactor)));
             }
             
             gridBag.setConstraints( desc, c );

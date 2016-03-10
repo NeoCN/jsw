@@ -1172,6 +1172,7 @@ public final class WrapperManager
     private static native WrapperResources nativeLoadWrapperResources(String domain, String folder, boolean makeActive);
     private static native boolean nativeCheckDeadLocks();
     private static native int nativeGetPortStatus(int port, String address, int protocol);
+    public static native int nativeGetDpiScale();
     
     /*---------------------------------------------------------------
      * Methods
