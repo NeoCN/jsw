@@ -1343,5 +1343,65 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetPortStatus(JNIEnv *env, 
     }
 }
 
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeGetDpiScale
+ * Signature: ()I
+ *
+ * @return The dpi scale (should be devided by 96 to get the scale factor).
+ */
+JNIEXPORT jint JNICALL
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetDpiScale(JNIEnv *env, jclass clazz) {
+    const POINT ptZero = { 0, 0 };
+    int dpiX;
+    int dpiY;
+    HMONITOR  hMonitor;
+    int awareness; /* PROCESS_DPI_AWARENESS */
+    HMODULE scalingAPI;
+    FARPROC DynGetProcessDpiAwareness = NULL;
+    FARPROC DynSetProcessDpiAwareness = NULL;
+    FARPROC DynGetDpiForMonitor = NULL;
+    jint result;
+    
+    /* The ShellScalingAPI was added in windows 8.1 */
+    if ((scalingAPI = LoadLibrary(TEXT("Shcore.dll"))) == NULL) {
+        return 96; /* no scaling */
+    } else if ((DynGetProcessDpiAwareness = GetProcAddress(scalingAPI, "GetProcessDpiAwareness")) == NULL ||
+               (DynSetProcessDpiAwareness = GetProcAddress(scalingAPI, "SetProcessDpiAwareness")) == NULL ||
+               (DynGetDpiForMonitor = GetProcAddress(scalingAPI, "GetDpiForMonitor")) == NULL) {
+        return 96; /* no scaling */
+    }
+    
+    /* get DPI awareness */
+    DynGetProcessDpiAwareness(NULL, &awareness);
+    
+    /* if awareness is PROCESS_SYSTEM_DPI_AWARE or PROCESS_PER_MONITOR_DPI_AWARE, 
+     *  we can get the scale factor, else it will return 96 anyway so stop here. */
+    if (awareness == 0) {
+        /* try to set the dpi awarness to PROCESS_PER_MONITOR_DPI_AWARE.
+         *  (this may be moved before the function call if we create a 
+         *  configuration property to control dpi awareness.) */
+        if (DynSetProcessDpiAwareness(2) != S_OK) {
+            return 96;
+        }
+    }
+    
+    /* get the primary monitor */
+    hMonitor = MonitorFromPoint(ptZero, MONITOR_DEFAULTTOPRIMARY);
+    
+    /* get DPI scale of the monitor */
+    DynGetDpiForMonitor(hMonitor, 0, &dpiX, &dpiY);
+    
+    result = (dpiX + dpiY) / 2;
+    
+    /* do some control on the returned value */
+    if (result > 4 * 96) {
+        result = 4 * 96;
+    } else if (result < 96) {
+        result = 96;
+    }
+    
+    return result;
+}
 
 #endif

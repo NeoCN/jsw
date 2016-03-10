@@ -448,4 +448,16 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetPortStatus(JNIEnv *env, 
     return 0;
 }
 
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeGetDpiScale
+ * Signature: ()I
+ *
+ * @return The dpi scale (should be devided by 96 to get the scale factor).
+ */
+JNIEXPORT jint JNICALL
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetDpiScale(JNIEnv *env, jclass clazz) {
+    /* Not implemented on UNIX: always return 96 as it is the default value. */
+    return 96;
+}
 #endif

@@ -1164,6 +1164,8 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Timer thread started."));
         }
 
+        wrapperGetSystemTicks();
+
         while (!stopTimerThread) {
             wrapperSleep(WRAPPER_TICK_MS);
             

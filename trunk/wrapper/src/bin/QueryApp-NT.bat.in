@@ -11,7 +11,7 @@ rem You shall use it only in accordance with the terms of the
 rem license agreement you entered into with Tanuki Software.
 rem http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
 rem
-rem Java Service Wrapper general startup script.
+rem Java Service Wrapper script - Query the current status of a service.
 rem
 
 rem -----------------------------------------------------------------------------
@@ -29,6 +29,8 @@ set _WRAPPER_DIR=
 rem The name and location of the Wrapper configuration file. This will be used
 rem  if the user does not specify a configuration file as the first parameter to
 rem  this script.
+rem If a relative path is specified, please note that the location is based on the 
+rem location of the Wrapper executable.
 set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"
 
 rem Makes it possible to override the Wrapper configuration file by specifying it
@@ -114,22 +116,11 @@ rem
 rem Start the Wrapper
 rem
 :startup
-if not [%_PASS_THROUGH%]==[true] (
-	if not [%1]==[] (
-		echo WARNING: Extra arguments will be ignored. Please check usage in the batch file.
-	)
+if not [%1]==[] (
+    echo WARNING: Extra arguments will be ignored. Please check usage in the batch file.
 )
 
-rem Collect the application parameters
-:parameters
-set _PARAMETERS=%_PARAMETERS% %1
-shift
-if not [%1]==[] goto :parameters
+%_WRAPPER_EXE% -q %_WRAPPER_CONF%
 
-if not [%_PASS_THROUGH%]==[true] (
-    %_WRAPPER_EXE% -q %_WRAPPER_CONF%
-) else (
-    %_WRAPPER_EXE% -q %_WRAPPER_CONF% -- %_PARAMETERS%
-)
 if not errorlevel 1 goto :eof
 pause

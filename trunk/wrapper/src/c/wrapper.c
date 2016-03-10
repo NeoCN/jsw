@@ -3255,9 +3255,9 @@ void wrapperUsage(TCHAR *appName) {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -su --setup   SetUp the wrapper"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -td --teardown TearDown the wrapper"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -t  --start   starT an NT service"));
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -a  --pause   pAuse a started NT service"));
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -a  --pause   pAuse a running NT service"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -e  --resume  rEsume a paused NT service"));
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -p  --stop    stoP a running NT service"));
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -p  --stop    stoP a started NT service"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -i  --install Install as an NT service"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -it --installstart Install and sTart as an NT service"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -r  --remove  Uninstall/Remove as an NT service"));
@@ -3823,103 +3823,6 @@ void wrapperCopyStringArray(TCHAR*** arrOut, TCHAR*** arrIn, int count) {
     }
     *(*arrOut + count) = NULL;
 }
-
-/**
- * Function that splits a text into tokens according to delimiters.
- *  Any spaces around delimiters will be trimmed.
- *  Several delimiters following each others without spaces will be considered as one.
- *  If there are any space between 2 delimiters, the function will consider it as a token and trim it.
- *
- * @param text Text to be split
- * @param delim Array of delimiters
- *
- * @return tokens in an Array of TCHAR*
- */
-/* commented because not used, but tested and working: just need to replace _tcsdup() by _tcsncpy() for cross platform compatibility  */
-/*
-TCHAR** wrapperSplitText(const TCHAR* text, const TCHAR* delim) {
-    TCHAR** result = NULL;
-    / * We work on a copies of the text because _tcstok cut it after the first delimiter * /
-    TCHAR* text0         = NULL;
-    TCHAR* text1         = NULL;
-    TCHAR* token         = NULL;
-    TCHAR* tokenTrim     = NULL;
-    size_t count         = 0; 
-    size_t i             = 0; 
-    size_t j             = 0; 
-#if defined(UNICODE) && !defined(WIN32)
-    TCHAR *state;
-#endif
-    
-    text0 = _tcsdup(text);
-    if (!text0) {
-        outOfMemory(TEXT("WST"), 1);
-        return NULL;
-    }
-    
-    while(_tcstok((count == 0 ? text0 : 0), delim
-#if defined(UNICODE) && !defined(WIN32)
-       , &state
-#endif
-    )){
-        count++;
-    }
-    free(text0);
-
-    if (count == 0) {
-        return NULL;
-    }
-    
-    / * +1 for for terminating null string * /
-    count++;
-    
-    result = (TCHAR**)malloc(sizeof(TCHAR*) * count);
-
-    if (!result) {
-        outOfMemory(TEXT("WST"), 2);
-        return NULL;
-    }
-
-    text1 = _tcsdup(text);
-    if (!text1) {
-        outOfMemory(TEXT("WST"), 3);
-        free(result);
-        return NULL;
-    }
-    
-    token = _tcstok(text1, delim
-#if defined(UNICODE) && !defined(WIN32)
-        , &state
-#endif
-    ); 
-
-    while (token) {
-        tokenTrim = malloc(sizeof(TCHAR) * (_tcslen(token) + 1));
-        if (!tokenTrim) {
-            outOfMemory(TEXT("WST"), 4);
-            for (j = 0; j < i; j++) {
-                free(*(result + j));
-                *(result + j) = NULL;
-            }
-            free(result);
-            free(text1);
-            return NULL;
-        }
-        
-        trim(token, tokenTrim);
-        *(result + i++) = tokenTrim;
-        token = _tcstok(0, delim
-#if defined(UNICODE) && !defined(WIN32)
-            , &state
-#endif
-        );
-    }
-    *(result + i) = NULL;
-    free(text1);
-
-    return result;
-}
-*/
 
 /**
  * Trims any whitespace from the beginning and end of the in string
@@ -4968,6 +4871,13 @@ int wrapperRunCommonInner() {
         if (isCygwin()) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Cygwin detected"));
         }
+    }
+#endif
+
+#ifdef FREEBSD
+    /* log the iconv library in use. */
+    if (wrapperData->isDebugging) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Iconv library: %s"), getIconvLibName());
     }
 #endif
 
@@ -8258,6 +8168,13 @@ int loadConfiguration() {
 
     /* Decide how sequence gaps should be handled before any other properties are loaded. */
     wrapperData->ignoreSequenceGaps = getBooleanProperty(properties, TEXT("wrapper.ignore_sequence_gaps"), FALSE);
+    
+    /* Get the adviser status */
+    wrapperData->isAdviserEnabled = getBooleanProperty(properties, TEXT("wrapper.adviser"), TRUE);
+    /* The adviser is always enabled if debug is enabled. */
+    if (wrapperData->isDebugging) {
+        wrapperData->isAdviserEnabled = TRUE;
+    }
 
     /* Make sure that the configured log file directory is accessible. */
     checkLogfileDir();
@@ -8332,13 +8249,6 @@ int loadConfiguration() {
     /* Should we detach the JVM on startup. */
     if (wrapperData->isConsole) {
         wrapperData->detachStarted = getBooleanProperty(properties, TEXT("wrapper.jvm_detach_started"), FALSE);
-    }
-    
-    /* Get the adviser status */
-    wrapperData->isAdviserEnabled = getBooleanProperty(properties, TEXT("wrapper.adviser"), TRUE);
-    /* The adviser is always enabled if debug is enabled. */
-    if (wrapperData->isDebugging) {
-        wrapperData->isAdviserEnabled = TRUE;
     }
 
     /* Get the use system time flag. */
@@ -8729,6 +8639,8 @@ int wrapperReleaseTickMutex() {
  *  the correct values with 32 bit variables.
  */
 TICKS wrapperGetSystemTicks() {
+    static int firstCall = TRUE;
+    static TICKS initialTicks = 0;
     struct timeb timeBuffer;
     DWORD high, low;
     TICKS sum;
@@ -8765,7 +8677,12 @@ TICKS wrapperGetSystemTicks() {
     }
 #endif
 
-    return sum;
+    if (firstCall) {
+        initialTicks = sum - WRAPPER_TICK_INITIAL;
+        firstCall = FALSE;
+    }
+
+    return (sum - initialTicks);
 }
 
 /**

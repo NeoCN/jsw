@@ -42,6 +42,7 @@ import org.tanukisoftware.wrapper.WrapperManager;
  *   <li><b>V</b> : Cause an access violation. (For testing)</li>
  *   <li><b>G</b> : Make the JVM appear to be hung. (For testing)</li>
  * </ul>
+ * <p>
  * Additional user defined actions can be defined by calling the
  *  {@link #registerAction( byte command, Runnable action )} method.
  *  The Wrapper project reserves the right to define any upper case

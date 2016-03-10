@@ -1,5 +1,41 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.5.29
+* Fix two problems when wrapper.lang.folder was passed in the command line to
+  the JVM. The path was limited to 78 characters and was not put in quotes on
+  Windows.
+* Add new supported platform: Linux PPC64LE 64-bit. Built on a RedHat 7.1 LE
+  machine, GNU libc 2.17.
+* Fix a bug happening on startup where timers set with an interval less than
+  wrapper.timer.max_catchup were executed several times.
+* Add a dynamic variable 'WRAPPER_SYSMEM_<P>' where <P> is a percentage of the
+  physical memory available on the system. This variable can be used in the
+  wrapper.java.additional.<n> properties to set the values of JVM options like
+  -Xmn, -XX:PermSize or -XX:MaxMetaspaceSize.
+* Fix a bug on AIX where the properties wrapper.java.maxmemory.percent and
+  wrapper.java.initmemory.percent did not work because the Wrapper failed to
+  get the physical memory size of the system.
+* Fix script (AIX only) to allow users to start and stop the Wrapper without
+  using SRC and fix syntax error in a message when validating the size of
+  APP_NAME.
+* Add the possibility to specify a timezone of the IANA tz database in which
+  the Wrapper will be executed. Although the old timezone abbreviations are
+  still available for backward compatibility, usage of the new IANA identifiers
+  is preferred because it solves several issues, especially regarding daylight
+  saving time. By default, summer/winter time changes are automatic and will
+  update timers, mail settings and time-stamps of all log outputs.
+* Fix script for MacOSX where users could only start the daemon if it was
+  installed. Now it is not necessary to install it. Introduced in 3.5.28.
+* Improve a workaround to a bug in a libc function on AIX which causes memory
+  errors when messages containing Japanese characters are logged. There might
+  still be some errors if the Java application logs very long messages through
+  the Wrapper, but in this case a special configuration is possible as a
+  workaround.
+* Fix a bug on FreeBSD 10.x where the libiconv library could not be loaded.
+  This caused the Wrapper to stop at startup.
+* Fix a scaling issue on the GUI of the Demo application. The main window was
+  too small on high-DPI displays.
+
 3.5.28
 * Fix a memory leak on Red Hat Enterprise Linux, CentOS and Amazon Linux AMI.
   It occured when activating log rolling in size mode. This memory leak came

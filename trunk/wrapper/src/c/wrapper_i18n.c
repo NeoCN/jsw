@@ -26,6 +26,9 @@
 #include <sys/stat.h>
 #include <string.h>
 #include "logger_base.h"
+#ifdef FREEBSD
+#include "wrapperinfo.h"
+#endif
 
 #if defined(IRIX)
  #define PATH_MAX FILENAME_MAX
@@ -47,6 +50,8 @@ typedef void *iconv_t;
 static iconv_t (*wrapper_iconv_open)(const char *, const char *);  
 static size_t (*wrapper_iconv)(iconv_t, const char **, size_t *, char **, size_t *);  
 static int (*wrapper_iconv_close)(iconv_t);
+static char iconvLibNameMB[128];
+static TCHAR iconvLibNameW[128];
 #else
 #define wrapper_iconv_open iconv_open
 #define wrapper_iconv iconv
@@ -1388,10 +1393,62 @@ void wrapperCorrectWindowsPath(TCHAR *filename) {
 }
 
 #ifdef FREEBSD
-/*
+/**
+ * Get the name of the iconv library that was loaded.
+ *
+ * @return the name of the iconv library (wide chars).
+ */
+TCHAR* getIconvLibName() {
+    mbstowcs(iconvLibNameW, iconvLibNameMB, 128);
+    return iconvLibNameW;
+} 
+
+/**
+ * Locate an iconv function in the dynamically loaded library.
+ *
+ * @param libHandle handle returned from a call to dlopen()
+ * @param fptr      pointer to the function
+ * @param fname1    first name to search
+ * @param fname2    second name to search
+ * @param fname3    third name to search
+ *
+ * @return TRUE if there were any problems, FALSE otherwise.
+ */
+int locateIconvFunction(void *libHandle, void **fptr, const char *fname1, const char *fname2, const char *fname3) {
+    const char *error1;
+    const char *error2;
+    const char *error3;
+    void *func = *fptr;
+    
+    *(void**)(&func) = dlsym(libHandle, fname1);
+    if (!func) {
+        /* The string that dlerror is in a static buffer and should not be freed. It must be immediately used or copied. */
+        error1 = dlerror();
+        *(void**)(&func) = dlsym(libHandle, fname2);
+        if (!func) {
+            error2 = dlerror();
+            *(void**)(&func) = dlsym(libHandle, fname3);
+            if (!func) {
+                error3 = dlerror();
+                printf("Failed to locate the %s function from the iconv library (%s): %s\n", fname1, iconvLibNameMB, (error1 ? error1 : "<null>"));
+                printf("Failed to locate the %s function from the iconv library (%s): %s\n", fname2, iconvLibNameMB, (error2 ? error2 : "<null>"));
+                printf("Failed to locate the %s function from the iconv library (%s): %s\n", fname3, iconvLibNameMB, (error3 ? error3 : "<null>"));
+                printf("Unable to continue.\n");
+                return TRUE;
+            }
+        }
+    }
+    *fptr = func;
+    
+    return FALSE;
+}
+
+/**
  * Tries to load libiconv and then fallback in FreeBSD.
  * Unfortunately we can not do any pretty logging here as iconv is
  *  required for all of that to work.
+ * Limitation: currently the function will not try the next library
+ *  if the iconv functions failed to load correctly.
  *
  * @return TRUE if there were any problems, FALSE otherwise.
  */
@@ -1399,17 +1456,33 @@ int loadIconvLibrary() {
     void *libHandle;
     const char *error;
     
+    /* After 2013-10-08 (254273), FreeBSD 10-x have the iconv functions in libc. 
+     *  Unfortunately there is a problem on the handle when opening libc dynamically.
+     *  We assume there is always at least one of the following libraries on the system. */
+    
     /* iconv library name present from FreeBSD 7 to 9 */
-    libHandle = dlopen("/usr/local/lib/libiconv.so", RTLD_NOW);
+    strncpy(iconvLibNameMB, "/usr/local/lib/libiconv.so", 128);
+    libHandle = dlopen(iconvLibNameMB, RTLD_NOW);
 
     /* Falling back to libbiconv library in FreeBSD 10 */
     if (libHandle == NULL) {
-        libHandle = dlopen("/usr/local/lib/libbiconv.so", RTLD_NOW);
+        strncpy(iconvLibNameMB, "/usr/local/lib/libbiconv.so", 128);
+        libHandle = dlopen(iconvLibNameMB, RTLD_NOW);
     }
 
     /* Falling back to libkiconv.4 in FreeBSD 10 */
+    if (libHandle == NULL && _tcscmp(wrapperBits, TEXT("32")) == 0) {
+        /* If the 32-bit version of the Wrapper is running on a 64-bit system,
+         *  the correct library is /usr/lib32/libkiconv.so.4.
+         *  Be careful here as not being able to find the library doesn't
+         *  necessarily mean that the system is 32-bit. */
+        strncpy(iconvLibNameMB, "/usr/lib32/libkiconv.so.4", 128);
+        libHandle = dlopen(iconvLibNameMB, RTLD_NOW);
+    }
+    
     if (libHandle == NULL) {
-        libHandle = dlopen("/lib/libkiconv.so.4", RTLD_NOW);
+        strncpy(iconvLibNameMB, "/lib/libkiconv.so.4", 128);
+        libHandle = dlopen(iconvLibNameMB, RTLD_NOW);
     }
 
     /* No library found, we cannot continue as we need iconv support */
@@ -1421,33 +1494,10 @@ int loadIconvLibrary() {
         return TRUE;
     }
     
-    /* Look up the required functions. */
-    *(void **)(&wrapper_iconv_open) = dlsym(libHandle, "iconv_open");
-    if (!wrapper_iconv_open) {
-        /* The string that dlerror is in a static buffer and should not be freed. It must be immediately used or copied. */
-        error = dlerror();
-        printf("Failed to locate the %s function from the iconv library: %s\n", "iconv_open", (error ? error : "<null>"));
-        printf("Unable to continue.\n");
-        return TRUE;
-    }
-    *(void **)(&wrapper_iconv) = dlsym(libHandle, "iconv");
-    if (!wrapper_iconv) {
-        /* The string that dlerror is in a static buffer and should not be freed. It must be immediately used or copied. */
-        error = dlerror();
-        printf("Failed to locate the %s function from the iconv library: %s\n", "iconv", (error ? error : "<null>"));
-        printf("Unable to continue.\n");
-        return TRUE;
-    }
-    *(void **)(&wrapper_iconv_close) = dlsym(libHandle,"iconv_close");
-    if (!wrapper_iconv_close) {
-        /* The string that dlerror is in a static buffer and should not be freed. It must be immediately used or copied. */
-        error = dlerror();
-        printf("Failed to locate the %s function from the iconv library: %s\n", "iconv_close", (error ? error : "<null>"));
-        printf("Unable to continue.\n");
-        return TRUE;
-    }
-
-    return FALSE;
+    /* Look up the required functions. Return true if any of them could not be found. */
+    return locateIconvFunction(libHandle, (void**)&wrapper_iconv_open,  "iconv_open",  "libiconv_open",  "__bsd_iconv_open") ||
+           locateIconvFunction(libHandle, (void**)&wrapper_iconv,       "iconv",       "libiconv",       "__bsd_iconv")      ||
+           locateIconvFunction(libHandle, (void**)&wrapper_iconv_close, "iconv_close", "libiconv_close", "__bsd_iconv_close");
 }
 #endif
 

@@ -53,6 +53,17 @@ public class StopWhileStarting implements WrapperListener {
             System.out.println( Main.getRes().getString( "start() returns exit code 99.  Will restart due to on_exit configuration" ) );
             return new Integer( 99 );
             
+        case 5:
+            System.out.println( Main.getRes().getString( "start(). Please press ctrl+c" ) );
+            try
+            {
+                Thread.sleep( 30000 );
+            }
+            catch ( InterruptedException e )
+            {
+            }
+            break;
+            
         default:
             System.out.println( Main.getRes().getString( "start() request stop(0)") );
             WrapperManager.stop( 0 );

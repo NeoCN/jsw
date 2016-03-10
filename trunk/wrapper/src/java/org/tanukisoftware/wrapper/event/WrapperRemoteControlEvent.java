@@ -14,8 +14,11 @@ package org.tanukisoftware.wrapper.event;
 /**
  * WrapperRemoteControlEvent are fired when a signal is caught from 
  *  outside the Wrapper (for example a signal coming from a pipe). 
- *  Those events should be handled carefully as they may be originally 
+ * <p>
+ * WARNING - Those events should be handled carefully as they may be originally 
  *  triggered by unauthenticated sources.
+ *
+ * @author Leif Mortenson <leif@tanukisoftware.com>
  */
 public abstract class WrapperRemoteControlEvent
     extends WrapperEvent
