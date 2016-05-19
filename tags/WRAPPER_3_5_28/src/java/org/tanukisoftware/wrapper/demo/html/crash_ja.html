@@ -1,0 +1,59 @@
+<a name="TestWrapper-NativeAccessViolation"></a>
+<table cellpadding="2" cellspacing="0" width="100%" border="0">
+<tr>
+<td bgcolor="#aaaacc" class="sectionheader3" width="*">
+<H3>Crash</H3>
+</td>
+
+</tr>
+<tr>
+<td>
+                
+                
+<p>
+                    Wrapperは、軽量なネイティブ・ライブラリーを含んでおり、 
+                    システム・イベントを取り扱うときに利用されます。 
+                    ライブラリーには、ネイティブ・メソッドも含んでおり、
+                    テスト用に利用され、 NULL 参照によるネイティブ・コードでアクセス違反を引き起こします。 
+ </p>
+                
+<p>
+                    JVM次第ですが、これは異なる出力結果となります。 
+                    この下記の例では、保存に１分かかりますが、コア・ダンプを作成します。 
+                    その所要時間にもよりますが、 JVMがハングアップしているように見える可能性もあり、 
+                    その場合、Wrapperがハングアップと検知して強制終了して再起動させる可能性もあります。 
+                </p>
+                
+
+<table cellspacing="0" cellpadding="0" width="100%" border="0" class="listing">
+<tr>
+<td class="listingcaption"><i>コンソール出力:</i></td>
+</tr>
+<tr>
+<td bgcolor="#eeeeee" class="listingcell"><font color="#444444">
+<pre class="listingpre">wrapper  | --&gt; Wrapper Started as Console
+wrapper  | Launching a JVM...
+jvm 1    | Initializing...
+jvm 1    | Wrapper (Version 3.x.x)
+jvm 1    |
+jvm 1    | start()
+jvm 1    | WARNING: Attempting to cause an access violation...
+jvm 1    | #
+jvm 1    | # An EXCEPTION_ACCESS_VIOLATION exception has been detected in native code outside the VM.
+jvm 1    | # Program counter=0x8f7105f
+jvm 1    | #
+wrapper  | JVM is hung: Timed out waiting for signal from JVM.
+wrapper  | Java Virtual Machine did not exit on request, terminated
+wrapper  | Launching a JVM...
+jvm 2    | Initializing...
+jvm 2    | Wrapper (Version 3.x.x)
+jvm 2    |
+jvm 2    | start()</pre>
+</font></td>
+</tr>
+</table>
+            
+</td>
+</tr>
+
+</table>
