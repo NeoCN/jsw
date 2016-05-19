@@ -11,12 +11,12 @@ rem You shall use it only in accordance with the terms of the
 rem license agreement you entered into with Tanuki Software.
 rem http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
 rem
-rem Java Service Wrapper script - Query the current status of a service.
+rem Java Service Wrapper script - Pause a running NT service.
 rem
 
 rem -----------------------------------------------------------------------------
 rem These settings can be modified to fit the needs of your application
-rem Optimized for use with version 3.5.30-a of the Wrapper.
+rem Optimized for use with version 3.5.29 of the Wrapper.
 
 rem The base name for the Wrapper binary.
 set _WRAPPER_BASE=wrapper
@@ -120,7 +120,7 @@ if not [%1]==[] (
     echo WARNING: Extra arguments will be ignored. Please check usage in the batch file.
 )
 
-%_WRAPPER_EXE% -q %_WRAPPER_CONF%
+%_WRAPPER_EXE% -a %_WRAPPER_CONF%
 
 if not errorlevel 1 goto :eof
 pause

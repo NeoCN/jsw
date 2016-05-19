@@ -1,8 +1,5 @@
 Java Service Wrapper Revision History.
 --------------------------------------
-3.5.30
-
-
 3.5.29
 * Fix two problems when wrapper.lang.folder was passed in the command line to
   the JVM. The path was limited to 78 characters and was not put in quotes on

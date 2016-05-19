@@ -11,12 +11,12 @@ rem You shall use it only in accordance with the terms of the
 rem license agreement you entered into with Tanuki Software.
 rem http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
 rem
-rem Java Service Wrapper script - Pause a running NT service.
+rem Java Service Wrapper script - Install as an NT service.
 rem
 
 rem -----------------------------------------------------------------------------
 rem These settings can be modified to fit the needs of your application
-rem Optimized for use with version 3.5.30-a of the Wrapper.
+rem Optimized for use with version 3.5.29 of the Wrapper.
 
 rem The base name for the Wrapper binary.
 set _WRAPPER_BASE=wrapper
@@ -37,8 +37,11 @@ rem Makes it possible to override the Wrapper configuration file by specifying i
 rem  as the first parameter.
 rem set _WRAPPER_CONF_OVERRIDE=true
 
-rem Note that it is only possible to pass parameters through to the JVM when
-rem  installing the service, or when running in a console.
+rem _PASS_THROUGH tells the script to pass all parameters through to the JVM
+rem  as is.  
+rem  If _WRAPPER_CONF_OVERRIDE is specified then all parameters will be passed.
+rem  If not set then all parameters starting with the second will be passed.
+rem set _PASS_THROUGH=true
 
 rem Do not modify anything beyond this point
 rem -----------------------------------------------------------------------------
@@ -116,11 +119,24 @@ rem
 rem Start the Wrapper
 rem
 :startup
-if not [%1]==[] (
-    echo WARNING: Extra arguments will be ignored. Please check usage in the batch file.
+if not [%_PASS_THROUGH%]==[true] (
+	if not [%1]==[] (
+		echo WARNING: Extra arguments will be ignored. Please check usage in the batch file.
+	)
 )
 
-%_WRAPPER_EXE% -a %_WRAPPER_CONF%
+rem Collect the application parameters
+:parameters
+set _PARAMETERS=%_PARAMETERS% %1
+shift
+if not [%1]==[] goto :parameters
 
+if not [%_PASS_THROUGH%]==[true] (
+    %_WRAPPER_EXE% -i %_WRAPPER_CONF%
+) else (
+    %_WRAPPER_EXE% -i %_WRAPPER_CONF% -- %_PARAMETERS%
+)
 if not errorlevel 1 goto :eof
 pause
+
+
