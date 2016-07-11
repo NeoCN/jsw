@@ -182,7 +182,7 @@ public class WrapperSimpleApp
         if ( args.length < 1 )
         {
             m_initFailed = true;
-            m_initError = WrapperManager.getRes().getString( "Not enough argments.  Minimum {0} required.", "1" );
+            m_initError = WrapperManager.getRes().getString( "Not enough arguments.  Minimum {0} required.", "1" );
             m_initShowUsage = true;
             
             // No main class, do the best we can for now.

@@ -275,7 +275,7 @@ void takeSignalAction(int sigNum, const TCHAR *sigName, int mode) {
             if (wrapperData->javaPID > 0) {
                 if (wrapperData->isDebugging) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                        TEXT("%s trapped.  Forwarding to JVM process."), sigName);
+                        TEXT("%s (%d) trapped.  Forwarding to JVM process."), sigName, sigNum);
                 }
                 if (kill(wrapperData->javaPID, sigNum)) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
@@ -1336,7 +1336,6 @@ int wrapperExecute() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                    TEXT("Could not spawn JVM process: %s"), getLastErrorText());
 
-
         /* The pipedes array is global so do not close the pipes. */
         return TRUE;
     } else {
@@ -1348,7 +1347,6 @@ int wrapperExecute() {
 
         if (proc == 0) {
             /* We are the child side. */
-            
 
             /* Set the umask of the JVM */
             umask(wrapperData->javaUmask);
@@ -1478,7 +1476,6 @@ int wrapperExecute() {
                         TEXT("Unable to write the Java Id file: %s"), wrapperData->javaIdFilename);
                 }
             }
-            
             return FALSE;
         }
     }

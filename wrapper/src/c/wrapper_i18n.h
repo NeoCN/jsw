@@ -171,7 +171,6 @@ extern int _vsntprintf(wchar_t *ws, size_t n, const wchar_t *format, va_list arg
 #define _tasctime     _wasctime
 #define _tstof        _wtof
 #define _tstoi        _wtoi
-#define _tcstod       wcstod
 #define _ttoi(x)      wcstol(x, NULL, 10)
 #define _tstol        _wtol
 #define _ttol         _wtol
@@ -370,7 +369,6 @@ typedef unsigned char _TUCHAR;
 #define _tasctime     asctime
 #define _tstof        atof
 #define _tstoi        atoi
-#define _tcstod       strtod
 #define _ttoi         atoi
 #define _tstol        atol
 #define _ttol         atol

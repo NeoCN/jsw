@@ -414,7 +414,7 @@ int configFileReader_Read(ConfigFileReader *reader,
                         }
                         
                         /* Now obtain the real absolute path to the include file. */
-    #ifdef WIN32
+#ifdef WIN32
                         /* Find out how big the absolute path will be */
                         size = GetFullPathName(expBuffer, 0, NULL, NULL); /* Size includes '\0' */
                         if (!size) {
@@ -440,7 +440,7 @@ int configFileReader_Read(ConfigFileReader *reader,
                                 }
                             }
                         }
-    #else
+#else
                         absoluteBuffer = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
                         if (!absoluteBuffer) {
                             outOfMemory(TEXT("RCF"), 2);
@@ -455,7 +455,7 @@ int configFileReader_Read(ConfigFileReader *reader,
                                 absoluteBuffer = NULL;
                             }
                         }
-    #endif
+#endif
                         if (absoluteBuffer) {
                             if (depth < MAX_INCLUDE_DEPTH) {
                                 readResult = configFileReader_Read(reader, absoluteBuffer, includeRequired, depth + 1, filename, lineNumber, argCommand, originalWorkingDir, warnedVarMap, logWarnings, logWarningLogLevel, isDebugging);

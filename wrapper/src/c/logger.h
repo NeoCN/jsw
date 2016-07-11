@@ -258,7 +258,7 @@ extern void setSyslogFacility( const TCHAR *loginfo_level );
 extern void setSyslogEventSourceName( const TCHAR *event_source_name );
 extern void setThreadMessageBufferInitialSize(int initialValue);
 extern void setWarnSyslogUnregistered(int value);
-extern int syslogMessageFileRegistered();
+extern int syslogMessageFileRegistered(int useLoggerQueue);
 extern int registerSyslogMessageFile(int forceInstall);
 extern int unregisterSyslogMessageFile();
 
@@ -277,6 +277,8 @@ extern int getLogLevelForName( const TCHAR *logLevelName );
 extern int getLogFacilityForName( const TCHAR *logFacilityName );
 #endif
 extern void logRegisterThread(int thread_id);
+extern void logRegisterFormatCallbacks(int (*countCallback)(const TCHAR format, size_t *reqSize), 
+                                       int (*printCallback)(const TCHAR format, size_t printSize, TCHAR** pBuffer));
 
 /**
  * The log_printf function logs a message to the configured log targets.

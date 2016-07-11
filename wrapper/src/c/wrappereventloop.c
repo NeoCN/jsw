@@ -65,7 +65,7 @@
  *
  * @param wState The Wrapper State whose name is being requested.
  *
- * @return Thre requested Wrapper State.
+ * @return The requested Wrapper State.
  */
 const TCHAR *wrapperGetWState(int wState) {
     const TCHAR *name;
@@ -103,7 +103,7 @@ const TCHAR *wrapperGetWState(int wState) {
  *
  * @param jState The Java State whose name is being requested.
  *
- * @return Thre requested Java State.
+ * @return The requested Java State.
  */
 const TCHAR *wrapperGetJState(int jState) {
     const TCHAR *name;
@@ -749,18 +749,13 @@ void commandPoll(TICKS nowTicks) {
  * nowTicks: The tick counter value this time through the event loop.
  */
 void wStateStarting(TICKS nowTicks) {
-    int timeout;
-
     /* While the wrapper is starting up, we need to ping the service  */
     /*  manager to reasure it that we are still alive. */
 
+#ifdef WIN32
     /* Tell the service manager that we are starting */
-    if (wrapperData->startupTimeout > 0) {
-        timeout = (wrapperData->startupTimeout) * 1000;
-    } else {
-        timeout = 86400000; /* Set infinity at 1 day. */
-    }
-    wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTING, 0, timeout);
+    wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTING, 0, wrapperData->ntStartupWaitHint * 1000);
+#endif
 
     /* If we are supposed to pause on startup, we need to jump to that state now, and report that we are started. */
     if (wrapperData->initiallyPaused && wrapperData->pausable) {
@@ -768,16 +763,20 @@ void wStateStarting(TICKS nowTicks) {
         
         wrapperSetWrapperState(WRAPPER_WSTATE_PAUSED);
 
+#ifdef WIN32
         /* Tell the service manager that we started */
         wrapperReportStatus(FALSE, WRAPPER_WSTATE_PAUSED, 0, 0);
+#endif
     } else {
         /* If the JVM state is now STARTED, then change the wrapper state */
         /*  to be STARTED as well. */
         if (wrapperData->jState == WRAPPER_JSTATE_STARTED) {
             wrapperSetWrapperState(WRAPPER_WSTATE_STARTED);
     
+#ifdef WIN32
             /* Tell the service manager that we started */
             wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTED, 0, 0);
+#endif
         }
     }
 }
@@ -803,8 +802,6 @@ void wStateStarted(TICKS nowTicks) {
  * nowTicks: The tick counter value this time through the event loop.
  */
 void wStatePausing(TICKS nowTicks) {
-    int timeout;
-
     /* While the wrapper is pausing, we need to ping the service  */
     /*  manager to reasure it that we are still alive. */
 
@@ -815,16 +812,15 @@ void wStatePausing(TICKS nowTicks) {
             /* JVM is now down.  We are now paused. */
             wrapperSetWrapperState(WRAPPER_WSTATE_PAUSED);
 
+#ifdef WIN32
             /* Tell the service manager that we are paused */
             wrapperReportStatus(FALSE, WRAPPER_WSTATE_PAUSED, 0, 0);
+#endif
         } else {
+#ifdef WIN32
             /* Tell the service manager that we are pausing */
-            if ((wrapperData->shutdownTimeout <= 0) || (wrapperData->jvmExitTimeout <= 0)) {
-                timeout = 86400000; /* Set infinity at 1 day. */
-            } else {
-                timeout = MAX(wrapperData->shutdownTimeout, wrapperData->jvmExitTimeout) * 1000;
-            }
-            wrapperReportStatus(FALSE, WRAPPER_WSTATE_PAUSING, 0, timeout);
+            wrapperReportStatus(FALSE, WRAPPER_WSTATE_PAUSING, 0, wrapperData->ntShutdownWaitHint * 1000);
+#endif
 
             if (wrapperData->exitRequested ||
                 (wrapperData->jState == WRAPPER_JSTATE_STOP) ||
@@ -848,8 +844,10 @@ void wStatePausing(TICKS nowTicks) {
         /* We want to leave the JVM process as is.  We are now paused. */
         wrapperSetWrapperState(WRAPPER_WSTATE_PAUSED);
 
+#ifdef WIN32
         /* Tell the service manager that we are paused */
         wrapperReportStatus(FALSE, WRAPPER_WSTATE_PAUSED, 0, 0);
+#endif
     }
 }
 
@@ -875,8 +873,6 @@ void wStatePaused(TICKS nowTicks) {
  * nowTicks: The tick counter value this time through the event loop.
  */
 void wStateResuming(TICKS nowTicks) {
-    int timeout;
-
     /* While the wrapper is resuming, we need to ping the service  */
     /*  manager to reasure it that we are still alive. */
 
@@ -885,17 +881,16 @@ void wStateResuming(TICKS nowTicks) {
     if (wrapperData->jState == WRAPPER_JSTATE_STARTED) {
         wrapperSetWrapperState(WRAPPER_WSTATE_STARTED);
 
+#ifdef WIN32
         /* Tell the service manager that we started */
         wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTED, 0, 0);
+#endif
     } else {
         /* JVM is down and so it needs to be started. */
+#ifdef WIN32
         /* Tell the service manager that we are resuming */
-        if (wrapperData->startupTimeout > 0) {
-            timeout = wrapperData->startupTimeout * 1000;
-        } else {
-            timeout = 86400000; /* Set infinity at 1 day. */
-        }
-        wrapperReportStatus(FALSE, WRAPPER_WSTATE_RESUMING, 0, timeout);
+        wrapperReportStatus(FALSE, WRAPPER_WSTATE_RESUMING, 0, wrapperData->ntStartupWaitHint * 1000);
+#endif
     }
 }
 
@@ -908,18 +903,13 @@ void wStateResuming(TICKS nowTicks) {
  * nowTicks: The tick counter value this time through the event loop.
  */
 void wStateStopping(TICKS nowTicks) {
-    int timeout;
-
     /* The wrapper is stopping, we need to ping the service manager
      *  to reasure it that we are still alive. */
 
+#ifdef WIN32
     /* Tell the service manager that we are stopping */
-    if ((wrapperData->shutdownTimeout <= 0) || (wrapperData->jvmExitTimeout <= 0)) {
-        timeout = 86400000; /* Set infinity at 1 day. */
-    } else {
-        timeout = MAX(wrapperData->shutdownTimeout, wrapperData->jvmExitTimeout) * 1000;
-    }
-    wrapperReportStatus(FALSE, WRAPPER_WSTATE_STOPPING, wrapperData->exitCode, timeout);
+    wrapperReportStatus(FALSE, WRAPPER_WSTATE_STOPPING, wrapperData->exitCode, wrapperData->ntShutdownWaitHint * 1000);
+#endif
 
     /* If the JVM state is now DOWN_CLEAN, then change the wrapper state
      *  to be STOPPED as well. */
@@ -1076,6 +1066,15 @@ void jStateDownClean(TICKS nowTicks, int nextSleep) {
             _sntprintf(onExitParamBuffer, 16 + 10 + 1, TEXT("wrapper.on_exit.%d"), wrapperData->exitCode);
             
             onExitAction = getStringProperty(properties, onExitParamBuffer, getStringProperty(properties, TEXT("wrapper.on_exit.default"), TEXT("shutdown")));
+            
+            if (wrapperData->shutdownActionTriggered && ((strcmpIgnoreCase(onExitAction, TEXT("restart")) == 0) || (strcmpIgnoreCase(onExitAction, TEXT("pause")) == 0))) {
+                onExitAction = TEXT("shutdown");
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
+                    TEXT("Ignoring the action specified with %s.\n  A shutdown configured with %s was already initiated."),
+                        isGeneratedProperty(properties, onExitParamBuffer) == FALSE ? onExitParamBuffer : TEXT("wrapper.on_exit.default"),
+                        wrapperData->shutdownActionPropertyName);
+            }
+            
             if (strcmpIgnoreCase(onExitAction, TEXT("restart")) == 0) {
                 /* We want to restart the JVM. */
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
@@ -1123,6 +1122,8 @@ void jStateDownClean(TICKS nowTicks, int nextSleep) {
                 /* No restart was requested.  So the JVM must have requested a stop.
                  *  Normally, this would result in the service stopping from the paused
                  *  state, but it is possible that an exit code is registered. Check them. */
+                /* No need to check wrapperData->shutdownActionTriggered here. Even though the PAUSE would be
+                 *  originated from some event, it wouldn't be the direct cause of the JVM being down. */
                 _sntprintf(onExitParamBuffer, 16 + 10 + 1, TEXT("wrapper.on_exit.%d"), wrapperData->exitCode);
                 
                 onExitAction = getStringProperty(properties, onExitParamBuffer, getStringProperty(properties, TEXT("wrapper.on_exit.default"), TEXT("shutdown")));
@@ -1219,6 +1220,9 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
                         wrapperData->exitCode = 1;
                         return;
                     }
+                    
+                    /* Dump the reloaded properties */
+                    dumpProperties(properties);
 
                     /* Change the working directory if configured to do so. */
                     if (wrapperData->workingDir && wrapperSetWorkingDir(wrapperData->workingDir, TRUE)) {

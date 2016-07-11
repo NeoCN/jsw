@@ -263,8 +263,6 @@ struct WrapperConfig {
     int     commandLogLevel;        /* The log level to use when logging the java command. */
     int     printJVMVersion;        /* tells the Wrapper to create a temp JVM to query the version, before starting the java application */
 #ifdef WIN32
-    int     argc;                   /* argc params as originally received in the entry function */
-    TCHAR   **argv;                 /* argv params as originally received in the entry function */
     TCHAR   *jvmVersionCommand;     /* Command used to launch the JVM and request its version */
     TCHAR   *jvmCommand;            /* Command used to launch the JVM */
 #else /* UNIX */
@@ -350,6 +348,10 @@ struct WrapperConfig {
     int     exitCode;               /* Code which the wrapper will exit with */
     int     exitRequested;          /* TRUE if the current JVM should be shutdown. */
     int     restartRequested;       /* WRAPPER_RESTART_REQUESTED_NO, WRAPPER_RESTART_REQUESTED_AUTOMATIC, or WRAPPER_RESTART_REQUESTED_CONFIGURED if the another JVM should be launched after the current JVM is shutdown. Only set if exitRequested is set. */
+    int     shutdownActionTriggered; /* TRUE if any action causing a JVM exit was triggered by the Wrapper (see the WRAPPER_ACTION_SOURCE_CODE_* definitions above).
+                                     *  This flag indicates that the action specified by wrapper.on_exit should be ignored. It must be reset after the JVM is
+                                     *  restarted so that wrapper.on_exit can continue to catch JVM exit codes. */
+    TCHAR*  shutdownActionPropertyName; /* Keep the name of the property that originated the shudown for logging. */
     int     stoppedPacketReceived;  /* TRUE if the STOPPED packet was received before a restart. */
     int     restartPacketReceived;  /* TRUE if the RESTART packet was received before a restart. */
     int     jvmRestarts;            /* Number of times that a JVM has been launched since the wrapper was started. */
@@ -427,6 +429,12 @@ struct WrapperConfig {
     int     jvmConsoleVisible;      /* True if the JVM Console window is visible. */
     int     ntAllocConsole;         /* True if a console should be allocated for the Service. */
     int     generateConsole;        /* Make sure that a console is always generated to support thread dumps */
+#ifndef WINIA
+    int     ntPreshutdown;          /* True if the service accepts SERVICE_CONTROL_PRESHUTDOWN controle code, False if it accepts SERVICE_CONTROL_SHUTDOWN. */
+    int     ntPreshutdownTimeout;   /* Number of seconds that the service controler will wait after sending the SERVICE_CONTROL_PRESHUTDOWN notification. */
+#endif
+    int     ntShutdownWaitHint;     /* Delay in seconds requested by the Wrapper when it reports a STOPPING or PAUSING status to the service controler. */
+    int     ntStartupWaitHint;      /* Delay in seconds requested by the Wrapper when it reports a STARTING or RESUMING status to the service controler. */
     int     threadDumpControlCode;  /* Control code which can be used to trigger a thread dump. */
 #else /* UNIX */
     int     daemonize;              /* TRUE if the process  should be spawned as a daemon process on launch. */
@@ -456,6 +464,9 @@ struct WrapperConfig {
     int     ctrlCodeContinueTrapped;/* SERVICE_CONTROL_CONTINUE was trapped. */
     int     ctrlCodeStopTrapped;    /* SERVICE_CONTROL_STOP was trapped. */
     int     ctrlCodeShutdownTrapped;/* SERVICE_CONTROL_SHUTDOWN was trapped. */
+ #ifndef WINIA
+    int     ctrlCodePreShutdownTrapped;/* SERVICE_CONTROL_PRESHUTDOWN was trapped. */
+ #endif
     int     ctrlCodeDumpTrapped;    /* The configured thread dump control code was trapped. */
 #else
     int     signalInterruptTrapped; /* SIGINT was trapped. */
@@ -602,29 +613,6 @@ extern int wrapperWildcardMatch(const TCHAR *text, const TCHAR *pattern, size_t 
 extern size_t wrapperGetMinimumTextLengthForPattern(const TCHAR *pattern);
 
 /**
- * Function that copies an array of strings.
- *  The output will be pointer to a NULL terminated array even though the source does not end with a NULL value.
- *
- * @param arrOut Array with copied strings
- * @param arrIn  Array to copy
- * @param count  Number of elements to copy. If arrIn has less elements than count, arrOut will be the same size as arrIn.
- */
-extern void wrapperCopyStringArray(TCHAR*** arrOut, TCHAR*** arrIn, int count);
-
-/**
- * Function that splits a text into tokens according to delimiters.
- *  Any spaces around delimiters will be trimmed.
- *  Several delimiters following each others without spaces will be considered as one.
- *  If there are any space between 2 delimiters, the function will consider it as a token and trim it.
- *
- * @param text Text to be split
- * @param delim Array of delimiters 
- *
- * @return tokens in an Array of TCHAR*
- */
-/*extern TCHAR** wrapperSplitText(const TCHAR* text, const TCHAR* delim);*/
-
-/**
  * Trims any whitespace from the beginning and end of the in string
  *  and places the results in the out buffer.  Assumes that the out
  *  buffer is at least as large as the in buffer. */
@@ -680,11 +668,12 @@ extern int *wrapperGetActionListForNames(const TCHAR *actionNameList, const TCHA
  *                   custom events.
  * @param triggerMsg The reason the actions are being fired.
  * @param actionSourceCode Tracks where the action originated.
+ * @param actionPropertyIndex Index of the property where the action was configured. Ignored if the type of action is not configured with a <n>-component property.
  * @param logForActionNone Flag stating whether or not a message should be logged
  *                         for the NONE action.
  * @param exitCode Error code to use in case the action results in a shutdown.
  */
-extern void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int actionSourceCode, int logForActionNone, int exitCode);
+extern void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int actionSourceCode, int actionPropertyIndex, int logForActionNone, int exitCode);
 
 extern void wrapperAddDefaultProperties();
 
@@ -692,13 +681,12 @@ extern int wrapperLoadConfigurationProperties(int preload);
 
 extern void wrapperGetCurrentTime(struct timeb *timeBuffer);
 
+extern void updateStringValue(TCHAR **ptr, const TCHAR *value);
+
 #ifdef WIN32
 
 extern void wrapperInitializeProfileCounters();
 extern void wrapperDumpPageFaultUsage();
-
-extern void updateStringValue(TCHAR **ptr, const TCHAR *value);
-
 extern TCHAR** wrapperGetSystemPath();
 extern int wrapperGetJavaHomeFromWindowsRegistry(TCHAR *javaHome);
 #endif
@@ -799,14 +787,6 @@ extern void wrapperSetJavaState(int jState, TICKS nowTicks, int delay);
  * Platform specific methods
  *****************************************************************************/
 #ifdef WIN32
-/**
- * Allocates an hidden console. (fix for the console flicker bug).
- *  The size of the console will be minimized and its position will be set outside of the screen.
- *  
- * @return TRUE if the console was allocated, FALSE if it could not be allocated.
- */
-extern int wrapperAllocHiddenConsole();
-
 extern void wrapperCheckConsoleWindows();
 /**
  *   checks the digital Signature of the binary and reports the result.

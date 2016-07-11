@@ -1,7 +1,74 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 3.5.30
-
+* Improve the logging messages when using the IANA timezones introduced in
+  version 3.5.29 and add a new property, wrapper.timezone.debug_timestamps, to
+  display additional information (offset to GMT and whether DST is in effect)
+  in the timestamps of the log outputs.
+* Improve the behavior when the Wrapper fails to parse the timezone file or
+  fails to resolve daylight saving time. Any error on startup will cause the
+  Wrapper to fall back to system time. If an error would occur during a time
+  change, the Wrapper will continue with the current time.
+* Add new properties wrapper.ntservice.preshutdown and
+  wrapper.ntservice.preshutdown.timeout to allow Windows services with a long
+  shutdown time to stop cleanly before the system starts its shutdown process.
+  The first property specifies that the service will accept PRESHUTDOWN
+  notifications. The second property tells the service control manager how
+  long to wait until the service stops. These properties are not supported on
+  Windows Itanium or Windows XP and lower.
+* Fix a memory leak on Fedora 21 and lower. This issue was fixed for RHEL,
+  CentOS and Amazon Linux AMI on version 3.5.28, but was still happening on
+  Fedora when rolling the log file in size mode.
+* Fix a bug where, under certain conditions, a white square appeared briefly
+  on the screen just before the splashscreen was drawn (wrapperw).
+* Change name of the architecture for Linux PPC. Since 3.5.29 the Wrapper is 
+  available on Linux PPC little-endian and big-endian. To avoid confusion 
+  'linux ppc' is now 'linux ppcbe' and 'linux ppc64le' becomes 'linux ppcle'.
+* In the script file, add the variable FILES_TO_SOURCE which should contain a 
+  list of files to source prior to executing any commands.
+* Add two tokens, 'W' and 'J', to the logging format to display the Wrapper
+  process id and the Java process id.
+* Fix a bug where the Wrapper stopped to log messages coming from the Java
+  application, or one of its child process, when it encountered a null
+  character (\0). It also resulted in a memory leak if the Java application
+  was logging messages at a frequency higher than the value specified with
+  wrapper.log.lf_delay.threshold.
+* Fix a wrong implementation of the property 'wrapper.log.lf_delay.threshold'.
+  The amount of time specified by this property was counted from the last log 
+  output received instead of the last line feed received.
+* If the Wrapper is unable to write to the configured wrapper.logfile, it would
+  fall back to a default log file in the working directory. If this would also
+  fail, the log file will be disabled and logging will only continue in the
+  console, syslog or EventLog. From 3.5.30, the Wrapper will resume logging
+  into the configured file as soon as it is available again. If the log file
+  had been disabled and the configured log file would still be locked, then it
+  will try to resume the logging in the default log file.
+* Fix a bug where a RESTART or a PAUSE action specified with
+  wrapper.on_exit.<n> (or wrapper.on_exit.default) would abort a SHUTDOWN
+  triggered by an event, a filter, a timer, a deadlock, a ping timeout or
+  failures of mounted shares.
+* Improve the logging messages when the action 'KILL_RESTART' is specified for
+  the 'wrapper.event.<event_name>.command.block.action' property. Depending on
+  the event, RESTART is not always applicable, but the Wrapper always notified
+  that a new JVM was going to be launched. Now it will clearly inform when the
+  restart is not applicable.
+* Improve the output when querying the status of a service on Unix. It will
+  show whether the service is installed or not, and which system is used if
+  there are several possibilities for the current OS (init.d, systemd, etc.).
+* Fix a bug where the daemon was not reloaded when the Wrapper was installed
+  using systemd and a custom service file.
+* When installing a daemon with systemd or upstart, the Wrapper will now check
+  for a previous install like it does for the other init systems. This implies
+  that the service should first be removed to force reinstallation.
+* Add the ability to log the properties each time the Wrapper loads or reloads
+  the configuration file. A new wrapper.properties.dump.loglevel property was
+  created to control at which level they will be logged.
+* fixed a bug happening when launching multiple instances of the shell script
+  in a short time interval. If one instance was starting the Wrapper while
+  another attempted to stop it, the PID file of the new Wrapper process might
+  eventually be deleted. Running without a PID file could cause some issues and
+  would leave open the possibility for a second instance of the Wrapper to run
+  simultaneously even though wrapper.pidfile.strict would be set to TRUE.
 
 3.5.29
 * Fix two problems when wrapper.lang.folder was passed in the command line to

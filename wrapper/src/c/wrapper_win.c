@@ -1584,6 +1584,49 @@ void wrapperDetachJava() {
     wrapperSetJavaState(WRAPPER_JSTATE_DOWN_CLEAN, 0, -1);
 }
 
+#ifndef WINIA
+/**
+ * Update the preshutdown timeout of the service
+ */
+int wrapperUpdatePreShutdownTimeout() {
+    SC_HANDLE   schSCManager;
+    SC_HANDLE   schService;
+    SERVICE_PRESHUTDOWN_INFO preShutdownInfo;
+    
+    if (wrapperData->ntPreshutdown) {
+        /* Get a handle to the service control manager */
+        schSCManager = OpenSCManager(NULL,
+                                     NULL,
+                                     SC_MANAGER_CONNECT);
+        if (schSCManager) {
+            /* Next get the handle to this service... */
+            schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_QUERY_CONFIG | SERVICE_CHANGE_CONFIG);
+            if (schService) {
+                preShutdownInfo.dwPreshutdownTimeout = wrapperData->ntPreshutdownTimeout * 1000;
+                /* Lets always update the preshutdown timeout as future versions of Windows might use a different default value. */
+                if (!ChangeServiceConfig2(schService, SERVICE_CONFIG_PRESHUTDOWN_INFO, &preShutdownInfo)) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to set the preshutdown timeout of the %s service - %s"),
+                            wrapperData->serviceDisplayName, getLastErrorText());
+                    return 1;
+                }
+                CloseServiceHandle(schService);
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to set the preshutdown timeout of the %s service - %s"),
+                        wrapperData->serviceDisplayName, getLastErrorText());
+                return 1;
+            }
+            CloseServiceHandle(schSCManager);
+        } else {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to set the preshutdown timeout of the %s service - %s"),
+                    wrapperData->serviceDisplayName, getLastErrorText());
+            return 1;
+        }
+    }
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Set the preshutdown timeout of the %s service to %d secs."),
+            wrapperData->serviceDisplayName, wrapperData->ntPreshutdownTimeout);
+    return 0;
+}
+#endif
 
 /**
  * Reports the status of the wrapper to the service manager
@@ -1600,51 +1643,62 @@ void wrapperReportStatus(int useLoggerQueue, int status, int errorCode, int wait
     int natState;
     TCHAR *natStateName;
     static DWORD dwCheckPoint = 1;
+#ifndef WINIA
+    static BOOL preShutdownTimeoutUpdated = FALSE;
+#endif
     BOOL bResult = TRUE;
 
-    /*
-    log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-        "wrapperReportStatus(%d, %d, %d, %d)", useLoggerQueue, status, errorCode, waitHint);
-    */
-
-    switch (status) {
-    case WRAPPER_WSTATE_STARTING:
-        natState = SERVICE_START_PENDING;
-        natStateName = TEXT("SERVICE_START_PENDING");
-        break;
-    case WRAPPER_WSTATE_STARTED:
-        natState = SERVICE_RUNNING;
-        natStateName = TEXT("SERVICE_RUNNING");
-        break;
-    case WRAPPER_WSTATE_PAUSING:
-        natState = SERVICE_PAUSE_PENDING;
-        natStateName = TEXT("SERVICE_PAUSE_PENDING");
-        break;
-    case WRAPPER_WSTATE_PAUSED:
-        natState = SERVICE_PAUSED;
-        natStateName = TEXT("SERVICE_PAUSED");
-        break;
-    case WRAPPER_WSTATE_RESUMING:
-        natState = SERVICE_CONTINUE_PENDING;
-        natStateName = TEXT("SERVICE_CONTINUE_PENDING");
-        break;
-    case WRAPPER_WSTATE_STOPPING:
-        natState = SERVICE_STOP_PENDING;
-        natStateName = TEXT("SERVICE_STOP_PENDING");
-        break;
-    case WRAPPER_WSTATE_STOPPED:
-        natState = SERVICE_STOPPED;
-        natStateName = TEXT("SERVICE_STOPPED");
-        break;
-    default:
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unknown status: %d"), status);
-        return;
-    }
-
     if (!wrapperData->isConsole) {
+        switch (status) {
+        case WRAPPER_WSTATE_STARTING:
+            natState = SERVICE_START_PENDING;
+            natStateName = TEXT("SERVICE_START_PENDING");
+            break;
+        case WRAPPER_WSTATE_STARTED:
+            natState = SERVICE_RUNNING;
+            natStateName = TEXT("SERVICE_RUNNING");
+            break;
+        case WRAPPER_WSTATE_PAUSING:
+            natState = SERVICE_PAUSE_PENDING;
+            natStateName = TEXT("SERVICE_PAUSE_PENDING");
+            break;
+        case WRAPPER_WSTATE_PAUSED:
+            natState = SERVICE_PAUSED;
+            natStateName = TEXT("SERVICE_PAUSED");
+            break;
+        case WRAPPER_WSTATE_RESUMING:
+            natState = SERVICE_CONTINUE_PENDING;
+            natStateName = TEXT("SERVICE_CONTINUE_PENDING");
+            break;
+        case WRAPPER_WSTATE_STOPPING:
+            natState = SERVICE_STOP_PENDING;
+            natStateName = TEXT("SERVICE_STOP_PENDING");
+            break;
+        case WRAPPER_WSTATE_STOPPED:
+            natState = SERVICE_STOPPED;
+            natStateName = TEXT("SERVICE_STOPPED");
+            break;
+        default:
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unknown status: %d"), status);
+            return;
+        }
+
         ssStatus.dwControlsAccepted = 0;
         if (natState != SERVICE_START_PENDING) {
-            ssStatus.dwControlsAccepted |= SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN;
+            ssStatus.dwControlsAccepted |= SERVICE_ACCEPT_STOP;
+#ifndef WINIA
+            if (wrapperData->ntPreshutdown) {
+                ssStatus.dwControlsAccepted |= SERVICE_ACCEPT_PRESHUTDOWN;
+                if (!preShutdownTimeoutUpdated) {
+                    wrapperUpdatePreShutdownTimeout();
+                    preShutdownTimeoutUpdated = TRUE;
+                }
+            } else {
+#endif
+                ssStatus.dwControlsAccepted |= SERVICE_ACCEPT_SHUTDOWN;
+#ifndef WINIA
+            }
+#endif
             if (wrapperData->pausable) {
                 ssStatus.dwControlsAccepted |= SERVICE_ACCEPT_PAUSE_CONTINUE;
             }
@@ -2052,7 +2106,6 @@ int wrapperExecute() {
     if (wrapperData->printJVMVersion) {
         launchChildProcessPrintJavaVersion(processflags, startup_info, process_info);
     }
-
     
     /* Create the new process */
     ret=CreateProcess(NULL,
@@ -2065,7 +2118,6 @@ int wrapperExecute() {
                       NULL,           /* use the Wrapper's current working directory */
                       &startup_info,  /* STARTUPINFO pointer */
                       &process_info); /* PROCESS_INFORMATION pointer */
-                      
 
     /* Restore the umask. */
     _umask(old_umask);
@@ -2689,7 +2741,7 @@ void wrapperMaintainControlCodes() {
         /* Request to stop the service. Report SERVICE_STOP_PENDING */
         /* to the service control manager before calling ServiceStop() */
         /* to avoid a "Service did not respond" error. */
-        wrapperReportStatus(FALSE, WRAPPER_WSTATE_STOPPING, 0, 0);
+        wrapperReportStatus(FALSE, WRAPPER_WSTATE_STOPPING, wrapperData->exitCode, wrapperData->ntShutdownWaitHint * 1000);
 
         /* Tell the wrapper to shutdown normally */
         /* Always force the shutdown as this is an external event. */
@@ -2707,6 +2759,31 @@ void wrapperMaintainControlCodes() {
         }
     }
 
+#ifndef WINIA
+    /* SERVICE_CONTROL_PRESHUTDOWN */
+    if (wrapperData->ctrlCodePreShutdownTrapped) {
+        wrapperData->ctrlCodePreShutdownTrapped = FALSE;
+
+        /* Request to stop the service. Report SERVICE_STOP_PENDING */
+        /* to the service control manager before calling ServiceStop() */
+        /* to avoid a "Service did not respond" error. */
+        wrapperReportStatus(FALSE, WRAPPER_WSTATE_STOPPING, wrapperData->exitCode, wrapperData->ntShutdownWaitHint * 1000);
+
+        /* Tell the wrapper to shutdown normally */
+        /* Always force the shutdown as this is an external event. */
+        wrapperStopProcess(0, TRUE);
+
+        /* To make sure that the JVM will not be restarted for any reason,
+         *  start the Wrapper shutdown process as well. */
+        if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
+            (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
+            /* Already stopping. */
+        } else {
+            wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
+        }
+    }
+#endif
+
     /* SERVICE_CONTROL_SHUTDOWN */
     if (wrapperData->ctrlCodeShutdownTrapped) {
         wrapperData->ctrlCodeShutdownTrapped = FALSE;
@@ -2714,7 +2791,7 @@ void wrapperMaintainControlCodes() {
         /* Request to stop the service. Report SERVICE_STOP_PENDING */
         /* to the service control manager before calling ServiceStop() */
         /* to avoid a "Service did not respond" error. */
-        wrapperReportStatus(FALSE, WRAPPER_WSTATE_STOPPING, 0, 0);
+        wrapperReportStatus(FALSE, WRAPPER_WSTATE_STOPPING, wrapperData->exitCode, wrapperData->ntShutdownWaitHint * 1000);
 
         /* Tell the wrapper to shutdown normally */
         /* Always force the shutdown as this is an external event. */
@@ -2944,6 +3021,17 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
             }
             break;
 
+#ifndef WINIA
+        case SERVICE_CONTROL_PRESHUTDOWN:
+            if (wrapperData->isDebugging) {
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_PRESHUTDOWN"));
+            }
+
+            wrapperData->ctrlCodePreShutdownTrapped = TRUE;
+
+            break;
+#endif
+
         case SERVICE_CONTROL_SHUTDOWN:
             if (wrapperData->isDebugging) {
                 log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_SHUTDOWN"));
@@ -3088,6 +3176,7 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
         } else {
             timeout = 86400000; // Set infinity at 1 day.
         }
+        /* Before entering the main loop, it makes sens to use wrapperData->startupTimeout instead of wrapperData->ntStartupWaitHint. */
         wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTING, 0, timeout);
 
         /* Now actually start the service */
@@ -3897,7 +3986,7 @@ int wrapperTeardown(int silent) {
     int result = 0;
     
     /* always make sure to clean the registry when calling teardown. */
-    if (syslogMessageFileRegistered()) {
+    if (syslogMessageFileRegistered(FALSE)) {
         if (!silent) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Unregistering to the Event Log system..."));
         }
@@ -5144,7 +5233,7 @@ int wrapperResumeService() {
                             wrapperData->serviceDisplayName, status);
                         result = 1;
                     }
-				}  
+                }
                 if ((!ignore) && (result == 0)) {
                     /* Wait for the service to resume. */
                     msgCntr = 0;
