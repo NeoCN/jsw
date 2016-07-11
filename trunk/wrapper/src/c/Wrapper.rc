@@ -70,7 +70,7 @@ BEGIN
         BLOCK "000904b0"
         BEGIN
             VALUE "CompanyName", "Tanuki Software, Ltd."
-            VALUE "FileDescription", "Java Service Wrapper Community Edition 3.5.30-a"
+            VALUE "FileDescription", "Java Service Wrapper Community Edition 3.5.30"
             VALUE "FileVersion", "3, 5, 30, 0"
             VALUE "LegalCopyright", "Copyright (C) 1999, 2016 Tanuki Software, Ltd.  All rights reserved."
             VALUE "InternalName", "wrapper"
