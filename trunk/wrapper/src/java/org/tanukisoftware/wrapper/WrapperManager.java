@@ -1438,9 +1438,20 @@ public final class WrapperManager
             {
                 arch = "sparc";
             }
+            else if ( arch.startsWith( "ppc64le" ) )
+            {
+                arch = "ppcle";
+            }
             else if ( arch.equals( "power" ) || arch.equals( "powerpc" ) || arch.equals( "ppc64" ) )
             {
-                arch = "ppc";
+                if ( m_aix )
+                {
+                    arch = "ppc";
+                }
+                else
+                {
+                    arch = "ppcbe";
+                }
             }
             else if ( arch.startsWith( "pa_risc" ) || arch.startsWith( "pa-risc" ) )
             {
@@ -5149,7 +5160,7 @@ public final class WrapperManager
             {
                 if ( m_debug )
                 {
-                    m_outDebug.println( getRes().getString( "Waiting for {0} threads to fininish launching child processes...", new Integer( m_runningExecs ) ) );
+                    m_outDebug.println( getRes().getString( "Waiting for {0} threads to finish launching child processes...", new Integer( m_runningExecs ) ) );
                 }
                 try
                 {
@@ -5160,7 +5171,7 @@ public final class WrapperManager
                 }
                 if ( System.currentTimeMillis() - start > 30000 )
                 {
-                    m_outError.println( getRes().getString( "Timed out waiting for {0} threads to fininish launching child processes.", new Integer( m_runningExecs ) ) );
+                    m_outError.println( getRes().getString( "Timed out waiting for {0} threads to finish launching child processes.", new Integer( m_runningExecs ) ) );
                     break;
                 }
             }

@@ -177,6 +177,7 @@ Property* createInnerProperty() {
     property->next = NULL;
     property->previous = NULL;
     property->value = NULL;
+    property->isGenerated = FALSE;
 
     return property;
 }
@@ -760,7 +761,7 @@ int setEnvInner(const TCHAR *name, const TCHAR *value) {
 #ifdef WIN32
  #if defined(WRAPPER_USE_PUTENV_S)
             if (_tputenv_s(name, value) == EINVAL) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to set '%s% environment variable to: %s"), name, value);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to set the '%s%' environment variable to: %s"), name, value);
                 result = TRUE;
             }
  #else
@@ -1345,6 +1346,7 @@ const TCHAR* getStringProperty(Properties *properties, const TCHAR *propertyName
         if (defaultValue != NULL) {
             property = addProperty(properties, NULL, 0, propertyName, defaultValue, FALSE, FALSE, FALSE, FALSE);
             if (property) {
+                property->isGenerated = TRUE;
                 return property->value;
             } else {
                 /* We failed to add the property, but still return the default. */
@@ -1366,7 +1368,10 @@ const TCHAR* getFileSafeStringProperty(Properties *properties, const TCHAR *prop
     property = getInnerProperty(properties, propertyName, TRUE);
     if (property == NULL) {
         if (defaultValue != NULL) {
-            addProperty(properties, NULL, 0, propertyName, defaultValue, FALSE, FALSE, FALSE, FALSE);
+            property = addProperty(properties, NULL, 0, propertyName, defaultValue, FALSE, FALSE, FALSE, FALSE);
+            if (property) {
+                property->isGenerated = TRUE;
+            }
         }
 
         return defaultValue;
@@ -1648,7 +1653,10 @@ int getIntProperty(Properties *properties, const TCHAR *propertyName, int defaul
     property = getInnerProperty(properties, propertyName, TRUE);
     if (property == NULL) {
         _sntprintf(buffer, 16, TEXT("%d"), defaultValue);
-        addProperty(properties, NULL, 0, propertyName, buffer, FALSE, FALSE, FALSE, FALSE);
+        property = addProperty(properties, NULL, 0, propertyName, buffer, FALSE, FALSE, FALSE, FALSE);
+        if (property) {
+            property->isGenerated = TRUE;
+        }
 
         return defaultValue;
     } else {
@@ -1788,6 +1796,15 @@ void freeBooleanProperties(TCHAR **propertyNames, int *propertyValues, long unsi
     free(propertyIndices);
 }
 
+int isGeneratedProperty(Properties *properties, const TCHAR *propertyName) {
+    Property *property;
+    property = getInnerProperty(properties, propertyName, FALSE);
+    if (property == NULL) {
+        return FALSE;
+    } else {
+        return property->isGenerated;
+    }
+}
 
 int isQuotableProperty(Properties *properties, const TCHAR *propertyName) {
     Property *property;
@@ -1799,13 +1816,85 @@ int isQuotableProperty(Properties *properties, const TCHAR *propertyName) {
     }
 }
 
+TCHAR* toLower(TCHAR* value) {
+    TCHAR* result;
+    size_t len;
+    size_t i;
+    
+    len = _tcslen(value);
+    result = malloc(sizeof(TCHAR) * (len + 1));
+    if (!result) {
+        outOfMemory(TEXT("TL"), 1);
+        return NULL;
+    }
+    
+    for (i = 0; i < len; i++) {
+        result[i] = _totlower(value[i]);
+    }
+    result[len] = TEXT('\0');
+    
+    return result;
+}
+
+/**
+ * Return a code indicating how the property can be dumped.
+ *
+ * @property property to check.
+ *
+ * @return 0 if the property should not be dumped.
+ *         1 if the property's value should be hidden.
+ *         2 if the property can be logged normally.
+ */
+int propertyDumpFilter(Property *property) {
+    TCHAR* propName;
+    
+    if (property->isGenerated || property->internal) {
+        return 0;
+    }
+    
+    propName = toLower(property->name);
+    if (!propName) {
+        return 0;
+    }
+    
+    if (_tcsstr(propName, TEXT(".license."))) {
+        free(propName);
+        return 0;
+    }
+
+    if (_tcsstr(propName, TEXT(".password")) == (propName + ((int)_tcslen(propName) - 9))) {
+        free(propName);
+        return 1;
+    }
+    
+    free(propName);
+    return 2;
+}
+
 void dumpProperties(Properties *properties) {
     Property *property;
-    property = properties->first;
-    while (property != NULL) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    name:%s value:%s"), property->name, property->value);
-        property = property->next;
+    int dumpFilter;
+    
+    if (getLowLogLevel() <= properties->dumpLogLevel) {
+        property = properties->first;
+        log_printf(WRAPPER_SOURCE_WRAPPER, properties->dumpLogLevel, TEXT(""));
+        log_printf(WRAPPER_SOURCE_WRAPPER, properties->dumpLogLevel, TEXT("Wrapper configuration properties (Name=Value) BEGIN:"));
+        
+        while (property != NULL) {
+            dumpFilter = propertyDumpFilter(property);
+            if (dumpFilter > 0) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, properties->dumpLogLevel, TEXT("  %s=%s"), property->name, dumpFilter == 1 ? TEXT("<hidden>") : property->value);
+            }
+            property = property->next;
+        }
     }
+}
+
+/**
+ * Level at which properties will be dumped.
+ */
+void setPropertiesDumpLogLevel(Properties *properties, int logLevel) {
+    properties->dumpLogLevel = logLevel;
 }
 
 /**

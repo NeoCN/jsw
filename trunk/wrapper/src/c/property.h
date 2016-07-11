@@ -71,6 +71,7 @@ struct Property {
     int internal;                       /* TRUE if the Property is internal. */
     Property *next;                     /* Pointer to the next Property in a linked list */
     Property *previous;                 /* Pointer to the next Property in a linked list */
+    int isGenerated;                    /* TRUE if the property did not exist in the configuration and was generated using a default value. */
 };
 
 typedef struct Properties Properties;
@@ -81,6 +82,7 @@ struct Properties {
     int overwrittenPropertyCausedExit;  /* Flag to keep trace whether at least one property was overridden */
     int logWarnings;                    /* Flag that controls whether or not warnings will be logged. */
     int logWarningLogLevel;             /* Log level at which any log warnings will be logged. */
+    int dumpLogLevel;                   /* Log level at which properties will be dumped. */
     Property *first;                    /* Pointer to the first property. */
     Property *last;                     /* Pointer to the last property.  */
     PHashMap warnedVarMap;              /* Map of undefined environment variables for which the user was warned. */
@@ -279,9 +281,16 @@ extern int getBooleanProperties(Properties *properties, const TCHAR *propertyNam
 
 extern void freeBooleanProperties(TCHAR **propertyNames, int *propertyValues, long unsigned int *propertyIndices);
 
+extern int isGeneratedProperty(Properties *properties, const TCHAR *propertyName);
+
 extern int isQuotableProperty(Properties *properties, const TCHAR *propertyName);
 
 extern void dumpProperties(Properties *properties);
+
+/**
+ * Level at which properties will be dumped.
+ */
+extern void setPropertiesDumpLogLevel(Properties *properties, int logLevel);
 
 /**
  * Set to TRUE if warnings about property values should be logged.

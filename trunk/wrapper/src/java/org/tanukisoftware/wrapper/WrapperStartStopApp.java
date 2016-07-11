@@ -228,7 +228,7 @@ public class WrapperStartStopApp
         if ( args.length < 5 )
         {
             m_initFailed = true;
-            m_initError = WrapperManager.getRes().getString( "Not enough argments.  Minimum {0} required.", "5" );
+            m_initError = WrapperManager.getRes().getString( "Not enough arguments.  Minimum {0} required.", "5" );
             m_initShowUsage = true;
             
             // No main class, do the best we can for now.
@@ -265,7 +265,7 @@ public class WrapperStartStopApp
                     if ( args.length < stopArgBase + 3 )
                     {
                         m_initFailed = true;
-                        m_initError = WrapperManager.getRes().getString( "Not enough argments. Minimum 3 after start arguments." );
+                        m_initError = WrapperManager.getRes().getString( "Not enough arguments. Minimum 3 after start arguments." );
                         m_initShowUsage = true;
                     }
                     else
@@ -893,7 +893,7 @@ public class WrapperStartStopApp
         if ( args.length < argBase + 1 + argCount )
         {
             m_initFailed = true;
-            m_initError = WrapperManager.getRes().getString( "Not enough argments.  Argument count of {0} was specified.", new Integer( argCount) );
+            m_initError = WrapperManager.getRes().getString( "Not enough arguments.  Argument count of {0} was specified.", new Integer( argCount) );
             m_initShowUsage = true;
             return null;
         }

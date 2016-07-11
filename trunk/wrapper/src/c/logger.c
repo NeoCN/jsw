@@ -97,6 +97,12 @@ typedef long intptr_t;
 
 const TCHAR* defaultLogFile = TEXT("wrapper.log");
 
+#ifdef WIN32
+const TCHAR* syslogName = TEXT("Event Log");
+#else
+const TCHAR* syslogName = TEXT("syslog");
+#endif
+
 /* Global data for logger */
 
 /* Maximum number of milliseconds that a log write can take before we show a warning. */
@@ -122,6 +128,10 @@ int currentLogfacilityLevel = LOG_USER;
 /* Callback notified whenever the active logfile changes. */
 void (*logFileChangedCallback)(const TCHAR *logFile);
 
+/* Callback to support additional logging format. */
+int (*logFormatCountCallback)(const TCHAR format, size_t *reqSize);
+int (*logFormatPrintCallback)(const TCHAR format, size_t printSize, TCHAR** pBuffer);
+
 /* Stores a carefully malloced filename of the most recent log file change.   This value is only set in log_printf(), and only cleared in maintainLogger(). */
 TCHAR *pendingLogFileChange = NULL;
 
@@ -133,7 +143,17 @@ TCHAR *logFilePath;
 /* Size of the currentLogFileName and workLogFileName buffers. */
 size_t currentLogFileNameSize;
 TCHAR *currentLogFileName;
+size_t confLogFileNameSize;
+TCHAR *confLogFileName;
+TCHAR  confLogFileStopDateStr[20];
+TCHAR  confLogFileLevelInt;
 TCHAR *workLogFileName;
+int    whichLogFile;
+
+#define LOG_FILE_UNSET       0
+#define LOG_FILE_CONFIGURED  1
+#define LOG_FILE_DEFAULT     2
+#define LOG_FILE_DISABLED    3
 
 int logFileRollMode = ROLL_MODE_SIZE;
 int logFileUmask = 0022;
@@ -243,7 +263,7 @@ int autoCloseLogfile = 0;
 DWORD logfileActivityCount = 0;
 
 
-/* Mutex for syncronization of the log_printf function. */
+/* Mutex for synchronization of the log_printf function. */
 #ifdef WIN32
 HANDLE log_printfMutexHandle = NULL;
 #else
@@ -439,6 +459,10 @@ int disposeLogging() {
         free(currentLogFileName);
         currentLogFileName = NULL;
     }
+    if (confLogFileName) {
+        free(confLogFileName);
+        confLogFileName = NULL;
+    }
     if (workLogFileName) {
         free(workLogFileName);
         workLogFileName = NULL;
@@ -452,6 +476,12 @@ int disposeLogging() {
         logfileFP = NULL;
     }
     return 0;
+}
+
+void logRegisterFormatCallbacks(int (*countCallback)(const TCHAR format, size_t *reqSize), 
+                                int (*printCallback)(const TCHAR format, size_t printSize, TCHAR** pBuffer)) {
+    logFormatCountCallback = countCallback;
+    logFormatPrintCallback = printCallback;
 }
 
 /** Registers the calling thread so it can be recognized when it calls
@@ -885,7 +915,6 @@ void setLogBufferGrowth(int log) {
     logBufferGrowth = log;
 }
 
-
 void setLogfileRollMode( int log_file_roll_mode ) {
     logFileRollMode = log_file_roll_mode;
 }
@@ -1002,6 +1031,19 @@ void setLogfilePurgePattern(const TCHAR *pattern) {
 
 void setLogfilePurgeSortMode(int sortMode) {
     logFilePurgeSortMode = sortMode;
+}
+
+void disableLogFile() {
+    /* Save the log level. */
+    confLogFileLevelInt = getLogfileLevelInt();
+    
+    /* Disable the log file. */
+    setLogfileLevelInt(LEVEL_NONE);
+}
+
+void enableLogFile() {
+    /* Restore the log level */
+    setLogfileLevelInt(confLogFileLevelInt);
 }
 
 /** Returns the number of lines of log file activity since the last call. */
@@ -1365,6 +1407,11 @@ int GetColumnsAndReqSizeForPrintBuffer(const TCHAR *format, const TCHAR *message
             *reqSize += _tcslen( message ) + 3;
             numColumns++;
             break;
+            
+        default:
+            if (logFormatCountCallback && logFormatCountCallback(format[i], reqSize)) {
+                numColumns++;
+            }
         }
     }
     return numColumns;
@@ -1404,7 +1451,7 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
     /* Create a pointer to the beginning of the print buffer, it will be advanced
      *  as the formatted message is build up. */
     pos = threadPrintBuffer;
-
+    
     /* We now have a buffer large enough to store the entire formatted message. */
     for( i = 0, currentColumn = 0, len = 0, temp = 0; i < (int)_tcslen( format ); i++ ) {
         handledFormat = TRUE;
@@ -1534,7 +1581,11 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
             break;
 
         default:
-            handledFormat = FALSE;
+            if (logFormatPrintCallback && (temp = logFormatPrintCallback(format[i], reqSize - len, &pos))) {
+                currentColumn++;
+            } else {
+                handledFormat = FALSE;
+            }
         }
         
         if (handledFormat) {
@@ -1648,25 +1699,27 @@ void log_printf_message_sysLog(int source_id, int level, TCHAR *message, struct 
 }
 
 /**
- * Prints the contents of a buffer to the logfile target.  The log level is
- *  tested prior to this function being called.
+ * Open log file in the following order of priority: configured log file, default log file, no log file.
+ *  This function will also try to resume logging in a file with a higher priority as soon as it becomes
+ *  available.
  *
  * Must be called while locked.
  *
  * @return True if the logfile name changed.
  */
-int log_printf_message_logFileInner(int source_id, int level, int threadId, int queued, TCHAR *message, struct tm *nowTM, int nowMillis, time_t durationMillis) {
+int openLogFile(struct tm *nowTM, TCHAR *message) {
     int logFileChanged = FALSE;
     TCHAR nowDate[9];
-    TCHAR *printBuffer;
     int old_umask;
     const TCHAR *tempBufferFormat;
     const TCHAR *tempBufferLastErrorText;
     size_t tempBufferLen;
     TCHAR *tempBuffer;
+    TCHAR tempConfLogFileResumeDateStr[20];
     size_t reqSize = 0;
     char *messageMB;
     size_t messageMBMaxLen = 0;
+    FILE *tempLogfileFP = NULL;
     
     /* If the log file was set to a blank value then it will not be used. */
     if (logFilePath && (_tcslen(logFilePath) > 0)) {
@@ -1686,7 +1739,7 @@ int log_printf_message_logFileInner(int source_id, int level, int threadId, int 
             if (messageMBMaxLen > 0) {
                 messageMB = malloc(messageMBMaxLen);
                 if (!messageMB) {
-                    outOfMemoryQueued(TEXT("LPME"), 0);
+                    outOfMemoryQueued(TEXT("OLF"), 1);
                 } else {
                     wcstombs(messageMB, message, messageMBMaxLen);
                     
@@ -1700,34 +1753,37 @@ int log_printf_message_logFileInner(int source_id, int level, int threadId, int 
         }
         /* Make sure that the log file does not need to be rolled. */
         checkAndRollLogs(nowDate, reqSize);
-
-        /* If the file needs to be opened then do so. */
-        if (logfileFP == NULL) {
-            /* Generate the log file name if it is not already set. */
-            if (currentLogFileName[0] == TEXT('\0')) {
-                if (logFileRollMode & ROLL_MODE_DATE) {
-                    generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, nowDate, NULL);
-                } else {
-                    generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, NULL, NULL);
-                }
-                logFileChanged = TRUE;
-            }
-
+        
+        /* If we previously fell back to the default log file, try to return to the configured log file */
+        if (whichLogFile != LOG_FILE_UNSET && whichLogFile != LOG_FILE_CONFIGURED && (confLogFileName != NULL)) {
+            /* Check if the configured log file is available */
             old_umask = umask( logFileUmask );
-            logfileFP = _tfopen(currentLogFileName, TEXT("a"));
-            if (logfileFP == NULL) {
-                /* The log file could not be opened. */
+            tempLogfileFP = _tfopen(confLogFileName, TEXT("a"));
+            
+            if (tempLogfileFP != NULL) {
+                if (whichLogFile == LOG_FILE_DISABLED) {
+                    /* We previously disabled file logging. Reactivate it. */
+                    enableLogFile();
+                } else if (logfileFP != NULL) {
+                    /* Make sure to close the default log file (we have not set logfileFP yet). */
+                    /* We are already locked. */
+                    fclose(logfileFP);
+                    logfileFP = NULL;
+                }
                 
-                /* We need to write our error message into a buffer manually so we can use it
+                /* We need to write our message into a buffer manually so we can use it
                  *  both for the log_printf_queue and log_printf_message_sysLog calls below. */
-                tempBufferFormat = TEXT("Unable to write to the configured log file: %s (%s)\n  Falling back to the default file in the current working directory: %s");
-                tempBufferLastErrorText = getLastErrorText();
-                tempBufferLen = _tcslen(tempBufferFormat) - 2 - 2 - 2 + _tcslen(currentLogFileName) + _tcslen(tempBufferLastErrorText) + _tcslen(defaultLogFile) + 1;
+                tempBufferFormat = TEXT("The messages could not be logged in the configured log file (%s) between %s and %s.\n  The missing log entries may be found in the default log file (%s) of the current working directory or in the %s.");
+                _sntprintf(tempConfLogFileResumeDateStr, 20, TEXT("%04d/%02d/%02d %02d:%02d:%02d"),
+                                nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday,
+                                nowTM->tm_hour, nowTM->tm_min, nowTM->tm_sec );
+                tempConfLogFileResumeDateStr[19] = 0;
+                tempBufferLen = _tcslen(tempBufferFormat) - 2 - 2 - 2 - 2 - 2 + _tcslen(confLogFileName) + _tcslen(confLogFileStopDateStr) + _tcslen(tempConfLogFileResumeDateStr) + _tcslen(defaultLogFile) + _tcslen(syslogName) + 1;
                 tempBuffer = malloc(sizeof(TCHAR) * tempBufferLen);
                 if (!tempBuffer) {
-                    outOfMemoryQueued(TEXT("LPML"), 1 );
+                    outOfMemoryQueued(TEXT("OLF"), 2);
                 } else {
-                    _sntprintf(tempBuffer, tempBufferLen, tempBufferFormat, currentLogFileName, getLastErrorText(), defaultLogFile);
+                    _sntprintf(tempBuffer, tempBufferLen, tempBufferFormat, confLogFileName, confLogFileStopDateStr, tempConfLogFileResumeDateStr, defaultLogFile, syslogName);
                     
                     log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("%s"), tempBuffer);
                     
@@ -1739,12 +1795,91 @@ int log_printf_message_logFileInner(int source_id, int level, int threadId, int 
                     free(tempBuffer);
                 }
                 
-                /* Try the default file location. */
-                setLogfilePath(defaultLogFile, NULL, TRUE);
-                _sntprintf(currentLogFileName, currentLogFileNameSize, defaultLogFile);
+                /* Set the log file path */
+                setLogfilePath(confLogFileName, NULL, TRUE);
+                _sntprintf(currentLogFileName, currentLogFileNameSize, confLogFileName);
                 logFileChanged = TRUE;
+                whichLogFile = LOG_FILE_CONFIGURED;
+                logfileFP = tempLogfileFP;
+            }
+            umask(old_umask);
+        }
+
+        /* If the file needs to be opened then do so. */
+        if (logfileFP == NULL) {
+            old_umask = umask( logFileUmask );
+            /* Generate the log file name if it is not already set. */
+            if (whichLogFile != LOG_FILE_DISABLED) {
+                if (currentLogFileName[0] == TEXT('\0')) {
+                    if (logFileRollMode & ROLL_MODE_DATE) {
+                        generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, nowDate, NULL);
+                    } else {
+                        generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, NULL, NULL);
+                    }
+                    logFileChanged = TRUE;
+                }
+
                 logfileFP = _tfopen(currentLogFileName, TEXT("a"));
-                if (logfileFP == NULL) {
+            }
+            if (logfileFP != NULL) {
+                if (whichLogFile == LOG_FILE_UNSET) {
+                    whichLogFile = LOG_FILE_CONFIGURED;
+                }
+            } else {
+                if (whichLogFile != LOG_FILE_DEFAULT) {
+                    logfileFP = _tfopen(defaultLogFile, TEXT("a"));
+                    if (whichLogFile == LOG_FILE_DISABLED) {
+                        if (logfileFP != NULL) {
+                            enableLogFile();
+                        } else {
+                            /* The logging was disabled and both the default file and the configured file could not be opened. */
+                            return FALSE;
+                        }
+                    } else {
+                        /* Save the configured file location */
+                        confLogFileNameSize = currentLogFileNameSize;
+                        confLogFileName = malloc(sizeof(TCHAR) * confLogFileNameSize);
+                        if (!confLogFileName) {
+                            outOfMemoryQueued(TEXT("OLF"), 4);
+                        } else {
+                            _tcsncpy(confLogFileName, currentLogFileName, confLogFileNameSize);
+                        }
+                        /* Save the date in string format so that we don't need to worry about time changes. */
+                        _sntprintf(confLogFileStopDateStr, 20, TEXT("%04d/%02d/%02d %02d:%02d:%02d"),
+                                        nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday,
+                                        nowTM->tm_hour, nowTM->tm_min, nowTM->tm_sec );
+                        confLogFileStopDateStr[19] = 0;
+                    }
+                    
+                    /* We need to write our error message into a buffer manually so we can use it
+                     *  both for the log_printf_queue and log_printf_message_sysLog calls below. */
+                    tempBufferFormat = TEXT("Unable to write to the configured log file: %s (%s)\n  Falling back to the default file in the current working directory: %s");
+                    tempBufferLastErrorText = getLastErrorText();
+                    tempBufferLen = _tcslen(tempBufferFormat) - 2 - 2 - 2 + _tcslen(currentLogFileName) + _tcslen(tempBufferLastErrorText) + _tcslen(defaultLogFile) + 1;
+                    tempBuffer = malloc(sizeof(TCHAR) * tempBufferLen);
+                    if (!tempBuffer) {
+                        outOfMemoryQueued(TEXT("OLF"), 3);
+                    } else {
+                        _sntprintf(tempBuffer, tempBufferLen, tempBufferFormat, currentLogFileName, getLastErrorText(), defaultLogFile);
+                        
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("%s"), tempBuffer);
+                        
+                        /* This is critical for debugging problems.  If the above message would not have shown
+                         *  up in the syslog then send it there manually.  We are already locked here so this
+                         *  can be done safely. */
+                        log_printf_message_sysLog(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, tempBuffer, nowTM, TRUE);
+                        
+                        free(tempBuffer);
+                    }
+                    
+                    /* Try the default file location. */
+                    setLogfilePath(defaultLogFile, NULL, TRUE);
+                    _sntprintf(currentLogFileName, currentLogFileNameSize, defaultLogFile);
+                    logFileChanged = TRUE;
+                }
+                if (logfileFP != NULL) {
+                    whichLogFile = LOG_FILE_DEFAULT;
+                } else {
                     /* Still unable to write. */
                     
                     /* We need to write our error message into a buffer manually so we can use it
@@ -1754,7 +1889,7 @@ int log_printf_message_logFileInner(int source_id, int level, int threadId, int 
                     tempBufferLen = _tcslen(tempBufferFormat) - 2 - 2 + _tcslen(currentLogFileName) + _tcslen(tempBufferLastErrorText) + 1;
                     tempBuffer = malloc(sizeof(TCHAR) * tempBufferLen);
                     if (!tempBuffer) {
-                        outOfMemoryQueued(TEXT("LPML"), 2 );
+                        outOfMemoryQueued(TEXT("OLF"), 5);
                     } else {
                         _sntprintf(tempBuffer, tempBufferLen, tempBufferFormat, currentLogFileName, getLastErrorText());
                         
@@ -1767,8 +1902,9 @@ int log_printf_message_logFileInner(int source_id, int level, int threadId, int 
                         
                         free(tempBuffer);
                     }
-                    setLogfileLevelInt(LEVEL_NONE);
+                    disableLogFile();
                     logFileChanged = FALSE;
+                    whichLogFile = LOG_FILE_DISABLED;
                 }
             }
             umask(old_umask);
@@ -1786,48 +1922,62 @@ int log_printf_message_logFileInner(int source_id, int level, int threadId, int 
         } else {
             /* We need to store the date the file was opened for. */
             _tcsncpy(logFileLastNowDate, nowDate, 9);
-
-            /* Build up the printBuffer. */
-            printBuffer = buildPrintBuffer(source_id, level, threadId, queued, nowTM, nowMillis, durationMillis, logfileFormat, LOG_FORMAT_LOGFILE_DEFAULT, message);
-            if (printBuffer) {
-                _ftprintf(logfileFP, TEXT("%s\n"), printBuffer);
-                logFileAccessed = TRUE;
-
-                /* Increment the activity counter. */
-                logfileActivityCount++;
-
-                /* Decide whether we want to close or flush the log file immediately after each line.
-                 *  If not then flushing and closing will be handled externally by calling flushLogfile() or closeLogfile(). */
-                if (autoCloseLogfile) {
-                    /* Close the log file immediately. */
-#ifdef _DEBUG
-                    _tprintf(TEXT("Closing logfile immediately...\n"));
-#endif
-
-                    fclose(logfileFP);
-                    logfileFP = NULL;
-                    /* Do not clear the currentLogFileName here as we are not changing its name. */
-                } else if (autoFlushLogfile) {
-                    /* Flush the log file immediately. */
-#ifdef _DEBUG
-                    _tprintf(TEXT("Flushing logfile immediately...\n"));
-#endif
-                    
-                    fflush(logfileFP);
-                }
-
-                /* Leave the file open.  It will be closed later after a period of inactivity. */
-            }
         }
     }
     
     return logFileChanged;
 }
+
+/**
+ * Prints the contents of a buffer to the logfile target.  The log level is
+ *  tested prior to this function being called.
+ *
+ * Must be called while locked.
+ */
+void log_printf_message_logFileInner(int source_id, int level, int threadId, int queued, TCHAR *message, struct tm *nowTM, int nowMillis, time_t durationMillis) {
+    TCHAR *printBuffer;
+
+    if (logfileFP != NULL) {
+        /* Build up the printBuffer. */
+        printBuffer = buildPrintBuffer(source_id, level, threadId, queued, nowTM, nowMillis, durationMillis, logfileFormat, LOG_FORMAT_LOGFILE_DEFAULT, message);
+        if (printBuffer) {
+            _ftprintf(logfileFP, TEXT("%s\n"), printBuffer);
+            logFileAccessed = TRUE;
+
+            /* Increment the activity counter. */
+            logfileActivityCount++;
+
+            /* Decide whether we want to close or flush the log file immediately after each line.
+             *  If not then flushing and closing will be handled externally by calling flushLogfile() or closeLogfile(). */
+            if (autoCloseLogfile) {
+                /* Close the log file immediately. */
+#ifdef _DEBUG
+                _tprintf(TEXT("Closing logfile immediately...\n"));
+#endif
+
+                fclose(logfileFP);
+                logfileFP = NULL;
+                /* Do not clear the currentLogFileName here as we are not changing its name. */
+            } else if (autoFlushLogfile) {
+                /* Flush the log file immediately. */
+#ifdef _DEBUG
+                _tprintf(TEXT("Flushing logfile immediately...\n"));
+#endif
+                
+                fflush(logfileFP);
+            }
+
+            /* Leave the file open.  It will be closed later after a period of inactivity. */
+        }
+    }
+}
 int log_printf_message_logFile(int source_id, int level, int threadId, int queued, TCHAR *message, struct tm *nowTM, int nowMillis, time_t durationMillis) {
     int logFileChanged = FALSE;
     
+    logFileChanged = openLogFile(nowTM, message);
+
     if (level >= currentLogfileLevel) {
-        logFileChanged = log_printf_message_logFileInner(source_id, level, threadId, queued, message, nowTM, nowMillis, durationMillis);
+        log_printf_message_logFileInner(source_id, level, threadId, queued, message, nowTM, nowMillis, durationMillis);
     }
     
     return logFileChanged;
@@ -2608,7 +2758,7 @@ int registerSyslogMessageFile( int forceInstall ) {
 }
 
 /**
- * Register to the Log Event System
+ * Unregister from the Log Event System
  */
 int unregisterSyslogMessageFile( ) {
 #ifdef WIN32
@@ -3297,6 +3447,7 @@ static TCHAR distroDescription[100];
 const TCHAR *centosPattern = TEXT("CentOS Linux");
 const TCHAR *amiPattern = TEXT("Amazon Linux AMI");
 const TCHAR *rhelPattern = TEXT("Red Hat Enterprise Linux");
+const TCHAR *fedoraPattern = TEXT("Fedora release");
 const TCHAR *linuxPattern = TEXT("Linux");
 
 /**
@@ -3321,6 +3472,9 @@ const TCHAR *getDistro() {
         } else if ((foundRhDescription && _tcsstr(rhelDescription, rhelPattern) != NULL) || 
             (foundSysDescription  && _tcsstr(sysDescription, rhelPattern) != NULL)) {
             _tcsncpy(distroDescription, rhelPattern, 100);
+        } else if ((foundRhDescription && _tcsstr(rhelDescription, fedoraPattern) != NULL) || 
+            (foundSysDescription  && _tcsstr(sysDescription, fedoraPattern) != NULL)) {
+            _tcsncpy(distroDescription, fedoraPattern, 100);
         } else if (foundSysDescription && _tcsstr(sysDescription, amiPattern) != NULL) {
             _tcsncpy(distroDescription, amiPattern, 100);
         } else {
@@ -3352,6 +3506,11 @@ int isRHEL() {
     return result != -1 ? result : (result = (_tcsicmp(getDistro(), rhelPattern) == 0));
 }
 
+int isFedora() {
+    static int result = -1;
+    return result != -1 ? result : (result = (_tcsicmp(getDistro(), fedoraPattern) == 0));
+}
+
 /**
  * Check if the glibc version of the user is upper to given numbers.
  */
@@ -3375,7 +3534,7 @@ int doesFtellCauseMemoryLeak() {
     static int result = -1;
 #ifdef LINUX
     if (result == -1) {
-        if ((isCentos() || isAMI() || isRHEL()) && !wrapperAssertGlibcUserBis(2, 21, 0)){
+        if ((isCentos() || isAMI() || isRHEL() || isFedora()) && !wrapperAssertGlibcUserBis(2, 21, 0)){
             result = 1;
         } else {
             result = 0;
@@ -3442,7 +3601,7 @@ void checkAndRollLogs(const TCHAR *nowDate, size_t printBufferSize) {
         }
 
         /* Does the log file need to rotated? */
-        if ((int)position - 2 >= logFileMaxSize) { /* -2: no carriage return for the last message beeing logged. */
+        if ((int)position - 2 >= logFileMaxSize) { /* -2: no carriage return for the last message being logged. */
             rollLogs();
         }
     } else if (logFileRollMode & ROLL_MODE_DATE) {

@@ -164,11 +164,12 @@ int disposed = FALSE;
 int loadConfiguration();
 
 #define READ_BUFFER_BLOCK_SIZE 1024
-char *wrapperChildWorkBuffer = NULL;
-size_t wrapperChildWorkBufferSize = 0;
-size_t wrapperChildWorkBufferLen = 0;
-time_t wrapperChildWorkLastDataTime = 0;
-int wrapperChildWorkLastDataTimeMillis = 0;
+static char *wrapperChildWorkBuffer = NULL;
+static size_t wrapperChildWorkBufferSize = 0;
+static size_t wrapperChildWorkBufferLen = 0;
+static time_t wrapperChildWorkLastDataTime = 0;
+static int wrapperChildWorkLastDataTimeMillis = 0;
+static int wrapperChildWorkIsNewLine = TRUE;
 
 /**
  * Constructs a tm structure from a pair of Strings like "20091116" and "1514".
@@ -627,6 +628,8 @@ void wrapperLoadLoggingProperties(int preload) {
     setLogPropertyWarnings(properties, !preload);
     
     setLogPropertyWarningLogLevel(properties, getLogLevelForName(getStringProperty(properties, TEXT("wrapper.property_warning.loglevel"), TEXT("WARN"))));
+    
+    setPropertiesDumpLogLevel(properties, getLogLevelForName(getStringProperty(properties, TEXT("wrapper.properties.dump.loglevel"), TEXT("DEBUG"))));
 
     setLogWarningThreshold(getIntProperty(properties, TEXT("wrapper.log.warning.threshold"), 0));
     wrapperData->logLFDelayThreshold = propIntMax(propIntMin(getIntProperty(properties, TEXT("wrapper.log.lf_delay.threshold"), 500), 3600000), 0);
@@ -841,7 +844,7 @@ int wrapperLoadConfigurationProperties(int preload) {
         }
 #else
         /* The solaris implementation of realpath will return a relative path if a relative
-         *  path is provided.  We always need an abosulte path here.  So build up one and
+         *  path is provided.  We always need an absolute path here.  So build up one and
          *  then use realpath to remove any .. or other relative references. */
         wrapperData->originalWorkingDir = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
         if (!wrapperData->originalWorkingDir) {
@@ -884,7 +887,7 @@ int wrapperLoadConfigurationProperties(int preload) {
         }
 #else
         /* The solaris implementation of realpath will return a relative path if a relative
-         *  path is provided.  We always need an abosulte path here.  So build up one and
+         *  path is provided.  We always need an absolute path here.  So build up one and
          *  then use realpath to remove any .. or other relative references. */
         wrapperData->configFile = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
         if (!wrapperData->configFile) {
@@ -1002,7 +1005,7 @@ int wrapperLoadConfigurationProperties(int preload) {
             }
 #else
             /* The solaris implementation of realpath will return a relative path if a relative
-             *  path is provided.  We always need an abosulte path here.  So build up one and
+             *  path is provided.  We always need an absolute path here.  So build up one and
              *  then use realpath to remove any .. or other relative references. */
             wrapperData->workingDir = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
             if (!wrapperData->workingDir) {
@@ -1017,12 +1020,6 @@ int wrapperLoadConfigurationProperties(int preload) {
 #endif
         }
     }
-
-#ifdef _DEBUG
-    /* Display the active properties */
-    _tprintf(TEXT("Debug Configuration Properties:\n"));
-    dumpProperties(properties);
-#endif
 
     /* Now that the configuration is loaded, we need to update the working directory if the user specified one.
      *  This must be done now so that anything that references the working directory, including the log file
@@ -2037,7 +2034,7 @@ TCHAR *wrapperProtocolGetCodeName(char code) {
     return name;
 }
 
-/* Mutex for syncronization of the wrapperProtocolFunction function. */
+/* Mutex for synchronization of the wrapperProtocolFunction function. */
 #ifdef WIN32
 HANDLE protocolMutexHandle = NULL;
 #else
@@ -2757,6 +2754,70 @@ void wrapperLogFileChanged(const TCHAR *logFile) {
         wrapperProtocolFunction(WRAPPER_MSG_LOGFILE, logFile);
     }
 }
+
+/**
+ * Return the size of the PID
+ */
+int wrapperGetPidSize(int pid, int minSize) {
+    if (pid < pow(10, minSize + 1)) {
+        return minSize;
+    }
+
+    /* Slower method but it should not happen often. */
+    return (int)floor (log10 ((double)abs (pid))) + 1;
+}
+
+/* In the future, we may load this value from configuration properties. */
+#define PID_DEFAULT_SIZE   5
+static int jPidSize = PID_DEFAULT_SIZE;
+static int wPidSize = 0;
+
+/**
+ * Calculates the size required to display the Wrapper PID column or the Java PID column.
+ *  The size of each column can grow on its own as needed and never go back down.
+ */
+int wrapperLogFormatCount(const TCHAR format, size_t *reqSize) {
+    switch( format ) {
+    case TEXT('J'):
+    case TEXT('j'):
+        jPidSize = wrapperGetPidSize((int)wrapperData->javaPID, jPidSize);
+        *reqSize += jPidSize + 3;
+        return 1;
+
+    case TEXT('W'):
+    case TEXT('w'):
+        if (wPidSize == 0) {
+            /* The Wrapper PID can't change. Calculate its width only one time. */
+            wPidSize = wrapperGetPidSize((int)wrapperData->wrapperPID, PID_DEFAULT_SIZE);
+        }
+        *reqSize += wPidSize + 3;
+        return 1;
+    }
+    
+    return 0;
+}
+
+/**
+ * Print the Wrapper PID column or the Java PID column.
+ */
+int wrapperLogFormatPrint(const TCHAR format, size_t printSize, TCHAR** pBuffer) {
+    switch( format ) {
+    case TEXT('J'):
+    case TEXT('j'):
+        if (wrapperData->javaPID) {
+            return _sntprintf( *pBuffer, printSize, TEXT("%*d"), jPidSize, wrapperData->javaPID);
+        } else {
+            return _sntprintf( *pBuffer, printSize, TEXT("-----"));
+        }
+
+    case TEXT('W'):
+    case TEXT('w'):
+        return _sntprintf( *pBuffer, printSize, TEXT("%*d"), wPidSize, wrapperData->wrapperPID);
+    }
+    
+    return 0;
+}
+
 /**
  * Pre initialize the wrapper.
  */
@@ -2807,6 +2868,7 @@ int wrapperInitialize() {
     wrapperData->language = NULL;
     wrapperData->portAddress = NULL;
     wrapperData->pingTimedOut = FALSE;
+    wrapperData->shutdownActionPropertyName = NULL;
 #ifdef WIN32
     if (!(tickMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
         printf("Failed to create tick mutex. %s\n", getLastErrorText());
@@ -2822,8 +2884,6 @@ int wrapperInitialize() {
     wrapperData->ctrlCodeQueueWriteIndex = 0;
     wrapperData->ctrlCodeQueueReadIndex = 0;
     wrapperData->ctrlCodeQueueWrapped = FALSE;
-    wrapperData->argc = 0;
-    wrapperData->argv = NULL;
 #endif
 
     if (initLogging(wrapperLogFileChanged)) {
@@ -2834,7 +2894,8 @@ int wrapperInitialize() {
      * Immediately register this thread with the logger.
      * This has to happen after the logging is initialized. */
     logRegisterThread(WRAPPER_THREAD_MAIN);
-
+    
+    logRegisterFormatCallbacks(wrapperLogFormatCount, wrapperLogFormatPrint);
 
     setLogfilePath(TEXT("wrapper.log"), NULL, FALSE);
     setLogfileRollMode(ROLL_MODE_SIZE);
@@ -2910,17 +2971,6 @@ int wrapperInitialize() {
 void wrapperDataDispose() {
     int i;
     
-#ifdef WIN32
-    if (wrapperData->argv) {
-        for (i = 0; wrapperData->argv[i] != NULL; i++) {
-            free(wrapperData->argv[i]);
-            wrapperData->argv[i] = NULL;
-        }
-        free(wrapperData->argv);
-        wrapperData->argv = NULL;
-    }
-    wrapperData->argc = 0;
-#endif
     if (wrapperData->workingDir) {
         free(wrapperData->workingDir);
         wrapperData->workingDir = NULL;
@@ -3000,6 +3050,10 @@ void wrapperDataDispose() {
         wrapperData->jvmCommand = NULL;
     }
 #endif
+    if(wrapperData->shutdownActionPropertyName) {
+        free(wrapperData->shutdownActionPropertyName);
+        wrapperData->shutdownActionPropertyName = NULL;
+    }
     if (wrapperData->outputFilterCount > 0) {
         for (i = 0; i < wrapperData->outputFilterCount; i++) {
             if (wrapperData->outputFilters[i]) {
@@ -3297,15 +3351,6 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
     TCHAR *c;
     int delimiter, wrapperArgCount;
     wrapperData->javaArgValueCount = 0;
-
-#ifdef WIN32
-    wrapperData->argc = argc;
-    wrapperCopyStringArray(&(wrapperData->argv), &argv, argc);
-    if (wrapperData->argv == NULL) {
-        return FALSE;
-    }
-#endif
-
     delimiter = 1;
 
     if (argc > 1
@@ -3437,13 +3482,15 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
  *                   custom events.
  * @param triggerMsg The reason the actions are being fired.
  * @param actionSourceCode Tracks where the action originated.
+ * @param actionPropertyIndex Index of the property where the action was configured. Ignored if the type of action is not configured with a <n>-component property.
  * @param logForActionNone Flag stating whether or not a message should be logged
  *                         for the NONE action.
  * @param exitCode Error code to use in case the action results in a shutdown.
  */
-void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int actionSourceCode, int logForActionNone, int exitCode) {
+void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int actionSourceCode, int actionPropertyIndex, int logForActionNone, int exitCode) {
     int i;
     int action;
+    TCHAR propertyName[32];
 
     if (actionList) {
         i = 0;
@@ -3456,6 +3503,18 @@ void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int acti
 
                 case ACTION_SHUTDOWN:
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s  Shutting down."), triggerMsg);
+                    wrapperData->shutdownActionTriggered = TRUE;
+                    switch (actionSourceCode) {
+                    case WRAPPER_ACTION_SOURCE_CODE_FILTER:
+                        _sntprintf(propertyName, 32, TEXT("wrapper.filter.action.%d"), actionPropertyIndex);
+                        break;
+                    case WRAPPER_ACTION_SOURCE_CODE_PING_TIMEOUT:
+                        _sntprintf(propertyName, 32, TEXT("wrapper.ping.timeout.action"));
+                        break;
+                    default:
+                        _sntprintf(propertyName, 32, TEXT(""));
+                    }
+                    updateStringValue(&(wrapperData->shutdownActionPropertyName), propertyName);
                     wrapperStopProcess(exitCode, FALSE);
                     break;
 
@@ -3783,48 +3842,6 @@ size_t wrapperGetMinimumTextLengthForPattern(const TCHAR *pattern) {
 }
 
 /**
- * Function that copies an array of strings.
- *  The output will be pointer to a NULL terminated array even though the source does not end with a NULL value.
- *
- * @param arrOut Array with copied strings
- * @param arrIn  Array to copy
- * @param count  Number of elements to copy. If arrIn has less elements than count, arrOut will be the same size as arrIn.
- */
-void wrapperCopyStringArray(TCHAR*** arrOut, TCHAR*** arrIn, int count) {
-    int i;
-    int j;
-    
-    for (i = 0; i < count; i++) {
-        if (!(*(*arrIn + i))) {
-            count = i;
-            break;
-        }
-    }
-     
-    *arrOut = malloc(sizeof(TCHAR *) * (count + 1));
-    if (arrOut == NULL) {
-        outOfMemory(TEXT("WCSA"), 1);
-        return;
-    }
-    
-    for (i = 0; i < count; i++) {
-        *(*arrOut + i) = malloc(sizeof(TCHAR *) * (_tcslen(*(*arrIn + i)) + 1));
-        if (*(*arrOut + i) == NULL) {
-            outOfMemory(TEXT("WCSA"), 2);
-            for (j = 0; j < i; j++) {
-                free(*(*arrOut + j));
-                *(*arrOut + j) = NULL;
-            }
-            free(*arrOut);
-            *arrOut = NULL;
-            return;
-        }
-        _tcsncpy(*(*arrOut + i), *(*arrIn + i), _tcslen(*(*arrIn + i)) + 1);
-    }
-    *(*arrOut + count) = NULL;
-}
-
-/**
  * Trims any whitespace from the beginning and end of the in string
  *  and places the results in the out buffer.  Assumes that the out
  *  buffer is at least as large as the in buffer. */
@@ -3887,7 +3904,7 @@ void logApplyFilters(const TCHAR *log) {
                 if ((!filterMessage) || (_tcslen(filterMessage) <= 0)) {
                     filterMessage = TEXT("Filter trigger matched.");
                 }
-                wrapperProcessActionList(wrapperData->outputFilterActionLists[i], filterMessage, WRAPPER_ACTION_SOURCE_CODE_FILTER, FALSE, 1);
+                wrapperProcessActionList(wrapperData->outputFilterActionLists[i], filterMessage, WRAPPER_ACTION_SOURCE_CODE_FILTER, i, FALSE, 1);
 
                 /* break out of the loop */
                 break;
@@ -4001,6 +4018,7 @@ int wrapperReadChildOutput(int maxTimeMS) {
     size_t loggedOffset;
     int defer = FALSE;
     int readThisPass = FALSE;
+    size_t i;
 
     if (!wrapperChildWorkBuffer) {
         /* Initialize the wrapperChildWorkBuffer.  Set its initial size to the block size + 1.
@@ -4066,8 +4084,11 @@ int wrapperReadChildOutput(int maxTimeMS) {
         if (currentBlockRead > 0) {
             /* We read in a block, so increase the length. */
             wrapperChildWorkBufferLen += currentBlockRead;
-            wrapperChildWorkLastDataTime = now;
-            wrapperChildWorkLastDataTimeMillis = nowMillis;
+            if (wrapperChildWorkIsNewLine) {
+                wrapperChildWorkLastDataTime = now;
+                wrapperChildWorkLastDataTimeMillis = nowMillis;
+                wrapperChildWorkIsNewLine = FALSE;
+            }
             readThisPass = TRUE;
 #ifdef DEBUG_CHILD_OUTPUT
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("  Read %d bytes of new output.  totalBuffLen=%d, buffSize=%d"), currentBlockRead, wrapperChildWorkBufferLen, wrapperChildWorkBufferSize);
@@ -4088,8 +4109,17 @@ int wrapperReadChildOutput(int maxTimeMS) {
 #endif
             /* We have something in the buffer.  Loop and see if we have a complete line to log.
              * We will always find a LF at the end of the line.  On Windows there may be a CR immediately before it. */
-            cLF = strchr(wrapperChildWorkBuffer + loggedOffset, (char)CHAR_LF);
-
+            cLF = NULL;
+            for (i = loggedOffset; i < wrapperChildWorkBufferLen; i++) {
+                /* If there is a null character, replace it with a question mark (\0 is not a termination character in Java). */
+                if (wrapperChildWorkBuffer[i] == 0) {
+                    wrapperChildWorkBuffer[i] = '?';
+                } else if (wrapperChildWorkBuffer[i] == (char)CHAR_LF) {
+                    cLF = &wrapperChildWorkBuffer[i];
+                    break;
+                }
+            }
+            
             if (cLF != NULL) {
                 /* We found a valid LF so we know that a full line is ready to be logged. */
 #ifdef WIN32
@@ -4129,6 +4159,7 @@ int wrapperReadChildOutput(int maxTimeMS) {
                 
                 /* Update the offset so we know how far we've logged. */
                 loggedOffset = cLF - wrapperChildWorkBuffer + 1;
+                wrapperChildWorkIsNewLine = TRUE;
 #ifdef DEBUG_CHILD_OUTPUT
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("loggedOffset: %d"), loggedOffset);
 #endif
@@ -4183,6 +4214,7 @@ int wrapperReadChildOutput(int maxTimeMS) {
                     wrapperChildWorkBuffer[0] = '\0';
                     wrapperChildWorkBufferLen = 0;
                     loggedOffset = 0;
+                    wrapperChildWorkIsNewLine = TRUE;
                 }
             }
         }
@@ -4880,6 +4912,9 @@ int wrapperRunCommonInner() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Iconv library: %s"), getIconvLibName());
     }
 #endif
+
+    /* Dump the configured properties */
+    dumpProperties(properties);
 
     /* Should we dump the environment variables?
      * If the the user specifically wants the environment, show it as the status log level, otherwise include it in debug output if enabled. */
@@ -7703,6 +7738,60 @@ int wrapperBuildNTServiceInfo() {
 
         /* Make sure that a console is always generated to support thread dumps */
         wrapperData->generateConsole = getBooleanProperty(properties, TEXT("wrapper.ntservice.generate_console"), TRUE);
+        
+#ifndef WINIA
+        /* Accept preshutdown control code? */
+        wrapperData->ntPreshutdown = getBooleanProperty(properties, TEXT("wrapper.ntservice.preshutdown"), FALSE);
+        if (wrapperData->ntPreshutdown) {
+            if (!isVista()) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                    TEXT("Property %s is ignored on this system."), TEXT("wrapper.ntservice.preshutdown"));
+                removeProperty(properties, TEXT("wrapper.ntservice.preshutdown"));
+                wrapperData->ntPreshutdown = FALSE;
+            } else {
+                wrapperData->ntPreshutdownTimeout = getIntProperty(properties, TEXT("wrapper.ntservice.preshutdown.timeout"), 180);
+                if (wrapperData->ntPreshutdownTimeout > 3600) {
+                    wrapperData->ntPreshutdownTimeout = 3600;
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                        TEXT("The value of %s must be at most %d hour (%d second(s)).  Changing to %d."), TEXT("wrapper.ntservice.preshutdown.timeout"), 1, 3600, wrapperData->ntPreshutdownTimeout);
+                } else if (wrapperData->ntPreshutdownTimeout < 1) {
+                    wrapperData->ntPreshutdownTimeout = 1;
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                        TEXT("The value of %s must be at least %d second(s).  Changing to %d."), TEXT("wrapper.ntservice.preshutdown.timeout"), 1, wrapperData->ntPreshutdownTimeout);
+                }
+            }
+        }
+#else
+        if (getBooleanProperty(properties, TEXT("wrapper.ntservice.preshutdown"), FALSE)) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                TEXT("Property %s is not supported on Windows itanium."), TEXT("wrapper.ntservice.preshutdown"));
+            removeProperty(properties, TEXT("wrapper.ntservice.preshutdown"));
+        }
+#endif
+        
+        /* Wait hint used when reporting STARTING, RESUMING, PAUSING or STOPPING status to the service controller. */
+        wrapperData->ntStartupWaitHint = getIntProperty(properties, TEXT("wrapper.ntservice.startup.waithint"), 30);
+        wrapperData->ntShutdownWaitHint = getIntProperty(properties, TEXT("wrapper.ntservice.shutdown.waithint"), 30);
+        
+        /* Set the range of valid values for the wait hints to [2secs, 1min] */
+        if (wrapperData->ntStartupWaitHint > 60) {
+            wrapperData->ntStartupWaitHint = 60;
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                TEXT("The value of %s must be at most %d second(s).  Changing to %d."), TEXT("wrapper.ntservice.startup.waithint"), 60, wrapperData->ntStartupWaitHint);
+        } else if (wrapperData->ntStartupWaitHint < 0) {
+            wrapperData->ntStartupWaitHint = 2;
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                TEXT("The value of %s must be at least %2 second(s).  Changing to %d."), TEXT("wrapper.ntservice.startup.waithint"), 1, wrapperData->ntStartupWaitHint);
+        }
+        if (wrapperData->ntShutdownWaitHint > 60) {
+            wrapperData->ntShutdownWaitHint = 60;
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                TEXT("The value of %s must be at most %d second(s).  Changing to %d."), TEXT("wrapper.ntservice.shutdown.waithint"), 60, wrapperData->ntStartupWaitHint);
+        } else if (wrapperData->ntShutdownWaitHint < 0) {
+            wrapperData->ntShutdownWaitHint = 2;
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                TEXT("The value of %s must be at least %2 second(s).  Changing to %d."), TEXT("wrapper.ntservice.shutdown.waithint"), 1, wrapperData->ntStartupWaitHint);
+        }
     }
 
     /* Set the single invocation flag. */
@@ -7803,8 +7892,6 @@ void wrapperLoadHostName() {
         free(hostName2);
     }
 }
-
-
 
 /**
  * Resolves an action name into an actionId.
@@ -8530,8 +8617,6 @@ int loadConfiguration() {
     if (!wrapperData->configured) {
         wrapperData->pausable = getBooleanProperty(properties, TEXT("wrapper.pausable"), getBooleanProperty(properties, TEXT("wrapper.ntservice.pausable"), FALSE));
         wrapperData->pausableStopJVM = getBooleanProperty(properties, TEXT("wrapper.pausable.stop_jvm"), getBooleanProperty(properties, TEXT("wrapper.ntservice.pausable.stop_jvm"), TRUE));
-    }
-    if (!wrapperData->configured) {
         wrapperData->initiallyPaused = getBooleanProperty(properties, TEXT("wrapper.pause_on_startup"), FALSE);
     }
 
@@ -9152,7 +9237,7 @@ void wrapperPingResponded(TICKS pingSendTicks, int queueWarnings) {
 
 void wrapperPingTimeoutResponded() {
     wrapperProcessActionList(wrapperData->pingActionList, TEXT("JVM appears hung: Timed out waiting for signal from JVM."),
-                             WRAPPER_ACTION_SOURCE_CODE_PING_TIMEOUT, TRUE, 1);
+                             WRAPPER_ACTION_SOURCE_CODE_PING_TIMEOUT, 0, TRUE, 1);
 }
 
 void wrapperStopRequested(int exitCode) {
