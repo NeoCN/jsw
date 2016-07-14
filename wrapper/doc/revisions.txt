@@ -1,5 +1,7 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.5.31
+
 3.5.30
 * Improve the logging messages when using the IANA timezones introduced in
   version 3.5.29 and add a new property, wrapper.timezone.debug_timestamps, to
