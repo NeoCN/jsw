@@ -26,8 +26,8 @@
  #include <stdlib.h>
  #include <string.h>
  #include <unistd.h>
- #include <limits.h>
  #include <langinfo.h>
+ #include <limits.h>
  #if defined(IRIX)
   #define PATH_MAX FILENAME_MAX
  #endif
@@ -427,7 +427,7 @@ int configFileReader_Read(ConfigFileReader *reader,
                         } else {
                             absoluteBuffer = malloc(sizeof(TCHAR) * size);
                             if (!absoluteBuffer) {
-                            	outOfMemory(TEXT("RCF"), 1);
+                                outOfMemory(TEXT("RCF"), 1);
                             } else {
                                 if (!GetFullPathName(expBuffer, size, absoluteBuffer, NULL)) {
                                     if (reader->debugIncludes || includeRequired) {

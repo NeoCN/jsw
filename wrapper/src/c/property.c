@@ -52,6 +52,7 @@
 #endif
 #include "wrapper_i18n.h"
 #include "logger.h"
+#include "logger_file.h"
 #include "property.h"
 #include "wrapper.h"
 #include "wrapper_file.h"
@@ -469,6 +470,43 @@ void setInnerProperty(Properties *properties, Property *property, const TCHAR *p
     }
 }
 
+/**
+ * Check if the given buffer matches the syntax of a property (to be used before actually creating the property).
+ * The buffer should contain a '=' and the name on its left should not contain any space once it has been trimmed.
+ * A null termination character will be inserted before the first '=' in the line.
+ *
+ * @param buffer The full line to be checked.
+ *
+ * @return a pointer to the string representation of the value (i.e the part of the buffer after the '=')
+ *         or NULL if the line did not match the syntax of a property.
+ */
+static TCHAR* checkPropertySyntax(TCHAR* buffer) {
+    TCHAR *keyTrim;
+    TCHAR *d;
+
+    /* The buffer should contain a '='. */
+    if ((d = _tcschr(buffer, TEXT('='))) != NULL) {
+        *d = TEXT('\0');
+        d++;
+        
+        keyTrim = malloc(sizeof(TCHAR) * (_tcslen(buffer) + 1));
+        if (!keyTrim) {
+            outOfMemory(TEXT("CPS"), 1);
+            return NULL;
+        }
+        trim(buffer, keyTrim);
+        
+        /* The trimmed key should not contain any space. */
+        if (_tcschr(keyTrim, TEXT(' ')) == NULL) {
+            free(keyTrim);
+            return d;
+        }
+        free(keyTrim);
+    }
+    
+    return NULL;
+}
+
 static int loadPropertiesCallback(void *callbackParam, const TCHAR *fileName, int lineNumber, TCHAR *config, int exitOnOverwrite, int logLevelOnOverwrite)
 {
     Properties *properties = (Properties *)callbackParam;
@@ -487,11 +525,7 @@ static int loadPropertiesCallback(void *callbackParam, const TCHAR *fileName, in
            Add a warning to help them notice the problem. */
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
                    TEXT("Include file reference missing leading '#': %s"), config);
-    } else if ((d = _tcschr(config, TEXT('='))) != NULL) {
-        /* Locate the first '=' in the line, ignore lines that do not contain a '=' */
-        /* Null terminate the first half of the line. */
-        *d = TEXT('\0');
-        d++;
+    } else if ((d = checkPropertySyntax(config))) {
         addProperty(properties, fileName, lineNumber, config, d, FALSE, FALSE, TRUE, FALSE);
     }
 
@@ -721,14 +755,14 @@ int setEnvInner(const TCHAR *name, const TCHAR *value) {
             len = _tcslen(name) + 1 + 1;
             envBuf = malloc(sizeof(TCHAR) * len);
             if (!envBuf) {
-                outOfMemory(TEXT("SEI"), 1); 	 
+                outOfMemory(TEXT("SEI"), 1);
                 result = TRUE;
             } else {
                 _sntprintf(envBuf, len, TEXT("%s="), name);
                 /* The memory pointed to by envBuf should only be freed if this is UNICODE. */
-                if (_tputenv(envBuf)) { 	 
+                if (_tputenv(envBuf)) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to clear the '%s' environment variable."), name);
-                    result = TRUE; 	 
+                    result = TRUE;
                 }
             }
  #endif
@@ -737,12 +771,12 @@ int setEnvInner(const TCHAR *name, const TCHAR *value) {
             len = _tcslen(name) + 1 + 1;
             envBuf = malloc(sizeof(TCHAR) * len);
             if (!envBuf) {
-                outOfMemory(TEXT("SEI"), 1); 	 
+                outOfMemory(TEXT("SEI"), 1);
                 result = TRUE;
             } else {
                 _sntprintf(envBuf, len, TEXT("%s="), name);
                 /* The memory pointed to by envBuf should only be freed if this is UNICODE. */
-                if (_tputenv(envBuf)) { 	 
+                if (_tputenv(envBuf)) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to clear the '%s' environment variable."), name);
                     result = TRUE;
                 }
@@ -761,7 +795,7 @@ int setEnvInner(const TCHAR *name, const TCHAR *value) {
 #ifdef WIN32
  #if defined(WRAPPER_USE_PUTENV_S)
             if (_tputenv_s(name, value) == EINVAL) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to set the '%s%' environment variable to: %s"), name, value);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to set the '%s' environment variable to: %s"), name, value);
                 result = TRUE;
             }
  #else
@@ -772,14 +806,14 @@ int setEnvInner(const TCHAR *name, const TCHAR *value) {
             } else {
                 envBuf = malloc(sizeof(TCHAR) * len);
                 if (!envBuf) {
-                    outOfMemory(TEXT("SEI"), 2); 	 
+                    outOfMemory(TEXT("SEI"), 2);
                     result = TRUE;
                 } else {
                     _sntprintf(envBuf, len, TEXT("%s=%s"), name, value);
                     /* The memory pointed to by envBuf should only be freed if this is UNICODE. */
                     if (_tputenv(envBuf)) {
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to set environment variable: %s=%s"), name, value);
-                        result = TRUE; 	 
+                        result = TRUE;
                     }
                 }
             }
@@ -789,12 +823,12 @@ int setEnvInner(const TCHAR *name, const TCHAR *value) {
             len = _tcslen(name) + 1 + _tcslen(value) + 1;
             envBuf = malloc(sizeof(TCHAR) * len);
             if (!envBuf) {
-                outOfMemory(TEXT("SEI"), 2); 	 
+                outOfMemory(TEXT("SEI"), 2);
                 result = TRUE;
             } else {
                 _sntprintf(envBuf, len, TEXT("%s=%s"), name, value);
                 /* The memory pointed to by envBuf should only be freed if this is UNICODE. */
-                if (_tputenv(envBuf)) { 	 
+                if (_tputenv(envBuf)) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to set the '%s' environment variable to: %s"), name, value);
                     result = TRUE;
                 }
@@ -1324,19 +1358,12 @@ int addPropertyPair(Properties *properties, const TCHAR* filename, int lineNum, 
     }
     _tcsncpy(buffer, propertyNameValue, MAX_PROPERTY_NAME_VALUE_LENGTH);
 
-    /* Locate the first '=' in the pair */
-    if ((d = _tcschr(buffer, TEXT('='))) != NULL) {
-        /* Null terminate the first half of the line. */
-        *d = TEXT('\0');
-        d++;
+    if ((d = checkPropertySyntax(buffer))) {
         if (addProperty(properties, filename, lineNum, buffer, d, finalValue, quotable, FALSE, internal) != NULL) {
             return 0;
-        } else {
-            return 1;
         }
-    } else {
-        return 1;
     }
+    return 1;
 }
 
 const TCHAR* getStringProperty(Properties *properties, const TCHAR *propertyName, const TCHAR *defaultValue) {
@@ -1704,6 +1731,10 @@ int getBooleanProperty(Properties *properties, const TCHAR *propertyName, int de
 
     property = getInnerProperty(properties, propertyName, TRUE);
     if (property == NULL) {
+        property = addProperty(properties, NULL, 0, propertyName, defaultValueS, FALSE, FALSE, FALSE, FALSE);
+        if (property) {
+            property->isGenerated = TRUE;
+        }
         propertyValue = defaultValueS;
     } else {
         propertyValue = property->value;
@@ -1796,6 +1827,19 @@ void freeBooleanProperties(TCHAR **propertyNames, int *propertyValues, long unsi
     free(propertyIndices);
 }
 
+/**
+ * Indicates if a property was generated by the Wrapper or written in the configuration.
+ *  ATTENTION: The value returned by this function should never be used in a condition
+ *             that will affect the Wrapper behaviour. We want the configuration to be
+ *             loaded the same way if a property is set with a default value or not set.
+ *             This function should only be used for logging purpose, for example to print
+ *             a property name making sure it actually exists in the configuration file.
+ *
+ * @param properties The full properties structure.
+ * @param propertyName The name of the property to check.
+ *
+ * @return TRUE if the property was generated by the Wrapper, FALSE if it exists in the configuration.
+ */
 int isGeneratedProperty(Properties *properties, const TCHAR *propertyName) {
     Property *property;
     property = getInnerProperty(properties, propertyName, FALSE);
@@ -1814,26 +1858,6 @@ int isQuotableProperty(Properties *properties, const TCHAR *propertyName) {
     } else {
         return property->quotable;
     }
-}
-
-TCHAR* toLower(TCHAR* value) {
-    TCHAR* result;
-    size_t len;
-    size_t i;
-    
-    len = _tcslen(value);
-    result = malloc(sizeof(TCHAR) * (len + 1));
-    if (!result) {
-        outOfMemory(TEXT("TL"), 1);
-        return NULL;
-    }
-    
-    for (i = 0; i < len; i++) {
-        result[i] = _totlower(value[i]);
-    }
-    result[len] = TEXT('\0');
-    
-    return result;
 }
 
 /**
@@ -1875,7 +1899,7 @@ void dumpProperties(Properties *properties) {
     Property *property;
     int dumpFilter;
     
-    if (getLowLogLevel() <= properties->dumpLogLevel) {
+    if ((getLowLogLevel() <= properties->dumpLogLevel) && (properties->dumpLogLevel != LEVEL_NONE)) {
         property = properties->first;
         log_printf(WRAPPER_SOURCE_WRAPPER, properties->dumpLogLevel, TEXT(""));
         log_printf(WRAPPER_SOURCE_WRAPPER, properties->dumpLogLevel, TEXT("Wrapper configuration properties (Name=Value) BEGIN:"));

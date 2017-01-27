@@ -293,6 +293,12 @@ public final class WrapperManager
     /** Debug level log channel */
     private static WrapperPrintStream m_outDebug;
     
+    /** Stores the resolved OS used in naming of native library. */
+    private static String m_os;
+    
+    /** Stores the resolved Architecture used in naming of native library. */
+    private static String m_arch;
+    
     /** Flag to remember whether or not this is Windows. */
     private static boolean m_windows = false;
     
@@ -423,6 +429,8 @@ public final class WrapperManager
     private static String m_pendingStopMessage = null;
     private static int m_exitCode;
     private static boolean m_libraryOK = false;
+    private static boolean m_libraryVersionOk = false;
+    private static boolean m_wrapperVersionOk = false;
     private static byte[] m_commandBuffer = new byte[512];
     private static File m_logFile = null;
     
@@ -627,9 +635,6 @@ public final class WrapperManager
         // We need to get the key before the version can be verified.
         m_key = System.getProperty( "wrapper.key" );
         
-        // Make sure that the version of the Wrapper is correct.
-        verifyWrapperVersion();
-        
         // Store the log finalizer flag.
         m_logFinalizer = WrapperSystemPropertyUtil.getBooleanProperty( "wrapper.logFinalizers", false );
         
@@ -732,7 +737,7 @@ public final class WrapperManager
                     // Really all done.
                     if ( m_debug )
                     {
-                        m_outDebug.println( getRes().getString( "WrapperManger stopped due to {0}", getRes().getString( "Shutdown Hook" ) ) );
+                        m_outDebug.println( getRes().getString( "WrapperManager stopped due to {0}", getRes().getString( "Shutdown Hook" ) ) );
                     }
                     m_stopped = true;
                 }
@@ -881,9 +886,6 @@ public final class WrapperManager
         
         if ( isNativeLibraryOk() )
         {
-            // Make sure that the native library's version is correct.
-            verifyNativeLibraryVersion();
-            
             // Get the PID of the current JVM from the native library.  Be careful as the method
             //  will not exist if the library is old.
             try
@@ -1414,6 +1416,7 @@ public final class WrapperManager
         {
             m_aix = true;
         }
+        m_os = os;
         
         // Generate an architecture name.
         String arch;
@@ -1466,6 +1469,7 @@ public final class WrapperManager
                 arch = "390";
             }
         }
+        m_arch = arch;
         
         return baseName + "-" + os + "-" + arch + "-" + jvmBits;
     }
@@ -1771,14 +1775,11 @@ public final class WrapperManager
         
         if ( !WrapperInfo.getVersion().equals( wrapperVersion ) )
         {
-            // This message is logged when localization is not yet initialized.
-            m_outInfo.println( "WARNING - The Wrapper jar file currently in use is version \"" + WrapperInfo.getVersion() + "\"" );
-            m_outInfo.println( "          while the version of the Wrapper which launched this JVM is" );
-            m_outInfo.println( "          \"" + wrapperVersion + "\"." );
-            m_outInfo.println( "          The Wrapper may appear to work correctly but some features may" );
-            m_outInfo.println( "          not function correctly.  This configuration has not been tested" );
-            m_outInfo.println( "          and is not supported." );
+            m_outInfo.println( getRes().getString( "ERROR - The Wrapper jar file currently in use is version \"{0}\"\n        while the version of the Wrapper which launched this JVM is\n        \"{0}\"", WrapperInfo.getVersion(), wrapperVersion ) );
             m_outInfo.println();
+            m_libraryVersionOk = false;
+        } else {
+            m_libraryVersionOk = true;
         }
     }
     
@@ -1815,10 +1816,11 @@ public final class WrapperManager
         if ( !wrapperVersion.equals( jniVersion ) )
         {
             m_outInfo.println( getRes().getString( 
-                "WARNING - The version of the Wrapper which launched this JVM is\n          \"{0}\" while the version of the native library\n          is \"{1}\".", wrapperVersion, jniVersion ) );
-            m_outInfo.println(getRes().getString( 
-                "          The Wrapper may appear to work correctly but some features may\n          not function correctly.  This configuration has not been tested\n          and is not supported." ) );
+                "ERROR - The version of the Wrapper which launched this JVM is\n        \"{0}\" while the version of the native library\n        is \"{1}\".", wrapperVersion, jniVersion ) );
             m_outInfo.println();
+            m_wrapperVersionOk = false;
+        } else {
+            m_wrapperVersionOk = true;
         }
     }
     
@@ -2406,6 +2408,34 @@ public final class WrapperManager
         {
             throw new WrapperLicenseError( getRes().getString( "Requires the Professional Edition." ) );
         }
+    }
+    
+    /**
+     * Returns the OS that the Wrapper has resolved.
+     *  This will be the same as the WRAPPER_OS environment variable.
+     *  Used when resolving the platform specific native library name.
+     *
+     * @return The resolved Wrapper OS name.
+     *
+     * @since Wrapper 3.5.31
+     */
+    public static String getOS()
+    {
+        return m_os;
+    }
+    
+    /**
+     * Returns the Architecture that the Wrapper has resolved.
+     *  This will be the same as the WRAPPER_ARCH environment variable.
+     *  Used when resolving the platform specific native library name.
+     *
+     * @return The resolved Wrapper Architecture name.
+     *
+     * @since Wrapper 3.5.31
+     */
+    public static String getArch()
+    {
+        return m_arch;
     }
     
     /**
@@ -3521,7 +3551,7 @@ public final class WrapperManager
         // Really all done.
         if ( m_debug )
         {
-            m_outDebug.println( getRes().getString( "WrapperManger stopped due to {0}", getRes().getString( "Halt" ) ) );
+            m_outDebug.println( getRes().getString( "WrapperManager stopped due to {0}", getRes().getString( "Halt" ) ) );
         }
         m_stopped = true;
         
@@ -4380,7 +4410,7 @@ public final class WrapperManager
         // Really all done.
         if ( m_debug )
         {
-            m_outDebug.println( getRes().getString( "WrapperManger stopped due to {0}", getRes().getString( "System Exit" ) ) );
+            m_outDebug.println( getRes().getString( "WrapperManager stopped due to {0}", getRes().getString( "System Exit" ) ) );
         }
         m_stopped = true;
         
@@ -5100,7 +5130,7 @@ public final class WrapperManager
             closeBackend();
             return;
         } catch (Exception ex) {
-           ex.printStackTrace();
+            ex.printStackTrace();
             
             closeBackend();
             return;
@@ -5893,6 +5923,18 @@ public final class WrapperManager
                     m_commRunnerStarted = true;
                     WrapperManager.class.notifyAll();
                 }
+            }
+            
+            // Make sure that the version of the Wrapper is correct.
+            verifyWrapperVersion();
+            
+            // Make sure that the native library's version is correct.
+            verifyNativeLibraryVersion();
+            
+            if ( !m_wrapperVersionOk || !m_libraryVersionOk ) {
+                // We need to wait until the backend is opened before stopping the JVM,
+                //  else the Wrapper can't be informed that the JVM requested to stop.
+                stop( 1 );
             }
             
             if ( m_backendSocket != null || m_backendConnected == true)

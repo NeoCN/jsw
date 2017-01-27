@@ -82,11 +82,11 @@
  #include <limits.h>
  #include <signal.h>
  #include <pthread.h>
- #include <langinfo.h>
  #include <sys/socket.h>
  #include <sys/time.h>
  #include <netinet/in.h>
  #include <arpa/inet.h>
+ #include <sys/resource.h>
  #define SOCKET         int
  #define HANDLE         int
  #define INVALID_HANDLE_VALUE -1
@@ -228,7 +228,7 @@ struct tm wrapperGetBuildTime() {
  */
 void wrapperAddDefaultProperties() {
     size_t bufferLen;
-    TCHAR* buffer, *langTemp, *confDirTemp;
+    TCHAR* buffer, *confDirTemp;
 #ifdef WIN32
     int work, pos2;
     TCHAR pathSep = TEXT('\\');
@@ -331,21 +331,8 @@ void wrapperAddDefaultProperties() {
         outOfMemory(TEXT("WADP"), 1);
         return;
     }
-    langTemp = _tgetenv(TEXT("LANG"));
-    if ((langTemp == NULL) || (_tcslen(langTemp) == 0)) {
-        _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_LANG=en"));
-    } else {
-#ifdef WIN32
-        _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_LANG=%.2s"), langTemp);
-#else
-        _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_LANG=%.2S"), langTemp);
-#endif
-    }
-#if !defined(WIN32) && defined(UNICODE)
-    if (langTemp) {
-        free(langTemp);
-    }
-#endif
+
+    _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_LANG=en"));
     addPropertyPair(properties, NULL, 0, buffer, TRUE, FALSE, TRUE);
 
     _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_PID=%d"), wrapperData->wrapperPID);
@@ -486,6 +473,9 @@ int loadEnvironment() {
         i++;
 #endif
     }
+#ifdef WIN32
+    FreeEnvironmentStrings(lpvEnv);
+#endif
 
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Loading Environment complete."));
@@ -528,6 +518,12 @@ int getSignalMode(const TCHAR *modeName, int defaultMode) {
         return WRAPPER_SIGNAL_MODE_SHUTDOWN;
     } else if (strcmpIgnoreCase(modeName, TEXT("FORWARD")) == 0) {
         return WRAPPER_SIGNAL_MODE_FORWARD;
+    } else if (strcmpIgnoreCase(modeName, TEXT("PAUSE")) == 0) {
+        return WRAPPER_SIGNAL_MODE_PAUSE;
+    } else if (strcmpIgnoreCase(modeName, TEXT("RESUME")) == 0) {
+        return WRAPPER_SIGNAL_MODE_RESUME;
+    } else if (strcmpIgnoreCase(modeName, TEXT("CLOSE_LOGFILE")) == 0) {
+        return WRAPPER_SIGNAL_MODE_CLOSE_LOGFILE;
     } else {
         return defaultMode;
     }
@@ -619,6 +615,133 @@ int isCygwin() {
 }
 #endif
 
+#ifndef WIN32
+/**
+ * Set the soft and hard resource limits (such as file descriptor).
+ *  For each resource, we can set the limits being strict or not.
+ *  - strict: the Wrapper will stop if it is not possible to set the limit as defined in the configuration.
+ *  - not strict: the Wrapper will try to adjust the hard and soft limits to be as close as possible to the
+ *                configuration and show warnings whenever a property is resolved to a different value.
+ *  The constraints are the following: - the soft limit can't be greater than the hard limit.
+ *                                     - the hard limit can only be raised by the root user.
+ *
+ * Returns 0 if no error. Otherwise returns 1.
+ */
+int wrapperSetResourcesLimits() {
+    struct rlimit oldLimits, newLimits, confLimits;
+    int strict;
+    int logLevel;
+        
+    confLimits.rlim_cur = (rlim_t)getIntProperty(properties, TEXT("wrapper.ulimit.nofile.soft"), 0);
+    confLimits.rlim_max = (rlim_t)getIntProperty(properties, TEXT("wrapper.ulimit.nofile.hard"), 0);
+    if (confLimits.rlim_cur != 0 || confLimits.rlim_max != 0) {
+        /* The user has specified limits for the number of open file descriptors. */
+        if ((confLimits.rlim_cur != 0) && (confLimits.rlim_max != 0) && (confLimits.rlim_max < confLimits.rlim_cur)) {
+            /* This is a configuration error, return 1 no matter we are strict or not. */
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("The soft limit (%llu) for the number of open file descriptors is set higher than the hard limit (%llu)."), confLimits.rlim_cur, confLimits.rlim_max);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("  Make sure to correctly set the values of the wrapper.ulimit.nofile.soft and wrapper.ulimit.nofile.hard properties."));
+            return 1;
+        }
+        
+        /* Get the limits for the resource. */
+        if (getrlimit(RLIMIT_NOFILE, &oldLimits) != 0) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to get the limits for the number of open file descriptors: (0x%x)"), errno);
+            return 1;
+        }
+        
+        /* Unless we fail to set the limits for some unknown reason, any error bellow will return 1 if we are strict, 0 otherwise. */
+        strict = getBooleanProperty(properties, TEXT("wrapper.ulimit.nofile.strict"), TRUE);
+        logLevel = strict ? LEVEL_FATAL : properties->logWarningLogLevel;
+        
+        /* Resolve the hard limit. */
+        if (confLimits.rlim_max == 0) {
+            /* Use the current value */
+            newLimits.rlim_max = oldLimits.rlim_max;
+        } else {
+            /* Use the configured value */
+            newLimits.rlim_max = confLimits.rlim_max;
+        }
+        
+        /* Resolve the soft limit. */
+        if (confLimits.rlim_cur == 0) {
+            /* Use the current value */
+            newLimits.rlim_cur = oldLimits.rlim_cur;
+        } else {
+            /* Use the configured value */
+            newLimits.rlim_cur = confLimits.rlim_cur;
+        }
+        
+        /* Resolve cases where the soft limit is greater than the hard limit. */
+        if (newLimits.rlim_max < newLimits.rlim_cur) {
+            if (confLimits.rlim_max == 0) {
+                /* The user has set only the SOFT limit. */
+                log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("The soft limit (%llu) for the number of open file descriptors is set higher than the current hard limit (%llu)."), confLimits.rlim_cur, oldLimits.rlim_max);
+                if (strict) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("  Make sure to correctly set the value of the wrapper.ulimit.nofile.soft property."));
+                    return 1;
+                }
+                newLimits.rlim_cur = oldLimits.rlim_max;
+            } else {
+                /* The user has set only the HARD limit. */
+                log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("The hard limit (%llu) for the number of open file descriptors is set lower than the current soft limit (%llu)."), confLimits.rlim_max, oldLimits.rlim_cur);
+                if (strict) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("  Make sure to correctly set the value of the wrapper.ulimit.nofile.hard property."));
+                    return 1;
+                }
+                newLimits.rlim_cur = newLimits.rlim_max;
+            }
+            log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("  Decreasing the soft limit to the value of the hard limit."));
+        }
+        
+        /* Try to set the limits */
+        if (setrlimit(RLIMIT_NOFILE, &newLimits) != 0) {
+            /* Resolve cases where the configured hard limit is greater than the current hard limit. */
+            if ((oldLimits.rlim_max < confLimits.rlim_max) && (errno == EPERM)) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("The process doesn't have sufficient privileges to raise the hard limit (from %llu to %llu) for the number of open file descriptors."), oldLimits.rlim_max, confLimits.rlim_max);
+                if (strict) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("  Please run the Wrapper with sufficient privileges or adjust the value of the wrapper.ulimit.nofile.hard property."));
+                    return 1;
+                }
+                newLimits.rlim_max = oldLimits.rlim_max;
+                if (newLimits.rlim_max < newLimits.rlim_cur) {
+                    newLimits.rlim_cur = newLimits.rlim_max;
+                    log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("  Ignoring the configured hard limit. Decreasing the configured soft limit to the value of the hard limit."));
+                } else {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("  Ignoring the configured hard limit."));
+                }
+                /* Set again the limits. */
+                if (setrlimit(RLIMIT_NOFILE, &newLimits) != 0) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to set the limits for the number of open file descriptors (0x%x)."), errno);
+                    return 1;
+                }
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to set the limits for the number of open file descriptors (0x%x)."), errno);
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+/** 
+ * Print out the soft and hard resource limits.
+ */
+void wrapperShowResourceslimits() {
+    struct rlimit limits;
+    
+    int logLevel = getLogLevelForName(getStringProperty(properties, TEXT("wrapper.ulimit.loglevel"), TEXT("DEBUG")));
+    
+    if ((getLowLogLevel() <= logLevel) && (logLevel != LEVEL_NONE)) {
+        if (getrlimit(RLIMIT_NOFILE, &limits) != 0) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to get the limits for the number of open file descriptors: (0x%x)"), errno);
+        } else {
+            log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("File descriptor limits: %llu (soft), %llu (hard)."), limits.rlim_cur, limits.rlim_max);
+        }
+    }
+}
+#endif
+
 void wrapperLoadLoggingProperties(int preload) {
     const TCHAR *logfilePath;
     int logfileRollMode;
@@ -634,19 +757,27 @@ void wrapperLoadLoggingProperties(int preload) {
     setLogWarningThreshold(getIntProperty(properties, TEXT("wrapper.log.warning.threshold"), 0));
     wrapperData->logLFDelayThreshold = propIntMax(propIntMin(getIntProperty(properties, TEXT("wrapper.log.lf_delay.threshold"), 500), 3600000), 0);
 
+    if (resolveDefaultLogFilePath()) {
+        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Failed to resolve the absolute path of the default log file."));
+    }
+    
     logfilePath = getFileSafeStringProperty(properties, TEXT("wrapper.logfile"), TEXT("wrapper.log"));
-    setLogfilePath(logfilePath, wrapperData->workingDir, preload);
+    setLogfilePath(logfilePath, TRUE);
 
     logfileRollMode = getLogfileRollModeForName(getStringProperty(properties, TEXT("wrapper.logfile.rollmode"), TEXT("SIZE")));
     if (logfileRollMode == ROLL_MODE_UNKNOWN) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-        TEXT("wrapper.logfile.rollmode invalid.  Disabling log file rolling."));
+        if (!preload) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            TEXT("wrapper.logfile.rollmode invalid.  Disabling log file rolling."));
+        }
         logfileRollMode = ROLL_MODE_NONE;
     } else if (logfileRollMode == ROLL_MODE_DATE) {
         if (!_tcsstr(logfilePath, ROLL_MODE_DATE_TOKEN)) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                TEXT("wrapper.logfile must contain \"%s\" for a roll mode of DATE.  Disabling log file rolling."),
-                ROLL_MODE_DATE_TOKEN);
+            if (!preload) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                    TEXT("wrapper.logfile must contain \"%s\" for a roll mode of DATE.  Disabling log file rolling."),
+                    ROLL_MODE_DATE_TOKEN);
+            }
             logfileRollMode = ROLL_MODE_NONE;
         }
     }
@@ -721,19 +852,27 @@ void wrapperLoadLoggingProperties(int preload) {
 
 
 #ifdef WIN32
+    /* Register or unregister an event source depending on the value of wrapper.syslog.ident.enable.
+     *  The syslog will be disabled if the application is not registered after calling the functions
+     *  to register or unregister, so this has to be done on preload. */
     if (preload) {
-        /* Make sure we are not running in setup or teardown mode. Setup will be executed when installing a service. */
-        /* It may be strange to register when removing the service but we want to give the ability to unregister. */
+        /* Make sure we are not running in setup, teardown or install mode. 
+         *  - Setup is automatically executed when installing a service - no need to do it here.
+         *  - TearDown is not executed when removing the service as this would remove the source 
+         *    of existing messages in the event log. */
         if (strcmpIgnoreCase(wrapperData->argCommand, TEXT("su")) && strcmpIgnoreCase(wrapperData->argCommand, TEXT("-setup")) &&
             strcmpIgnoreCase(wrapperData->argCommand, TEXT("td")) && strcmpIgnoreCase(wrapperData->argCommand, TEXT("-teardown")) &&
             strcmpIgnoreCase(wrapperData->argCommand, TEXT("i"))  && strcmpIgnoreCase(wrapperData->argCommand, TEXT("-install")) &&
             strcmpIgnoreCase(wrapperData->argCommand, TEXT("it")) && strcmpIgnoreCase(wrapperData->argCommand, TEXT("-installstart"))) {
+            /* The functions bellow need to be called even if we don't have the permission to edit the registry.
+             *   They will eventually disable event logging if the application is not registered. Since we are
+             *   calling them on preload, any log output should be queued (useLoggerQueue = TRUE). */
             if (getSyslogRegister()) {
                 /* Register the syslog message */
-                registerSyslogMessageFile(FALSE);
+                registerSyslogMessageFile(FALSE, TRUE);
             } else {
                 /* Unregister the syslog message */
-                unregisterSyslogMessageFile();
+                unregisterSyslogMessageFile(TRUE);
             }
         }
     }
@@ -765,26 +904,27 @@ void wrapperLoadLoggingProperties(int preload) {
  */
 int wrapperPreLoadConfigurationProperties(int *logLevelOnOverwriteProperties, int *exitOnOverwriteProperties) {
     int returnVal;
-
-    returnVal = TRUE;
-        /* Load log file */
-        wrapperLoadLoggingProperties(TRUE);
-
-        /* As soon as the logging is loaded see if we are in a translate call.  If so we need to reset the log levels to silent mode. */
-        if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate"))) {
-            setSilentLogLevels();
-        }
-        
-        wrapperAddDefaultProperties();
-        if (wrapperData->workingDir && wrapperData->originalWorkingDir) {
-            if (wrapperSetWorkingDir(wrapperData->originalWorkingDir, FALSE)) {
-                /* Failed to restore the working dir.  Shutdown the Wrapper */
-                returnVal = TRUE;
-            }
-        }
     
-    *logLevelOnOverwriteProperties = properties->logLevelOnOverwrite;
-    *exitOnOverwriteProperties = properties->exitOnOverwrite;
+    /* Load log file */
+    wrapperLoadLoggingProperties(TRUE);
+
+    /* As soon as the logging is loaded see if we are in a translate call.  If so we need to reset the log levels to silent mode. */
+    if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate"))) {
+        setSilentLogLevels();
+    }
+    
+    wrapperAddDefaultProperties();
+    if (wrapperData->workingDir && wrapperData->originalWorkingDir) {
+        if (wrapperSetWorkingDir(wrapperData->originalWorkingDir, FALSE)) {
+            /* Failed to restore the working dir.  Shutdown the Wrapper */
+            returnVal = TRUE;
+        }
+    }
+    
+    if (!returnVal) {
+        *logLevelOnOverwriteProperties = properties->logLevelOnOverwrite;
+        *exitOnOverwriteProperties = properties->exitOnOverwrite;
+    }
 
     if (properties) {
         disposeProperties(properties);
@@ -974,7 +1114,7 @@ int wrapperLoadConfigurationProperties(int preload) {
         /* If we are in preload mode, we want to enable log warning messages here so everything below this point has propper warnings. */
         setLogPropertyWarnings(properties, TRUE);
     } else if (properties->overwrittenPropertyCausedExit) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Found duplicated properties.  The wrapper will stop."));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Found duplicated properties."));
         return TRUE; /* will cause the wrapper to exit with error code 1 */
     }
 
@@ -1065,7 +1205,7 @@ int wrapperLoadConfigurationProperties(int preload) {
     /* Load the configuration. */
     if ((strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate")) != 0) && loadConfiguration()) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-            TEXT("Problem loading wrapper configuration file: %s"), wrapperData->configFile);
+            TEXT("Problem loading the Wrapper configuration file: %s"), wrapperData->configFile);
         return TRUE;
     }
     
@@ -2822,7 +2962,6 @@ int wrapperLogFormatPrint(const TCHAR format, size_t printSize, TCHAR** pBuffer)
  * Pre initialize the wrapper.
  */
 int wrapperInitialize() {
-    TCHAR *retLocale;
 #ifdef WIN32
     int maxPathLen = _MAX_PATH;
 #else
@@ -2840,7 +2979,7 @@ int wrapperInitialize() {
      *  platforms appear to initialize maloc'd memory to 0 while others do not. */
     wrapperData = malloc(sizeof(WrapperConfig));
     if (!wrapperData) {
-        outOfMemory(TEXT("WI"), 1);
+        _tprintf(TEXT("Out of memory (%s)\n"), TEXT("WI1"));
         return 1;
     }
     memset(wrapperData, 0, sizeof(WrapperConfig));
@@ -2856,6 +2995,7 @@ int wrapperInitialize() {
     wrapperData->exitRequested = FALSE;
     wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_INITIAL; /* The first JVM needs to be started. */
     wrapperData->exitCode = 0;
+    wrapperData->errorExitCode = 1;
     wrapperData->jvmRestarts = 0;
     wrapperData->jvmLaunchTicks = wrapperGetTicks();
     wrapperData->failedInvocationCount = 0;
@@ -2878,7 +3018,7 @@ int wrapperInitialize() {
     /* Initialize control code queue. */
     wrapperData->ctrlCodeQueue = malloc(sizeof(int) * CTRL_CODE_QUEUE_SIZE);
     if (!wrapperData->ctrlCodeQueue) {
-        outOfMemory(TEXT("WI"), 2);
+        _tprintf(TEXT("Out of memory (%s)\n"), TEXT("WI2"));
         return 1;
     }
     wrapperData->ctrlCodeQueueWriteIndex = 0;
@@ -2897,7 +3037,7 @@ int wrapperInitialize() {
     
     logRegisterFormatCallbacks(wrapperLogFormatCount, wrapperLogFormatPrint);
 
-    setLogfilePath(TEXT("wrapper.log"), NULL, FALSE);
+    setLogfilePath(TEXT("wrapper.log"), FALSE);
     setLogfileRollMode(ROLL_MODE_SIZE);
     setLogfileFormat(TEXT("LPTM"));
     setLogfileLevelInt(LEVEL_DEBUG);
@@ -2938,24 +3078,6 @@ int wrapperInitialize() {
         printf("Tick size incorrect %d != 4\n", (int)sizeof(TICKS));
         fflush(NULL);
         return 1;
-    }
-
-    /* Set the default locale here so any startup error messages will have a chance of working.
-     *  We will go back and try to set the actual locale again later once it is configured. */
-    retLocale = _tsetlocale(LC_ALL, TEXT(""));
-    if (retLocale) {
-        /* Success. */
-#ifdef _DEBUG
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("tsetlocale() returned \"%s\""), retLocale);
-#endif
-#if !defined(WIN32) && defined(UNICODE)
-        free(retLocale);
-#endif
-    } else {
-        /* Failure. */
-#ifdef _DEBUG
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("tsetlocale() returned NULL"));
-#endif
     }
 
     if (loadEnvironment()) {
@@ -3499,6 +3621,9 @@ void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int acti
                 case ACTION_RESTART:
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s  %s"), triggerMsg, wrapperGetRestartProcessMessage());
                     wrapperRestartProcess();
+                    if (actionSourceCode == WRAPPER_ACTION_SOURCE_CODE_PING_TIMEOUT) {
+                        wrapperKillProcess(TRUE);
+                    }
                     break;
 
                 case ACTION_SHUTDOWN:
@@ -3515,7 +3640,12 @@ void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int acti
                         _sntprintf(propertyName, 32, TEXT(""));
                     }
                     updateStringValue(&(wrapperData->shutdownActionPropertyName), propertyName);
-                    wrapperStopProcess(exitCode, FALSE);
+                    if (actionSourceCode == WRAPPER_ACTION_SOURCE_CODE_PING_TIMEOUT) {
+                        wrapperData->exitCode = exitCode;
+                        wrapperKillProcess(TRUE);
+                    } else {
+                        wrapperStopProcess(exitCode, FALSE);
+                    }
                     break;
 
                 case ACTION_DUMP:
@@ -3904,7 +4034,7 @@ void logApplyFilters(const TCHAR *log) {
                 if ((!filterMessage) || (_tcslen(filterMessage) <= 0)) {
                     filterMessage = TEXT("Filter trigger matched.");
                 }
-                wrapperProcessActionList(wrapperData->outputFilterActionLists[i], filterMessage, WRAPPER_ACTION_SOURCE_CODE_FILTER, i, FALSE, 1);
+                wrapperProcessActionList(wrapperData->outputFilterActionLists[i], filterMessage, WRAPPER_ACTION_SOURCE_CODE_FILTER, i, FALSE, wrapperData->errorExitCode);
 
                 /* break out of the loop */
                 break;
@@ -4344,6 +4474,8 @@ int wrapperKillProcessNow() {
 #ifdef WIN32
     int ret;
 #endif
+    TCHAR errorMessage[512];
+
     /* Check to make sure that the JVM process is still running */
 #ifdef WIN32
     ret = WaitForSingleObject(wrapperData->javaProcess, 0);
@@ -4365,15 +4497,23 @@ int wrapperKillProcessNow() {
 #else
         if (kill(wrapperData->javaPID, SIGKILL) == 0) { 
 #endif
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("JVM did not exit on request, termination requested."));
+            if (!wrapperData->jvmSilentKill) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("JVM did not exit on request, termination requested."));
+            }
             return FALSE;
         } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("JVM did not exit on request."));
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                TEXT("  Attempt to terminate process failed: %s"), getLastErrorText());
+            if (!wrapperData->jvmSilentKill) {
+                _sntprintf(errorMessage, 512, TEXT("  Attempt to terminate process failed: %s"), getLastErrorText());
+                errorMessage[511] = 0;
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("JVM did not exit on request."));
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, errorMessage);
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                    TEXT("Attempt to terminate the JVM failed: %s"), getLastErrorText());
+            }
             /* Terminating the current JVM failed. Cancel pending restart requests */
             wrapperJVMDownCleanup(TRUE);
-            wrapperData->exitCode = 1;
+            wrapperData->exitCode = wrapperData->errorExitCode;
             return TRUE;
         }
     }
@@ -4384,10 +4524,14 @@ int wrapperKillProcessNow() {
 /**
  * Puts the Wrapper into a state where the JVM will be killed at the soonest
  *  possible opportunity.  It is necessary to wait a moment if a final thread
- *  dump is to be requested.  This call wll always set the JVM state to
+ *  dump is to be requested.  This call will always set the JVM state to
  *  WRAPPER_JSTATE_KILLING.
+ *
+ * @param silent TRUE to skip messages saying that the JVM did not exit on request.
+ *               This is useful in certain cases where we kill the JVM without trying
+ *               to shut it down cleanly.
  */
-void wrapperKillProcess() {
+void wrapperKillProcess(int silent) {
 #ifdef WIN32
     int ret;
 #endif
@@ -4420,6 +4564,7 @@ void wrapperKillProcess() {
     }
 
     wrapperSetJavaState(WRAPPER_JSTATE_KILLING, wrapperGetTicks(), delay);
+    wrapperData->jvmSilentKill = silent;
 }
 
 
@@ -4923,6 +5068,10 @@ int wrapperRunCommonInner() {
     } else if (wrapperData->isDebugging) {
         dumpEnvironment(LEVEL_DEBUG);
     }
+    
+#ifndef WIN32
+    wrapperShowResourceslimits();
+#endif
 
 #ifdef _DEBUG
     /* Multi-line logging tests. */
@@ -4966,7 +5115,7 @@ int wrapperRunCommon(const TCHAR *runMode) {
             
             exitCode = wrapperData->exitCode;
         } else {
-            exitCode = 1;
+            exitCode = wrapperData->errorExitCode;
         }
     }
 
@@ -5005,6 +5154,16 @@ int wrapperRunService() {
  *              later actions to request a restart.
  */
 void wrapperStopProcess(int exitCode, int force) {
+    /* If we are pausing or paused, cancel it. */
+    if ((wrapperData->wState == WRAPPER_WSTATE_PAUSING) ||
+        (wrapperData->wState == WRAPPER_WSTATE_PAUSED)) {
+        wrapperSetWrapperState(WRAPPER_WSTATE_STARTED);
+        if (wrapperData->isDebugging) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                TEXT("wrapperStopProcess(%d, %s) called while pausing or being paused."), exitCode, (force ? TEXT("TRUE") : TEXT("FALSE")));
+        }
+    }
+    
     /* If we are are not aready shutting down, then do so. */
     if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
         (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
@@ -5383,14 +5542,16 @@ int wrapperCheckQuotes(const TCHAR *value, const TCHAR *propName) {
     while (in < len) {
         if (value[in] == TEXT('"')) {
             /* Decide whether or not this '"' is escaped. */
-            in2 = in - 1;
             escaped = FALSE;
-            while (value[in2] == TEXT('\\')) {
-                escaped = !escaped;
-                if (in2 > 0) {
-                    in2--;
-                } else {
-                    break;
+            if (in > 0) {
+                in2 = in - 1;
+                while (value[in2] == TEXT('\\')) {
+                    escaped = !escaped;
+                    if (in2 > 0) {
+                        in2--;
+                    } else {
+                        break;
+                    }
                 }
             }
             if (!escaped) {
@@ -8241,6 +8402,13 @@ int loadConfiguration() {
     int startupDelay;
 
     wrapperLoadLoggingProperties(FALSE);
+    
+    /* Decide on the error exit code */
+    wrapperData->errorExitCode = getIntProperty(properties, TEXT("wrapper.exit_code.error"), 1);
+    if (wrapperData->errorExitCode < 1 || wrapperData->errorExitCode > 255) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            TEXT("%s must be in the range %d to %d.  Changing to %d."), TEXT("wrapper.exit_code.error"), 1, 255, 1);
+    }
 
     /* Decide on the backend type to use. */    
     val = getStringProperty(properties, TEXT("wrapper.backend.type"), TEXT("AUTO"));
@@ -8577,7 +8745,7 @@ int loadConfiguration() {
     wrapperData->commandFileTests = getBooleanProperty(properties, TEXT("wrapper.commandfile.enable_tests"), FALSE);
 
     /** Get the interval at which the command file will be polled. */
-    wrapperData->commandPollInterval = propIntMin(propIntMax(getIntProperty(properties, TEXT("wrapper.command.poll_interval"), 5), 1), 3600);
+    wrapperData->commandPollInterval = propIntMin(propIntMax(getIntProperty(properties, TEXT("wrapper.commandfile.poll_interval"), getIntProperty(properties, TEXT("wrapper.command.poll_interval"), 5)), 1), 3600);
 
     /** Get the anchor file if any.  May be NULL */
     if (!wrapperData->configured) {
@@ -8586,7 +8754,7 @@ int loadConfiguration() {
     }
 
     /** Get the interval at which the anchor file will be polled. */
-    wrapperData->anchorPollInterval = propIntMin(propIntMax(getIntProperty(properties, TEXT("wrapper.anchor.poll_interval"), 5), 1), 3600);
+    wrapperData->anchorPollInterval = propIntMin(propIntMax(getIntProperty(properties, TEXT("wrapper.anchorfile.poll_interval"), getIntProperty(properties, TEXT("wrapper.anchor.poll_interval"), 5)), 1), 3600);
 
     /** Flag controlling whether or not system signals should be ignored. */
     val = getStringProperty(properties, TEXT("wrapper.ignore_signals"), TEXT("FALSE"));
@@ -8653,6 +8821,9 @@ int loadConfiguration() {
         return TRUE;
     }
 
+    if (wrapperSetResourcesLimits()) {
+        return TRUE;
+    }
 #endif
 
     if (_tcscmp(wrapperVersionRoot, getStringProperty(properties, TEXT("wrapper.script.version"), wrapperVersionRoot)) != 0) {
@@ -8782,8 +8953,8 @@ int wrapperGetTickAgeSeconds(TICKS start, TICKS end) {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("      wrapperGetTickAgeSeconds(%08x, %08x) -> %08x"), start, end, (int)((end - start) * WRAPPER_TICK_MS) / 1000);
     */
 
-    /* Simply subtracting the values will always work even if end has wrapped
-     *  due to overflow.
+    /* Simply subtracting the values will always work even if end has wrapped due to overflow.
+     *  This is only true if end has wrapped by less than half of the range of TICKS/WRAPPER_TICK_MS!
      *  0x00000001 - 0xffffffff = 0x00000002 = 2
      *  0xffffffff - 0x00000001 = 0xfffffffe = -2
      */
@@ -8802,8 +8973,8 @@ int wrapperGetTickAgeTicks(TICKS start, TICKS end) {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("      wrapperGetTickAgeSeconds(%08x, %08x) -> %08x"), start, end, (int)(end - start));
     */
 
-    /* Simply subtracting the values will always work even if end has wrapped
-     *  due to overflow.
+    /* Simply subtracting the values will always work even if end has wrapped due to overflow.
+     *  This is only true if end has wrapped by less than half of the range of TICKS/WRAPPER_TICK_MS!
      *  0x00000001 - 0xffffffff = 0x00000002 = 2
      *  0xffffffff - 0x00000001 = 0xfffffffe = -2
      */

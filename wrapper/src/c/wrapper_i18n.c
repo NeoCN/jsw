@@ -191,6 +191,7 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
         }
         multiByteCharsLen = strlen(multiByteChars);
         if (!multiByteCharsLen) {
+            wrapper_iconv_close(conv_desc);
             /* The input string is empty, so the output will be as well. */
             *outputBufferW = malloc(sizeof(TCHAR));
             if (*outputBufferW) {
@@ -221,6 +222,7 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
 #endif
             nativeCharStart = malloc(nativeCharLen);
             if (!nativeCharStart) {
+                wrapper_iconv_close(conv_desc);
                 /* Out of memory. */
                 *outputBufferW = NULL;
                 return TRUE;
@@ -235,6 +237,7 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
                 /* See "man 3 iconv" for an explanation. */
                 switch (errno) {
                 case EILSEQ:
+                    wrapper_iconv_close(conv_desc);
                     free(nativeCharStart);
                     errorTemplate = (localizeErrorMessage ? TEXT("Invalid multibyte sequence.") : TEXT("Invalid multibyte sequence."));
                     errorTemplateLen = _tcslen(errorTemplate) + 1;
@@ -247,6 +250,7 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
                     return TRUE;
                     
                 case EINVAL:
+                    wrapper_iconv_close(conv_desc);
                     free(nativeCharStart);
                     errorTemplate = (localizeErrorMessage ? TEXT("Incomplete multibyte sequence.") : TEXT("Incomplete multibyte sequence."));
                     errorTemplateLen = _tcslen(errorTemplate) + 1;
@@ -265,6 +269,7 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
                     break;
                     
                 default:
+                    wrapper_iconv_close(conv_desc);
                     free(nativeCharStart);
                     errorTemplate = (localizeErrorMessage ? TEXT("Unexpected iconv error: %d") : TEXT("Unexpected iconv error: %d"));
                     errorTemplateLen = _tcslen(errorTemplate) + 10 + 1;
@@ -440,25 +445,33 @@ TCHAR *_tsetlocale(int category, const TCHAR *locale) {
     TCHAR* tReturn;
     size_t req;
 
-    req = wcstombs(NULL, locale, 0);
-    if (req == (size_t)-1) {
-        return NULL;
-    }
-    cLocale = malloc(sizeof(char) * (req + 1));
-    if (cLocale) {
+    if (locale) {
+        req = wcstombs(NULL, locale, 0);
+        if (req == (size_t)-1) {
+            return NULL;
+        }
+        cLocale = malloc(sizeof(char) * (req + 1));
+        if (!cLocale) {
+            return NULL;
+        }
         wcstombs(cLocale, locale, req + 1);
-        cReturn = setlocale(category, cLocale);
+    } else {
+        cLocale = NULL;
+    }
+    
+    cReturn = setlocale(category, cLocale);
+    if (cLocale) {
         free(cLocale);
-        
-        if (cReturn) {
-            req = mbstowcs(NULL, cReturn, MBSTOWCS_QUERY_LENGTH);
-            if (req != (size_t)-1) {
-                tReturn = malloc(sizeof(TCHAR) * (req + 1));
-                if (tReturn) {
-                    mbstowcs(tReturn, cReturn, req + 1);
-                    tReturn[req] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
-                    return tReturn;
-                }
+    }
+    
+    if (cReturn) {
+        req = mbstowcs(NULL, cReturn, MBSTOWCS_QUERY_LENGTH);
+        if (req != (size_t)-1) {
+            tReturn = malloc(sizeof(TCHAR) * (req + 1));
+            if (tReturn) {
+                mbstowcs(tReturn, cReturn, req + 1);
+                tReturn[req] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
+                return tReturn;
             }
         }
     }
@@ -701,6 +714,38 @@ FILE* _tfopen(const wchar_t* file, const wchar_t* mode) {
         if (cMode) {
             wcstombs(cMode, (wchar_t*) mode, sizeMode + 1);
             f = fopen(cFile, cMode);
+            free(cMode);
+        }
+        free(cFile);
+    }
+    return f;
+}
+
+FILE* _tpopen(const wchar_t* command, const wchar_t* mode) {
+    int sizeFile, sizeMode;
+    char* cFile;
+    char* cMode;
+    FILE *f = NULL;
+
+    sizeFile = wcstombs(NULL, (wchar_t*)command, 0);
+    if (sizeFile == (size_t)-1) {
+        return NULL;
+    }
+
+    cFile= malloc(sizeFile + 1);
+    if (cFile) {
+        wcstombs(cFile, (wchar_t*) command, sizeFile + 1);
+
+        sizeMode = wcstombs(NULL, (wchar_t*)mode, 0);
+        if (sizeMode == (size_t)-1) {
+            free(cFile);
+            return NULL;
+        }
+
+        cMode= malloc(sizeMode + 1);
+        if (cMode) {
+            wcstombs(cMode, (wchar_t*) mode, sizeMode + 1);
+            f = popen(cFile, cMode);
             free(cMode);
         }
         free(cFile);
@@ -1155,6 +1200,32 @@ wchar_t* _trealpathN(const wchar_t* fileName, wchar_t *resolvedName, size_t reso
 }
 #endif
 
+/**
+ * Convert a string to lowercase. A new string will be allocated.
+ *
+ * @param value Input string
+ *
+ * @return The converted string.
+ */
+TCHAR* toLower(TCHAR* value) {
+    TCHAR* result;
+    size_t len;
+    size_t i;
+    
+    len = _tcslen(value);
+    result = malloc(sizeof(TCHAR) * (len + 1));
+    if (!result) {
+        outOfMemory(TEXT("TL"), 1);
+        return NULL;
+    }
+    
+    for (i = 0; i < len; i++) {
+        result[i] = _totlower(value[i]);
+    }
+    result[len] = TEXT('\0');
+    
+    return result;
+}
 
 
 /**

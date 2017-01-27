@@ -179,6 +179,7 @@ extern char** environ;
 #define WRAPPER_ACTION_SOURCE_CODE_COMMANDFILE             2  /* Action originated from a commandfile. */
 #define WRAPPER_ACTION_SOURCE_CODE_WINDOWS_SERVICE_MANAGER 3  /* Action originated from the Windows Service Manager. */
 #define WRAPPER_ACTION_SOURCE_CODE_ON_EXIT                 4  /* Action originated from an on_exit configuration. */
+#define WRAPPER_ACTION_SOURCE_CODE_SIGNAL                  5  /* Action originated from a signal. */
 #define WRAPPER_ACTION_SOURCE_CODE_PING_TIMEOUT            11 /* Action originated from a timeout. */
 
 /* Because of the way time is converted to ticks, the largest possible timeout that
@@ -289,6 +290,7 @@ struct WrapperConfig {
     int     jvmExitTimeout;         /* Number of seconds the wrapper will wait for a JVM to process to terminate */
     int     jvmCleanupTimeout;      /* Number of seconds the wrapper will allow for its post JVM shudown cleanup. */
     int     jvmTerminateTimeout;    /* Number of seconds the wrapper will allow for the JVM to respond to TerminateProcess request. */
+    int     jvmSilentKill;          /* TRUE if the JVM should be silently killed at the next opportunity. */
 #ifdef WIN32
     int     javaIOBufferSize;       /* Size of the pipe buffer to use for java I/O. */
 #endif
@@ -346,6 +348,7 @@ struct WrapperConfig {
     int     startupDelayConsole;    /* Delay in seconds before starting the first JVM in console mode. */
     int     startupDelayService;    /* Delay in seconds before starting the first JVM in service mode. */
     int     exitCode;               /* Code which the wrapper will exit with */
+    int     errorExitCode;          /* Code which the wrapper will exit with when there is an error. */
     int     exitRequested;          /* TRUE if the current JVM should be shutdown. */
     int     restartRequested;       /* WRAPPER_RESTART_REQUESTED_NO, WRAPPER_RESTART_REQUESTED_AUTOMATIC, or WRAPPER_RESTART_REQUESTED_CONFIGURED if the another JVM should be launched after the current JVM is shutdown. Only set if exitRequested is set. */
     int     shutdownActionTriggered; /* TRUE if any action causing a JVM exit was triggered by the Wrapper (see the WRAPPER_ACTION_SOURCE_CODE_* definitions above).
@@ -484,6 +487,9 @@ struct WrapperConfig {
 #define WRAPPER_SIGNAL_MODE_RESTART  (char)101
 #define WRAPPER_SIGNAL_MODE_SHUTDOWN (char)102
 #define WRAPPER_SIGNAL_MODE_FORWARD  (char)103
+#define WRAPPER_SIGNAL_MODE_PAUSE    (char)104
+#define WRAPPER_SIGNAL_MODE_RESUME   (char)105
+#define WRAPPER_SIGNAL_MODE_CLOSE_LOGFILE (char)106
 
 #define WRAPPER_MSG_START         (char)100
 #define WRAPPER_MSG_STOP          (char)101
@@ -783,6 +789,12 @@ extern void wrapperUpdateJavaStateTimeout(TICKS nowTicks, int delay);
  */
 extern void wrapperSetJavaState(int jState, TICKS nowTicks, int delay);
 
+#ifndef WIN32
+/**
+ * Print out the soft and hard resource limits.
+ */
+extern void  wrapperShowResourceslimits();
+#endif
 /******************************************************************************
  * Platform specific methods
  *****************************************************************************/
@@ -907,10 +919,14 @@ extern int wrapperKillProcessNow();
 /**
  * Puts the Wrapper into a state where the JVM will be killed at the soonest
  *  possible opportunity.  It is necessary to wait a moment if a final thread
- *  dump is to be requested.  This call wll always set the JVM state to
+ *  dump is to be requested.  This call will always set the JVM state to
  *  WRAPPER_JSTATE_KILLING.
+ *
+ * @param silent TRUE to skip messages saying that the JVM did not exit on request.
+ *               This is useful in certain cases where we kill the JVM without trying
+ *               to shut it down cleanly.
  */
-extern void wrapperKillProcess();
+extern void wrapperKillProcess(int silent);
 
 /**
  * Launch the wrapper as a console application.
@@ -1102,7 +1118,6 @@ extern void wrapperStopPendingSignaled(int waitHint);
 extern void wrapperStoppedSignaled();
 extern void wrapperStartPendingSignaled(int waitHint);
 extern void wrapperStartedSignaled();
-
 
 /******************************************************************************
  * Inner types and methods for loading Wrapper configuration.

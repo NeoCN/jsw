@@ -62,13 +62,19 @@ public abstract class WrapperServiceActionEvent
      * Action result of a matched exit code.
      *  See the wrapper.on_exit.<n> property.
      */
-    public static final int SOURCE_CODE_ON_EXIT             = 4;
+    public static final int SOURCE_CODE_ON_EXIT                 = 4;
+    
+    /**
+     * Action result of a signal.
+     *  See the wrapper.on_exit.<n> property.
+     */
+    public static final int SOURCE_CODE_SIGNAL                  = 5;
     
     /**
      * Action result of a deadlock being detected.
      *  See the wrapper.check.deadlock.action property.
      */
-    public static final int SOURCE_CODE_DEADLOCK             = 10;
+    public static final int SOURCE_CODE_DEADLOCK                = 10;
     
     /**
      * Action result of a configured timer being fired.
@@ -112,6 +118,9 @@ public abstract class WrapperServiceActionEvent
             
         case SOURCE_CODE_ON_EXIT:
             return WrapperManager.getRes().getString( "On Exit Action" );
+            
+        case SOURCE_CODE_SIGNAL:
+            return WrapperManager.getRes().getString( "Signal Action" );
             
         case SOURCE_CODE_DEADLOCK:
             return WrapperManager.getRes().getString( "Deadlock Action" );

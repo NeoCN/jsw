@@ -47,4 +47,5 @@ extern TCHAR** loggerFileGetFiles(const TCHAR* pattern, int sortMode);
  */
 extern void loggerFileFreeFiles(TCHAR** files);
 
+extern TCHAR *tToolsGetRealPath(const TCHAR *path, const TCHAR *pathDesc, int errorLevel, int useQueue);
 #endif

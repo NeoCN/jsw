@@ -95,7 +95,7 @@ typedef long intptr_t;
  #define FALSE 0
 #endif
 
-const TCHAR* defaultLogFile = TEXT("wrapper.log");
+TCHAR* defaultLogFile;
 
 #ifdef WIN32
 const TCHAR* syslogName = TEXT("Event Log");
@@ -140,14 +140,20 @@ int logBufferGrowth = FALSE;
 
 TCHAR *logFilePath;
 
+/* Keep track if the log file path has changed since we last opened the log file. */
+int logFilePathChanged;
+
+/* Keep track if the configured log file path has changed since we last opened the log file. */
+int confLogFilePathChanged;
+
 /* Size of the currentLogFileName and workLogFileName buffers. */
 size_t currentLogFileNameSize;
 TCHAR *currentLogFileName;
+TCHAR *workLogFileName;
 size_t confLogFileNameSize;
 TCHAR *confLogFileName;
-TCHAR  confLogFileStopDateStr[20];
-TCHAR  confLogFileLevelInt;
-TCHAR *workLogFileName;
+TCHAR *workConfLogFileName;
+int    confLogFileLevelInt;
 int    whichLogFile;
 
 #define LOG_FILE_UNSET       0
@@ -156,6 +162,7 @@ int    whichLogFile;
 #define LOG_FILE_DISABLED    3
 
 int logFileRollMode = ROLL_MODE_SIZE;
+int confLogFileRollMode = ROLL_MODE_SIZE;
 int logFileUmask = 0022;
 TCHAR *logLevelNames[] = { TEXT("NONE  "), TEXT("DEBUG "), TEXT("INFO  "), TEXT("STATUS"), TEXT("WARN  "), TEXT("ERROR "), TEXT("FATAL "), TEXT("ADVICE"), TEXT("NOTICE") };
 #ifdef WIN32
@@ -166,7 +173,9 @@ char *defaultLoginfoSourceName = "wrapper";
 char *loginfoSourceName = NULL;
 #endif
 int  logFileMaxSize = -1;
+int  confLogFileMaxSize = -1;
 int  logFileMaxLogFiles = -1;
+int  confLogFileMaxLogFiles = -1;
 TCHAR *logFilePurgePattern = NULL;
 int  logFilePurgeSortMode = LOGGER_FILE_SORT_MODE_TIMES;
 
@@ -206,20 +215,6 @@ void checkAndRollLogs(const TCHAR *nowDate, size_t printBufferSize);
 int lockLoggingMutex();
 int releaseLoggingMutex();
 
-/* Any log messages generated within signal handlers must be stored until we
- *  have left the signal handler to avoid deadlocks in the logging code.
- *  Messages are stored in a round robin buffer of log messages until
- *  maintainLogger is next called.
- * When we are inside of a signal, and thus when calling log_printf_queue,
- *  we know that it is safe to modify the queue as needed.  But it is possible
- *  that a signal could be fired while we are in maintainLogger, so case is
- *  taken to make sure that volatile changes are only made in log_printf_queue.
- */
-#define QUEUE_SIZE 20
-/* The size of QUEUED_BUFFER_SIZE_USABLE is arbitrary as the largest size which can be logged in full,
- *  but to avoid crashes due to a bug in the HPUX libc (version < 1403), the length of the buffer passed to _vsntprintf must have a length of 1 + N, where N is a multiple of 8. */
-#define QUEUED_BUFFER_SIZE_USABLE (512 + 1)
-#define QUEUED_BUFFER_SIZE (QUEUED_BUFFER_SIZE_USABLE + 4)
 #if defined(UNICODE) && !defined(WIN32)
 TCHAR formatMessages[WRAPPER_THREAD_COUNT][QUEUED_BUFFER_SIZE];
 #endif
@@ -395,6 +390,14 @@ int initLogging(void (*logFileChanged)(const TCHAR *logFile)) {
         return 1;
     }
 #endif
+
+    defaultLogFile = malloc(sizeof(TCHAR) * 12);
+    if (!defaultLogFile) {
+        _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("IL1"));
+        return 1;
+    }
+    _tcsncpy(defaultLogFile, TEXT("wrapper.log"), 12);
+    defaultLogFile[11] = TEXT('\0');
     
     logPauseTime = -1;
 
@@ -451,6 +454,11 @@ int disposeLogging() {
     }
 
 
+    if (defaultLogFile) {
+        free(defaultLogFile);
+        defaultLogFile = NULL;
+    }
+    
     if (logFilePath) {
         free(logFilePath);
         logFilePath = NULL;
@@ -466,6 +474,14 @@ int disposeLogging() {
     if (workLogFileName) {
         free(workLogFileName);
         workLogFileName = NULL;
+    }
+    if (workConfLogFileName) {
+        free(workConfLogFileName);
+        workConfLogFileName = NULL;
+    }
+    if (pendingLogFileChange) {
+        free(pendingLogFileChange);
+        pendingLogFileChange = NULL;
     }
     if ((loginfoSourceName != defaultLoginfoSourceName) && (loginfoSourceName != NULL)) {
         free(loginfoSourceName);
@@ -651,45 +667,83 @@ int isLogfileAccessed() {
 }
 
 /**
+ * Set the default log file name to an absolute path using the working directory.
+ *  This function must be called after setting the working directory.
+ */
+int resolveDefaultLogFilePath() {
+    TCHAR* resolved_log_file_path;
+    
+    resolved_log_file_path = tToolsGetRealPath(defaultLogFile, TEXT("default log file path"), LEVEL_WARN, TRUE);
+    if (resolved_log_file_path) {
+        if (defaultLogFile) {
+            free(defaultLogFile);
+        }
+        /* defaultLogFile now points to resolved_log_file_path which was malloced. */
+        defaultLogFile = resolved_log_file_path;
+        return FALSE;
+    }
+    return TRUE;
+}
+
+/**
  * Sets the log file to be used.  If the specified file is not absolute then
  *  it will be resolved into an absolute path.  If there are any problems with
  *  the path, like a directory not existing then the call will fail and the
  *  cause will be written to the existing log.
  *
  * @param log_file_path Log file to start using.
- * @param workingDir The current working directory, used for relative paths.
- *                   This will be NULL if this is part of the bootstrap process,
- *                   in which case we should not attempt to resolve the absolute
- *                   path.
- * @param preload TRUE if called as part of the preload process.  We use this to
- *                suppress double warnings.
+ * @param isConfigured  The value comes from the configuration file.
  *
  * @return TRUE if there were any problems.
  */
-extern int setLogfilePath(const TCHAR *log_file_path, const TCHAR *workingDir, int preload) {
-    size_t len = _tcslen(log_file_path);
+int setLogfilePath(const TCHAR *log_file_path, int isConfigured) {
+    size_t len;
 #ifdef WIN32
     TCHAR *c;
 #endif
+    TCHAR* prevLogFilePath = NULL;
 
-    /* The currentLogFileNameSize is the size of log_file_path + 10 ("." + a roll number) + 1 (NULL). */
-    currentLogFileNameSize = len + 10 + 1;
     if (logFilePath) {
+        len = _tcslen(logFilePath);
+        prevLogFilePath = malloc(sizeof(TCHAR) * (len + 1));
+        if (!prevLogFilePath) {
+            outOfMemoryQueued(TEXT("SLP"), 1);
+            return TRUE;
+        }
+        _tcsncpy(prevLogFilePath, logFilePath, len + 1);
         free(logFilePath);
-        free(currentLogFileName);
-        free(workLogFileName);
     }
-    logFilePath = NULL;
-    currentLogFileName = NULL;
-    workLogFileName = NULL;
 
-    logFilePath = malloc(sizeof(TCHAR) * (len + 1));
+    /* Convert the path to an absolute path. */
+    logFilePath = tToolsGetRealPath(log_file_path, TEXT("log file path"), LEVEL_WARN, TRUE);
     if (!logFilePath) {
-        outOfMemoryQueued(TEXT("SLP"), 1);
-        return TRUE;
+        /* Continue with the relative path. */
+        len = _tcslen(log_file_path);
+        logFilePath = malloc(sizeof(TCHAR) * (len + 1));
+        if (!logFilePath) {
+            outOfMemoryQueued(TEXT("SLP"), 1);
+            return TRUE;
+        }
+        _tcsncpy(logFilePath, log_file_path, len + 1);
+    } else {
+        len = _tcslen(logFilePath);
     }
-    _tcsncpy(logFilePath, log_file_path, len + 1);
 
+    if (prevLogFilePath) {
+        if (_tcscmp(prevLogFilePath, logFilePath) == 0) {
+            /* The path is unchanged. We don't want to reset currentLogFileName and other variables, so return here. */
+            free(prevLogFilePath);
+            return FALSE;
+        }
+        free(prevLogFilePath);
+    }
+
+    /* The currentLogFileNameSize is the size of logFilePath + 10 ("." + a roll number) + 1 (NULL). */
+    currentLogFileNameSize = len + 10 + 1;
+
+    if (currentLogFileName) {
+        free(currentLogFileName);
+    }
     currentLogFileName = malloc(sizeof(TCHAR) * currentLogFileNameSize);
     if (!currentLogFileName) {
         outOfMemoryQueued(TEXT("SLP"), 2);
@@ -698,6 +752,10 @@ extern int setLogfilePath(const TCHAR *log_file_path, const TCHAR *workingDir, i
         return TRUE;
     }
     currentLogFileName[0] = TEXT('\0');
+
+    if (workLogFileName) {
+        free(workLogFileName);
+    }
     workLogFileName = malloc(sizeof(TCHAR) * currentLogFileNameSize);
     if (!workLogFileName) {
         outOfMemoryQueued(TEXT("SLP"), 3);
@@ -718,6 +776,55 @@ extern int setLogfilePath(const TCHAR *log_file_path, const TCHAR *workingDir, i
         c[0] = TEXT('\\');
     }
 #endif
+
+    if (isConfigured) {
+        if ((confLogFileName == NULL) || (strcmpIgnoreCase(logFilePath, confLogFileName) != 0)) {
+            confLogFileNameSize = currentLogFileNameSize;
+            
+            if (confLogFileName) {
+                /* This message will be printed in the new configured log file because it is queued. */
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Configured log file changed from '%s' to '%s'."), confLogFileName, logFilePath);
+                free(confLogFileName);
+            } else {
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Configured log file set to '%s'."), logFilePath);
+            }
+            confLogFileName = malloc(sizeof(TCHAR) * confLogFileNameSize);
+            if (!confLogFileName) {
+                outOfMemoryQueued(TEXT("SLP"), 4);
+                free(logFilePath);
+                logFilePath = NULL;
+                free(currentLogFileName);
+                confLogFileNameSize = 0;
+                currentLogFileName = NULL;
+                free(workLogFileName);
+                workLogFileName = NULL;
+                return TRUE;
+            }
+            _tcsncpy(confLogFileName, logFilePath, confLogFileNameSize);
+            
+            if (workConfLogFileName) {
+                free(workConfLogFileName);
+            }
+            workConfLogFileName = malloc(sizeof(TCHAR) * confLogFileNameSize);
+            if (!confLogFileName) {
+                outOfMemoryQueued(TEXT("SLP"), 5);
+                free(logFilePath);
+                logFilePath = NULL;
+                free(currentLogFileName);
+                confLogFileNameSize = 0;
+                currentLogFileName = NULL;
+                free(workLogFileName);
+                workLogFileName = NULL;
+                free(confLogFileName);
+                confLogFileName = NULL;
+                return TRUE;
+            } 
+            workConfLogFileName[0] = TEXT('\0');
+            
+            confLogFilePathChanged = TRUE;
+        }
+    }
+    logFilePathChanged = TRUE;
     
     return FALSE;
 }
@@ -917,6 +1024,7 @@ void setLogBufferGrowth(int log) {
 
 void setLogfileRollMode( int log_file_roll_mode ) {
     logFileRollMode = log_file_roll_mode;
+    confLogFileRollMode = log_file_roll_mode;
 }
 
 int getLogfileRollMode() {
@@ -999,15 +1107,18 @@ void setLogfileMaxFileSize( const TCHAR *max_file_size ) {
                 "wrapper.logfile.maxsize must be 0 or at least 1024.  Changing to %d."), logFileMaxSize);
             logFileMaxSize = 1024;
         }
+        confLogFileMaxSize = logFileMaxSize;
     }
 }
 
 void setLogfileMaxFileSizeInt( int max_file_size ) {
     logFileMaxSize = max_file_size;
+    confLogFileMaxSize = max_file_size;
 }
 
 void setLogfileMaxLogFiles( int max_log_files ) {
     logFileMaxLogFiles = max_log_files;
+    confLogFileMaxLogFiles = max_log_files;
 }
 
 void setLogfilePurgePattern(const TCHAR *pattern) {
@@ -1618,7 +1729,7 @@ void generateLogFileName(TCHAR *buffer, size_t bufferSize, const TCHAR *template
     size_t bufferLen;
     
     /* Copy the template to the buffer to get started. */
-    _tcsncpy(buffer, template, _tcslen(logFilePath) + 11);
+    _tcsncpy(buffer, template, _tcslen(template) + 1);
 
     /* Handle the date token. */
     if (_tcsstr(buffer, TEXT("YYYYMMDD"))) {
@@ -1674,7 +1785,7 @@ void log_printf_message_sysLogInner(int source_id, int level, TCHAR *message, st
  * @param invertLogLevelCheck There is a special case where we want to log to
  *                            the syslog IF and only if the normal log output
  *                            would not go to the syslog.  This flag makes it
- *                            possible to log if it we normally would not.
+ *                            possible to log it if we normally would not.
  */
 void log_printf_message_sysLog(int source_id, int level, TCHAR *message, struct tm *nowTM, int invertLogLevelCheck) {
     switch (level) {
@@ -1698,6 +1809,24 @@ void log_printf_message_sysLog(int source_id, int level, TCHAR *message, struct 
     }
 }
 
+static void setDefaultRolling() {
+    logFileRollMode = ROLL_MODE_SIZE;
+    logFileMaxSize = 5 * 1048576;
+    logFileMaxLogFiles = 1;
+}
+
+static void restoreConfiguredRolling() {
+    logFileRollMode = confLogFileRollMode;
+    logFileMaxSize = confLogFileMaxSize;
+    logFileMaxLogFiles = confLogFileMaxLogFiles;
+}
+
+static void printFailoverFileHeader(TCHAR* confFileName) {
+    _ftprintf(logfileFP, TEXT("********************************************************************************\n"));
+    _ftprintf(logfileFP, TEXT("* This is a Java Service Wrapper failover log file.\n*  Was unable to write to %s.\n"), confFileName);
+    _ftprintf(logfileFP, TEXT("********************************************************************************\n\n"));
+}
+
 /**
  * Open log file in the following order of priority: configured log file, default log file, no log file.
  *  This function will also try to resume logging in a file with a higher priority as soon as it becomes
@@ -1708,11 +1837,13 @@ void log_printf_message_sysLog(int source_id, int level, TCHAR *message, struct 
  * @return True if the logfile name changed.
  */
 int openLogFile(struct tm *nowTM, TCHAR *message) {
+    static TCHAR confLogFileStopDateStr[20];
     int logFileChanged = FALSE;
     TCHAR nowDate[9];
     int old_umask;
     const TCHAR *tempBufferFormat;
-    const TCHAR *tempBufferLastErrorText;
+    TCHAR tempBufferLastErrorText1[1024];
+    TCHAR tempBufferLastErrorText2[1024];
     size_t tempBufferLen;
     TCHAR *tempBuffer;
     TCHAR tempConfLogFileResumeDateStr[20];
@@ -1720,11 +1851,18 @@ int openLogFile(struct tm *nowTM, TCHAR *message) {
     char *messageMB;
     size_t messageMBMaxLen = 0;
     FILE *tempLogfileFP = NULL;
+    int dummyReset = FALSE;
+    int reset = FALSE;
+#if defined(WIN32) && !defined(WIN64)
+    struct _stat64i32 fileStat;
+#else
+    struct stat fileStat;
+#endif
     
     /* If the log file was set to a blank value then it will not be used. */
     if (logFilePath && (_tcslen(logFilePath) > 0)) {
         /* If this the roll mode is date then we need a nowDate for this log entry. */
-        if (logFileRollMode & ROLL_MODE_DATE) {
+        if ((logFileRollMode & ROLL_MODE_DATE) || (confLogFileRollMode & ROLL_MODE_DATE)) {
             _sntprintf(nowDate, 9, TEXT("%04d%02d%02d"), nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday );
         } else {
             nowDate[0] = TEXT('\0');
@@ -1754,55 +1892,113 @@ int openLogFile(struct tm *nowTM, TCHAR *message) {
         /* Make sure that the log file does not need to be rolled. */
         checkAndRollLogs(nowDate, reqSize);
         
-        /* If we previously fell back to the default log file, try to return to the configured log file */
-        if (whichLogFile != LOG_FILE_UNSET && whichLogFile != LOG_FILE_CONFIGURED && (confLogFileName != NULL)) {
-            /* Check if the configured log file is available */
-            old_umask = umask( logFileUmask );
-            tempLogfileFP = _tfopen(confLogFileName, TEXT("a"));
-            
-            if (tempLogfileFP != NULL) {
-                if (whichLogFile == LOG_FILE_DISABLED) {
-                    /* We previously disabled file logging. Reactivate it. */
-                    enableLogFile();
-                } else if (logfileFP != NULL) {
-                    /* Make sure to close the default log file (we have not set logfileFP yet). */
-                    /* We are already locked. */
-                    fclose(logfileFP);
-                    logfileFP = NULL;
+        if (confLogFileName) {
+            /* The logging configuration is now loaded and the configured log file is known. */
+            workConfLogFileName[0] = TEXT('\0');
+
+            /* Check if the log file path has changed since the last call. */
+            if (logFilePathChanged && (whichLogFile != LOG_FILE_UNSET)) {
+                if (confLogFilePathChanged) {
+                    if (whichLogFile == LOG_FILE_CONFIGURED) {
+                        /* We are moving from one configured log file to another. We need to reinit. */
+                        reset = TRUE;
+                    } else {
+                        if (confLogFileRollMode & ROLL_MODE_DATE) {
+                            generateLogFileName(workConfLogFileName, confLogFileNameSize, confLogFileName, nowDate, NULL);
+                        } else {
+                            generateLogFileName(workConfLogFileName, confLogFileNameSize, confLogFileName, NULL, NULL);
+                        }
+                        if ((tempLogfileFP = _tfopen(workConfLogFileName, TEXT("a"))) == NULL) {
+                        /* The configured log file has changed but is not accessible. Reset the file opening
+                         *  system in its original state to clearly show that the new file is not accessible. */
+                            dummyReset = TRUE;
+                        }
+                    }
+                    
+                    if (reset || dummyReset) {
+                        /* Now actually reset the file opening system */
+                        if (logfileFP != NULL) {
+                            /* Close the previous log file. We can do this safely because we are already locked. */
+                            fclose(logfileFP);
+                            logfileFP = NULL;
+                        }
+                        if (whichLogFile == LOG_FILE_DISABLED) {
+                            /* We previously disabled file logging. Reactivate it. */
+                            enableLogFile();
+                        }
+                        whichLogFile = LOG_FILE_UNSET;
+                    }
                 }
                 
-                /* We need to write our message into a buffer manually so we can use it
-                 *  both for the log_printf_queue and log_printf_message_sysLog calls below. */
-                tempBufferFormat = TEXT("The messages could not be logged in the configured log file (%s) between %s and %s.\n  The missing log entries may be found in the default log file (%s) of the current working directory or in the %s.");
-                _sntprintf(tempConfLogFileResumeDateStr, 20, TEXT("%04d/%02d/%02d %02d:%02d:%02d"),
-                                nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday,
-                                nowTM->tm_hour, nowTM->tm_min, nowTM->tm_sec );
-                tempConfLogFileResumeDateStr[19] = 0;
-                tempBufferLen = _tcslen(tempBufferFormat) - 2 - 2 - 2 - 2 - 2 + _tcslen(confLogFileName) + _tcslen(confLogFileStopDateStr) + _tcslen(tempConfLogFileResumeDateStr) + _tcslen(defaultLogFile) + _tcslen(syslogName) + 1;
-                tempBuffer = malloc(sizeof(TCHAR) * tempBufferLen);
-                if (!tempBuffer) {
-                    outOfMemoryQueued(TEXT("OLF"), 2);
-                } else {
-                    _sntprintf(tempBuffer, tempBufferLen, tempBufferFormat, confLogFileName, confLogFileStopDateStr, tempConfLogFileResumeDateStr, defaultLogFile, syslogName);
-                    
-                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("%s"), tempBuffer);
-                    
-                    /* This is critical for debugging problems.  If the above message would not have shown
-                     *  up in the syslog then send it there manually.  We are already locked here so this
-                     *  can be done safely. */
-                    log_printf_message_sysLog(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, tempBuffer, nowTM, TRUE);
-                    
-                    free(tempBuffer);
+                if (whichLogFile == LOG_FILE_DEFAULT) {
+                    /* Continue with the default file. If the configured log file changed, we will resume logging in it just below. */
+                    setLogfilePath(defaultLogFile, FALSE);
+                    _sntprintf(currentLogFileName, currentLogFileNameSize, defaultLogFile);
+                    setDefaultRolling();
                 }
-                
-                /* Set the log file path */
-                setLogfilePath(confLogFileName, NULL, TRUE);
-                _sntprintf(currentLogFileName, currentLogFileNameSize, confLogFileName);
-                logFileChanged = TRUE;
-                whichLogFile = LOG_FILE_CONFIGURED;
-                logfileFP = tempLogfileFP;
             }
-            umask(old_umask);
+            
+            /* If we previously fell back to the default log file or disabled log file, try to return to the configured log file */
+            if ((whichLogFile != LOG_FILE_UNSET) && (whichLogFile != LOG_FILE_CONFIGURED) && (confLogFileName != NULL)) {
+                /* Check if the configured log file is available */
+                old_umask = umask( logFileUmask );
+                /* Generate the log file name if it is not already set. */
+                if (workConfLogFileName[0] == TEXT('\0')) {
+                    if (confLogFileRollMode & ROLL_MODE_DATE) {
+                        generateLogFileName(workConfLogFileName, confLogFileNameSize, confLogFileName, nowDate, NULL);
+                    } else {
+                        generateLogFileName(workConfLogFileName, confLogFileNameSize, confLogFileName, NULL, NULL);
+                    }
+                }
+                tempLogfileFP = _tfopen(workConfLogFileName, TEXT("a"));
+                if (!tempLogfileFP) {
+                    _tcsncpy(tempBufferLastErrorText1, getLastErrorText(), 1023);
+                    tempBufferLastErrorText1[1023] = 0;
+                } else {
+                    if (whichLogFile == LOG_FILE_DISABLED) {
+                        /* We previously disabled file logging. Reactivate it. */
+                        enableLogFile();
+                    } else if (logfileFP != NULL) {
+                        /* Make sure to close the default log file (we have not set logfileFP yet). */
+                        /* We are already locked. */
+                        fclose(logfileFP);
+                        logfileFP = NULL;
+                    }
+                    
+                    /* We need to write our message into a buffer manually so we can use it
+                     *  both for the log_printf_queue and log_printf_message_sysLog calls below. */
+                    tempBufferFormat = TEXT("The messages could not be logged in the configured log file (%s) between %s and %s.\n  The missing log entries may be found in the default log file (%s) of the current working directory or in the %s.");
+                    _sntprintf(tempConfLogFileResumeDateStr, 20, TEXT("%04d/%02d/%02d %02d:%02d:%02d"),
+                                    nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday,
+                                    nowTM->tm_hour, nowTM->tm_min, nowTM->tm_sec );
+                    tempConfLogFileResumeDateStr[19] = 0;
+                    tempBufferLen = _tcslen(tempBufferFormat) - 2 - 2 - 2 - 2 - 2 + _tcslen(workConfLogFileName) + _tcslen(confLogFileStopDateStr) + _tcslen(tempConfLogFileResumeDateStr) + _tcslen(defaultLogFile) + _tcslen(syslogName) + 1;
+                    tempBuffer = malloc(sizeof(TCHAR) * tempBufferLen);
+                    if (!tempBuffer) {
+                        outOfMemoryQueued(TEXT("OLF"), 2);
+                    } else {
+                        _sntprintf(tempBuffer, tempBufferLen, tempBufferFormat, workConfLogFileName, confLogFileStopDateStr, tempConfLogFileResumeDateStr, defaultLogFile, syslogName);
+                        
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("%s"), tempBuffer);
+                        
+                        /* This is critical for debugging problems.  If the above message would not have shown
+                         *  up in the syslog then send it there manually.  We are already locked here so this
+                         *  can be done safely. */
+                        log_printf_message_sysLog(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, tempBuffer, nowTM, TRUE);
+                        
+                        free(tempBuffer);
+                    }
+                    
+                    /* Set the log file path */
+                    setLogfilePath(confLogFileName, FALSE);
+                    _sntprintf(currentLogFileName, currentLogFileNameSize, workConfLogFileName);
+                    restoreConfiguredRolling();
+                    logFileChanged = TRUE;
+                    whichLogFile = LOG_FILE_CONFIGURED;
+                    logfileFP = tempLogfileFP;
+                }
+                umask(old_umask);
+            }
         }
 
         /* If the file needs to be opened then do so. */
@@ -1820,30 +2016,48 @@ int openLogFile(struct tm *nowTM, TCHAR *message) {
                 }
 
                 logfileFP = _tfopen(currentLogFileName, TEXT("a"));
+                if (!logfileFP) {
+                    if (whichLogFile == LOG_FILE_DEFAULT) {
+                        _tcsncpy(tempBufferLastErrorText2, getLastErrorText(), 1023);
+                        tempBufferLastErrorText2[1023] = 0;
+                    } else {
+                        _tcsncpy(tempBufferLastErrorText1, getLastErrorText(), 1023);
+                        tempBufferLastErrorText1[1023] = 0;
+                    }
+                }
             }
             if (logfileFP != NULL) {
                 if (whichLogFile == LOG_FILE_UNSET) {
                     whichLogFile = LOG_FILE_CONFIGURED;
+                } else if ((whichLogFile == LOG_FILE_DEFAULT) && (_tstat(logFilePath, &fileStat) == 0) && (fileStat.st_size == 0)) {
+                    /* Generate the log file name if it is not already set. */
+                    if (workConfLogFileName[0] == TEXT('\0')) {
+                        if (confLogFileRollMode & ROLL_MODE_DATE) {
+                            generateLogFileName(workConfLogFileName, confLogFileNameSize, confLogFileName, nowDate, NULL);
+                        } else {
+                            generateLogFileName(workConfLogFileName, confLogFileNameSize, confLogFileName, NULL, NULL);
+                        }
+                    }
+                    /* This is a new default log file, so add a header. */
+                    printFailoverFileHeader(workConfLogFileName);
                 }
             } else {
                 if (whichLogFile != LOG_FILE_DEFAULT) {
                     logfileFP = _tfopen(defaultLogFile, TEXT("a"));
+                    if (!logfileFP) {
+                        _tcsncpy(tempBufferLastErrorText2, getLastErrorText(), 1023);
+                        tempBufferLastErrorText2[1023] = 0;
+                    }
                     if (whichLogFile == LOG_FILE_DISABLED) {
                         if (logfileFP != NULL) {
                             enableLogFile();
                         } else {
                             /* The logging was disabled and both the default file and the configured file could not be opened. */
+                            confLogFilePathChanged = FALSE;
+                            logFilePathChanged = FALSE;
                             return FALSE;
                         }
-                    } else {
-                        /* Save the configured file location */
-                        confLogFileNameSize = currentLogFileNameSize;
-                        confLogFileName = malloc(sizeof(TCHAR) * confLogFileNameSize);
-                        if (!confLogFileName) {
-                            outOfMemoryQueued(TEXT("OLF"), 4);
-                        } else {
-                            _tcsncpy(confLogFileName, currentLogFileName, confLogFileNameSize);
-                        }
+                    } else if (!dummyReset) {
                         /* Save the date in string format so that we don't need to worry about time changes. */
                         _sntprintf(confLogFileStopDateStr, 20, TEXT("%04d/%02d/%02d %02d:%02d:%02d"),
                                         nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday,
@@ -1854,13 +2068,12 @@ int openLogFile(struct tm *nowTM, TCHAR *message) {
                     /* We need to write our error message into a buffer manually so we can use it
                      *  both for the log_printf_queue and log_printf_message_sysLog calls below. */
                     tempBufferFormat = TEXT("Unable to write to the configured log file: %s (%s)\n  Falling back to the default file in the current working directory: %s");
-                    tempBufferLastErrorText = getLastErrorText();
-                    tempBufferLen = _tcslen(tempBufferFormat) - 2 - 2 - 2 + _tcslen(currentLogFileName) + _tcslen(tempBufferLastErrorText) + _tcslen(defaultLogFile) + 1;
+                    tempBufferLen = _tcslen(tempBufferFormat) - 2 - 2 - 2 + _tcslen(currentLogFileName) + _tcslen(tempBufferLastErrorText1) + _tcslen(defaultLogFile) + 1;
                     tempBuffer = malloc(sizeof(TCHAR) * tempBufferLen);
                     if (!tempBuffer) {
-                        outOfMemoryQueued(TEXT("OLF"), 3);
+                        outOfMemoryQueued(TEXT("OLF"), 5);
                     } else {
-                        _sntprintf(tempBuffer, tempBufferLen, tempBufferFormat, currentLogFileName, getLastErrorText(), defaultLogFile);
+                        _sntprintf(tempBuffer, tempBufferLen, tempBufferFormat, currentLogFileName, tempBufferLastErrorText1, defaultLogFile);
                         
                         log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("%s"), tempBuffer);
                         
@@ -1872,26 +2085,37 @@ int openLogFile(struct tm *nowTM, TCHAR *message) {
                         free(tempBuffer);
                     }
                     
-                    /* Try the default file location. */
-                    setLogfilePath(defaultLogFile, NULL, TRUE);
+                    setLogfilePath(defaultLogFile, FALSE);
                     _sntprintf(currentLogFileName, currentLogFileNameSize, defaultLogFile);
+                    setDefaultRolling();
                     logFileChanged = TRUE;
                 }
                 if (logfileFP != NULL) {
                     whichLogFile = LOG_FILE_DEFAULT;
+                    if ((_tstat(logFilePath, &fileStat) == 0) && (fileStat.st_size == 0)) {
+                        /* Generate the log file name if it is not already set. */
+                        if (workConfLogFileName[0] == TEXT('\0')) {
+                            if (confLogFileRollMode & ROLL_MODE_DATE) {
+                                generateLogFileName(workConfLogFileName, confLogFileNameSize, confLogFileName, nowDate, NULL);
+                            } else {
+                                generateLogFileName(workConfLogFileName, confLogFileNameSize, confLogFileName, NULL, NULL);
+                            }
+                        }
+                        /* This is a new default log file, so add a header. */
+                        printFailoverFileHeader(workConfLogFileName);
+                    }
                 } else {
                     /* Still unable to write. */
                     
                     /* We need to write our error message into a buffer manually so we can use it
                      *  both for the log_printf_queue and log_printf_message_sysLog calls below. */
                     tempBufferFormat = TEXT("Unable to write to the default log file: %s (%s)\n  Disabling log file.");
-                    tempBufferLastErrorText = getLastErrorText();
-                    tempBufferLen = _tcslen(tempBufferFormat) - 2 - 2 + _tcslen(currentLogFileName) + _tcslen(tempBufferLastErrorText) + 1;
+                    tempBufferLen = _tcslen(tempBufferFormat) - 2 - 2 + _tcslen(currentLogFileName) + _tcslen(tempBufferLastErrorText2) + 1;
                     tempBuffer = malloc(sizeof(TCHAR) * tempBufferLen);
                     if (!tempBuffer) {
-                        outOfMemoryQueued(TEXT("OLF"), 5);
+                        outOfMemoryQueued(TEXT("OLF"), 6);
                     } else {
-                        _sntprintf(tempBuffer, tempBufferLen, tempBufferFormat, currentLogFileName, getLastErrorText());
+                        _sntprintf(tempBuffer, tempBufferLen, tempBufferFormat, currentLogFileName, tempBufferLastErrorText2);
                         
                         log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("%s"), tempBuffer);
                         
@@ -1919,12 +2143,14 @@ int openLogFile(struct tm *nowTM, TCHAR *message) {
         if (logfileFP == NULL) {
             currentLogFileName[0] = TEXT('\0');
             /* Failure to write to logfile already reported. */
-        } else {
-            /* We need to store the date the file was opened for. */
+        } else if ((whichLogFile == LOG_FILE_CONFIGURED) && (logFileRollMode & ROLL_MODE_DATE)) {
+            /* We need to store the date the file was opened for (only the configured log file is rolled by date). */
             _tcsncpy(logFileLastNowDate, nowDate, 9);
         }
     }
     
+    confLogFilePathChanged = FALSE;
+    logFilePathChanged = FALSE;
     return logFileChanged;
 }
 
@@ -1973,10 +2199,9 @@ void log_printf_message_logFileInner(int source_id, int level, int threadId, int
 }
 int log_printf_message_logFile(int source_id, int level, int threadId, int queued, TCHAR *message, struct tm *nowTM, int nowMillis, time_t durationMillis) {
     int logFileChanged = FALSE;
-    
-    logFileChanged = openLogFile(nowTM, message);
 
     if (level >= currentLogfileLevel) {
+        logFileChanged = openLogFile(nowTM, message);
         log_printf_message_logFileInner(source_id, level, threadId, queued, message, nowTM, nowMillis, durationMillis);
     }
     
@@ -2482,7 +2707,7 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
              * The reading code is also in a semaphore so we can do a quick test here safely as well. */
             if (pendingLogFileChange) {
                 /* The previous file was still in the queue.  Free it up to avoid a memory leak.
-                 *  This can happen if the log file size is 1k or something like that.   We will always
+                 *  This can happen if the log file size is 1k or something like that.  We will always
                  *  keep the most recent file however, so this should not be that big a problem. */
 #ifdef _DEBUG
                 _tprintf(TEXT("Log file name change was overwritten in queue: %s\n"), pendingLogFileChange);
@@ -2614,13 +2839,18 @@ int getLastError() {
 }
 
 #ifdef WIN32
-int eventLogSourceInstalled = FALSE;
-int warnSyslogUnregistered = TRUE;
-int syslogRegistrationChecked = FALSE;
-DWORD syslogRegistrationLastError;  /* we log the error code only if the user attempts to send a message, so we should keep the value when first calling syslogMessageFileRegistered(). */
+static int eventLogSourceInstalled = FALSE;
 
-void setWarnSyslogUnregistered(int value) {
-    warnSyslogUnregistered = value;
+/**
+ * Disable Event Log.
+ *  This function has to be called if the registration could not be completed.
+ */
+void disableSysLog(int useLoggerQueue) {
+    if (getSyslogLevelInt() != LEVEL_NONE) {
+        setSyslogLevelInt(LEVEL_NONE);
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, 
+            TEXT("Disabling Event Log because the application is not registered.\n  Run the wrapper with the '--setup' option to register."));
+    }
 }
 
 /**
@@ -2629,20 +2859,20 @@ void setWarnSyslogUnregistered(int value) {
  *  CASE 1: If we need elevated privileges, it should be done through the setup process (see --setup argument).
  *  CASE 2: On older versions of windows where running elevated was not needed, registerSyslogMessageFile() can be called when the wrapper runs.
  * 
- * @param useLoggerQueue TRUE if the message should be queued.
- * 
  * Returns TRUE if registered, FALSE if not registered.
  */
 int syslogMessageFileRegistered(int useLoggerQueue) {
+    static int checked = FALSE;
     TCHAR bufferPath[_MAX_PATH];
     TCHAR bufferKVal[_MAX_PATH];
+    TCHAR regPath[1024];
     DWORD cbData = _MAX_PATH;
     DWORD usedLen;
-    TCHAR regPath[1024];
+    DWORD error;
     HKEY hKey;
     
     /* first check if the function was called before */
-    if (syslogRegistrationChecked || eventLogSourceInstalled) {  /* || eventLogSourceInstalled: just in case we would have run registerSyslogMessageFile(TRUE) before this function (should not happen) */
+    if (checked || eventLogSourceInstalled) {  /* || eventLogSourceInstalled: just in case we would have run registerSyslogMessageFile(TRUE) before this function (should not happen) */
         return eventLogSourceInstalled;
     }
 
@@ -2653,33 +2883,39 @@ int syslogMessageFileRegistered(int useLoggerQueue) {
     SetLastError(ERROR_SUCCESS);
     usedLen = GetModuleFileName(NULL, bufferPath, _MAX_PATH);
     if (usedLen == 0) {
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to obtain the full path to the Wrapper. %s"), getLastErrorText());
-        return FALSE;
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, 
+            TEXT("Unable to obtain the full path to the Wrapper. %s"), getLastErrorText());
     } else if ((usedLen == _MAX_PATH) || (getLastError() == ERROR_INSUFFICIENT_BUFFER)) {
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to obtain the full path to the Wrapper. %s"), TEXT("Path to Wrapper binary too long."));
-        return FALSE;
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, 
+            TEXT("Unable to obtain the full path to the Wrapper. Path to Wrapper binary too long."));
     } else {
         _sntprintf( regPath, 1024, TEXT("SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Application\\%s"), loginfoSourceName );
         
         /* check that the registry key exists. */
-        if((syslogRegistrationLastError = RegOpenKeyEx( HKEY_LOCAL_MACHINE, regPath, 0, KEY_READ, (PHKEY) &hKey )) == ERROR_SUCCESS ) {
+        if ((error = RegOpenKeyEx( HKEY_LOCAL_MACHINE, regPath, 0, KEY_READ, (PHKEY) &hKey )) == ERROR_SUCCESS ) {
             /* check that the path to the wrapper is correct. */
-            if((syslogRegistrationLastError = RegQueryValueEx( hKey, TEXT("EventMessageFile"), NULL, NULL, (LPBYTE) bufferKVal, &cbData)) == ERROR_SUCCESS ) {
+            if ((error = RegQueryValueEx( hKey, TEXT("EventMessageFile"), NULL, NULL, (LPBYTE) bufferKVal, &cbData)) == ERROR_SUCCESS ) {
                 if (strcmpIgnoreCase(bufferPath, bufferKVal) == 0) {
                     RegCloseKey( hKey );
-                    syslogRegistrationChecked = TRUE;
                     eventLogSourceInstalled = TRUE;
-                    return TRUE;
+                } else {
+                    log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
+                        TEXT("The path registered for the Event Log (%s) did not match the location of the Wrapper binary (%s)."), bufferKVal, bufferPath);
                 }
+            } else {
+                log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
+                    TEXT("The path registered for the Event Log could not be read (0x%x)."), error);
             }
             RegCloseKey( hKey );
+        } else if (error != ERROR_FILE_NOT_FOUND) {
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
+                TEXT("The Event Log source could not be found (0x%x)."), error);
         }
     }
     
-    /* not registered or failed to register correctly */
-    syslogRegistrationChecked = TRUE;
-    eventLogSourceInstalled = FALSE;
-    return FALSE;
+    checked = TRUE;
+    
+    return eventLogSourceInstalled;
 }
 #endif
 
@@ -2689,15 +2925,17 @@ int syslogMessageFileRegistered(int useLoggerQueue) {
  *  CASE 1: If we need elevated privileges, it should be done through the setup process (see --setup argument).
  *  CASE 2: On older versions of windows where running elevated was not needed, registerSyslogMessageFile() can called when the wrapper runs.
  */
-int registerSyslogMessageFile( int forceInstall ) {
+int registerSyslogMessageFile(int forceInstall, int useLoggerQueue) {
 #ifdef WIN32
     TCHAR buffer[_MAX_PATH];
     DWORD usedLen;
     TCHAR regPath[1024];
+    TCHAR regValueName[32];
     HKEY hKey;
     DWORD categoryCount, typesSupported;
+    DWORD error;
     
-    if (!forceInstall && syslogMessageFileRegistered(FALSE)) {
+    if (!forceInstall && syslogMessageFileRegistered(useLoggerQueue)) {
         return 0;
     }
 
@@ -2706,11 +2944,11 @@ int registerSyslogMessageFile( int forceInstall ) {
     SetLastError(ERROR_SUCCESS);
     usedLen = GetModuleFileName(NULL, buffer, _MAX_PATH);
     if (usedLen == 0) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to obtain the full path to the Wrapper. %s"), getLastErrorText());
-        return -1;
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, 
+            TEXT("Unable to obtain the full path to the Wrapper. %s"), getLastErrorText());
     } else if ((usedLen == _MAX_PATH) || (getLastError() == ERROR_INSUFFICIENT_BUFFER)) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to obtain the full path to the Wrapper. %s"), TEXT("Path to Wrapper binary too long."));
-        return -1;
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, 
+            TEXT("Unable to obtain the full path to the Wrapper. Path to Wrapper binary too long."));
     } else {
         _sntprintf( regPath, 1024, TEXT("SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Application\\%s"), loginfoSourceName );
 
@@ -2718,40 +2956,47 @@ int registerSyslogMessageFile( int forceInstall ) {
             RegCloseKey( hKey );
 
             if( RegOpenKeyEx( HKEY_LOCAL_MACHINE, regPath, 0, KEY_WRITE, (PHKEY) &hKey ) == ERROR_SUCCESS ) {
+                
                 /* Set EventMessageFile */
-                if( RegSetValueEx( hKey, TEXT("EventMessageFile"), (DWORD) 0, (DWORD) REG_SZ, (LPBYTE) buffer, (DWORD)(sizeof(TCHAR) * (_tcslen(buffer) + 1))) != ERROR_SUCCESS ) {
-                    RegCloseKey( hKey );
-                    return -1;
+                _tcsncpy(regValueName, TEXT("EventMessageFile"), 32);
+                if ((error = RegSetValueEx(hKey, regValueName, 0, REG_SZ, (LPBYTE) buffer, (DWORD)(sizeof(TCHAR) * (_tcslen(buffer) + 1)))) == ERROR_SUCCESS) {
+                    
+                    /* Set CategoryMessageFile */
+                    _tcsncpy(regValueName, TEXT("CategoryMessageFile"), 32);
+                    if ((error = RegSetValueEx(hKey, regValueName, 0, REG_SZ, (LPBYTE) buffer, (DWORD)(sizeof(TCHAR) * (_tcslen(buffer) + 1)))) == ERROR_SUCCESS) {
+                        
+                        /* Set CategoryCount */
+                        _tcsncpy(regValueName, TEXT("CategoryCount"), 32);
+                        categoryCount = 12;
+                        if ((error = RegSetValueEx(hKey, regValueName, 0, REG_SZ, (LPBYTE) &categoryCount, sizeof(DWORD))) == ERROR_SUCCESS) {
+                            
+                            /* Set TypesSupported */
+                            _tcsncpy(regValueName, TEXT("TypesSupported"), 32);
+                            typesSupported = 7;
+                            if ((error = RegSetValueEx(hKey, regValueName, 0, REG_SZ, (LPBYTE) &typesSupported, sizeof(DWORD))) == ERROR_SUCCESS) {
+                                eventLogSourceInstalled = TRUE;
+                            }
+                        }
+                    }
                 }
-
-                /* Set CategoryMessageFile */
-                if( RegSetValueEx( hKey, TEXT("CategoryMessageFile"), (DWORD) 0, (DWORD) REG_SZ, (LPBYTE) buffer, (DWORD)(sizeof(TCHAR) * (_tcslen(buffer) + 1))) != ERROR_SUCCESS ) {
-                    RegCloseKey( hKey );
-                    return -1;
-                }
-
-                /* Set CategoryCount */
-                categoryCount = 12;
-                if( RegSetValueEx( hKey, TEXT("CategoryCount"), (DWORD) 0, (DWORD) REG_DWORD, (LPBYTE) &categoryCount, sizeof(DWORD) ) != ERROR_SUCCESS ) {
-                    RegCloseKey( hKey );
-                    return -1;
-                }
-
-                /* Set TypesSupported */
-                typesSupported = 7;
-                if( RegSetValueEx( hKey, TEXT("TypesSupported"), (DWORD) 0, (DWORD) REG_DWORD, (LPBYTE) &typesSupported, sizeof(DWORD) ) != ERROR_SUCCESS ) {
-                    RegCloseKey( hKey );
-                    return -1;
-                }
-
+                
                 RegCloseKey( hKey );
-                eventLogSourceInstalled = TRUE;
-                return 0;
+                
+                if (error != ERROR_SUCCESS) {
+                    log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
+                        TEXT("Failed to set '%s' when registering to the Event Log (0x%x)."), regValueName, error);
+                }
             }
         }
     }
 
-    return -1; /* Failure */
+    if (!eventLogSourceInstalled) {
+        /* not registered or failed to register correctly */
+        disableSysLog(useLoggerQueue);
+        return -1;
+    }
+
+    return 0;
 #else
     return 0;
 #endif
@@ -2760,8 +3005,9 @@ int registerSyslogMessageFile( int forceInstall ) {
 /**
  * Unregister from the Log Event System
  */
-int unregisterSyslogMessageFile( ) {
+int unregisterSyslogMessageFile(int useLoggerQueue) {
 #ifdef WIN32
+    DWORD error;
     /* If we deregister this application, then the event viewer will not work when the program is not running. */
     /* Don't want to clutter up the Registry, but is there another way?  */
     /* From 3.5.28 we want to allow the user to never register. */
@@ -2770,8 +3016,10 @@ int unregisterSyslogMessageFile( ) {
     /* Get absolute path to service manager */
     _sntprintf( regPath, 1024, TEXT("SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Application\\%s"), loginfoSourceName );
 
-    if( RegDeleteKey( HKEY_LOCAL_MACHINE, regPath ) == ERROR_SUCCESS ) {
+    error = RegDeleteKey(HKEY_LOCAL_MACHINE, regPath);
+    if((error == ERROR_SUCCESS) || (error == ERROR_FILE_NOT_FOUND)) {
         eventLogSourceInstalled = FALSE;
+        disableSysLog(useLoggerQueue);
         return 0;
     }
 
@@ -2789,18 +3037,6 @@ void sendEventlogMessage( int source_id, int level, const TCHAR *szBuff ) {
     HANDLE handle;
     WORD   eventID, categoryID;
     int    result;
-
-    if (!syslogMessageFileRegistered(TRUE)) {
-        if (warnSyslogUnregistered) {  /* Warn only one time - else infinite loop */
-            warnSyslogUnregistered = FALSE;
-            if (syslogRegistrationLastError) {
-                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to write in event logs because the application is not\n  registered (%s).\n  Run the wrapper with the '--setup' option to register."), getErrorText(syslogRegistrationLastError, NULL));
-            } else {
-                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to write in event logs because the application is not\n  registered. Run the wrapper with the '--setup' option to register."));
-            }
-        }
-        return;
-    }
     
     strings = malloc(sizeof(TCHAR *) * 3);
     if (!strings) {
@@ -3059,7 +3295,7 @@ int writeToConsole(HANDLE hdl, TCHAR *lpszFmt, ...) {
  #endif
         if (logBufferGrowth) {
             /* This is queued as we can't use direct logging here. */
-            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Console Buffer Size increased from to %d characters."), vWriteToConsoleBufferSize);
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Console Buffer Size increased to %d characters."), vWriteToConsoleBufferSize);
         }
     }
  #ifdef DEBUG_CONSOLE_OUTPUT
@@ -3829,7 +4065,6 @@ void maintainLogger() {
          *        carefully and assume that data could possibly be corrupted. */
         localWriteIndex = queueWriteIndex[threadId]; /* Snapshot the value to maintain a constant reference. */
         if ( queueReadIndex[threadId] != localWriteIndex ) {
-            logFileChanged = FALSE;
             logFileCopy = NULL;
 
             /* Lock the logging mutex. */
@@ -3852,6 +4087,13 @@ void maintainLogger() {
 
                 logFileChanged = log_printf_message(source_id, level, threadId, TRUE, buffer, TRUE);
                 if (logFileChanged) {
+                    if (logFileCopy) {
+                        /* This can happen if there are multiple changes while printing the queued messages
+                         *  (for example if the files are rolled with a very low size limit).
+                         *  To keep it simple, we will reuse logFileCopy and report only the last change. */
+                        free(logFileCopy);
+                    }
+                    /* We need to make a copy of currentLogFileName because we will call logFileChangedCallback() outside of the semaphore. */
                     logFileCopy = malloc(sizeof(TCHAR) * (_tcslen(currentLogFileName) + 1));
                     if (!logFileCopy) {
                         _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("ML1"));
@@ -3873,14 +4115,14 @@ void maintainLogger() {
 
             /* Release the lock we have on the logging mutex so that other threads can get in. */
             if (releaseLoggingMutex()) {
-                if (logFileChanged && logFileCopy) {
+                if (logFileCopy) {
                     free(logFileCopy);
                 }
                 return;
             }
 
-            /* Now that we are no longer in the semaphore, register the change of the logfile. */
-            if (logFileChanged && logFileCopy) {
+            /* Register the change of the logfile. This can be a long operation so do it when we are no longer in the semaphore. */
+            if (logFileCopy) {
                 logFileChangedCallback(logFileCopy);
                 free(logFileCopy);
             }

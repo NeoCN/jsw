@@ -98,7 +98,6 @@ extern TCHAR* _tgetcwd(TCHAR *buf, size_t size);
 #define _tmkdir       _wmkdir
 #define _tmktemp      _wmktemp
 extern int _topen(const TCHAR *path, int oflag, mode_t mode);
-#define _tpopen       _wpopen
 #define _puttch       _putwch
 #if defined(WRAPPER_USE_PUTENV)
 extern int _tputenv(const TCHAR *string);
@@ -177,7 +176,8 @@ extern int _vsntprintf(wchar_t *ws, size_t n, const wchar_t *format, va_list arg
 #define _tctime       _wctime
 #define _fgettc       fgetwc
 #define _fgetts       fgetws
-extern FILE * _tfopen(const wchar_t* file, const wchar_t* mode) ;
+extern FILE* _tfopen(const wchar_t* file, const wchar_t* mode);
+extern FILE* _tpopen(const wchar_t* command, const wchar_t* mode);
 #define _fputtc       fputwc
 #define _fputts       fputws
 #define _tfreopen     _wfreopen
@@ -304,7 +304,6 @@ typedef unsigned char _TUCHAR;
 #define _tmkdir       _mkdir
 #define _tmktemp      _mktemp
 #define _topen        open
-#define _tpopen       _popen
 #define _puttch       _putch
 /*#define _tputenv      putenv*/
 #define _tsetenv      setenv
@@ -376,6 +375,7 @@ typedef unsigned char _TUCHAR;
 #define _fgettc       fgetc
 #define _fgetts       fgets
 #define _tfopen       fopen
+#define _tpopen       popen
 #define _ftprintf     fprintf
 #define _fputtc       fputc
 #define _fputts       fputs
@@ -454,6 +454,16 @@ typedef unsigned char _TUCHAR;
 #include <sys/stat.h>
 extern int multiByteToWideChar(const char *multiByteChars, int encoding, TCHAR **outputBufferW, int localizeErrorMessage);
 #endif
+/* Define boolean constants. */
+#ifndef TRUE
+ #define TRUE -1
+#endif
+
+#ifndef FALSE
+ #define FALSE 0
+#endif
+
+extern TCHAR* toLower(TCHAR* value);
 
 #ifdef _LIBICONV_VERSION
  #ifdef AIX /* the AIX version of iconv.h doesn't have _LIBICONV_VERSION (need to check the other platforms) */
@@ -487,6 +497,7 @@ extern int loadIconvLibrary();
 #else
 #define strIgnoreCaseCmp strcasecmp
 #endif
+#define strcmpIgnoreCase(str1, str2) _tcsicmp(str1, str2)
 
 /**
  * Function to get the system encoding name/number for the encoding

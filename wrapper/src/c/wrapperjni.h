@@ -55,8 +55,6 @@
 #define STDERR_FILENO 2
 #endif
 
-#define strcmpIgnoreCase(str1, str2) _tcsicmp(str1, str2)
-
 
 /** Flag to keep track of whether StdOut has been redirected. */
 extern int redirectedStdOut;

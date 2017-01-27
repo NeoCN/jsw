@@ -319,7 +319,7 @@ int initInvocationMutex() {
         mutexName = malloc(sizeof(TCHAR) * (30 + _tcslen(wrapperData->serviceName) + 1));
         if (!mutexName) {
             outOfMemory(TEXT("IIM"), 1);
-            wrapperData->exitCode = 1;
+            wrapperData->exitCode = wrapperData->errorExitCode;
             return 1;
         }
         _sntprintf(mutexName, 30 + _tcslen(wrapperData->serviceName) + 1, TEXT("Global\\Java Service Wrapper - %s"), wrapperData->serviceName);
@@ -338,13 +338,13 @@ int initInvocationMutex() {
                         TEXT("ERROR: Another instance of the %s application is already running on a different user account."),
                         wrapperData->serviceName);
                 }
-                wrapperData->exitCode = 1;
+                wrapperData->exitCode = wrapperData->errorExitCode;
                 return 1;
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                     TEXT("ERROR: Unable to create the single invocation mutex. %s"),
                     getLastErrorText());
-                wrapperData->exitCode = 1;
+                wrapperData->exitCode = wrapperData->errorExitCode;
                 return 1;
             }
         } else {
@@ -355,7 +355,7 @@ int initInvocationMutex() {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 TEXT("ERROR: Another instance of the %s application is already running."),
                 wrapperData->serviceName);
-            wrapperData->exitCode = 1;
+            wrapperData->exitCode = wrapperData->errorExitCode;
             return 1;
         }
     }
@@ -546,7 +546,7 @@ int wrapperConsoleHandler(int key) {
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
             TEXT("<-- Wrapper Stopping due to error in console handler."));
-        appExit(1);
+        appExit(wrapperData->errorExitCode);
     }
 
     return TRUE; /* We handled the event. */
@@ -955,7 +955,7 @@ DWORD WINAPI startupRunner(LPVOID parameter) {
         /* This call is not queued to make sure it makes it to the log prior to a shutdown. */
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Fatal error in the %s thread."), TEXT("Startup"));
         startupThreadStopped = TRUE; /* Before appExit() */
-        appExit(1);
+        appExit(wrapperData->errorExitCode);
         return 1; /* For the compiler, we will never get here. */
     }
 
@@ -1013,7 +1013,7 @@ int initializeStartup() {
 #endif
         if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
             (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
-            appExit(1);
+            appExit(wrapperData->errorExitCode);
         }
     } else {
         if (wrapperData->isDebugging) {
@@ -1087,7 +1087,7 @@ DWORD WINAPI javaIORunner(LPVOID parameter) {
         /* This call is not queued to make sure it makes it to the log prior to a shutdown. */
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Fatal error in the %s thread."), TEXT("JavaIO"));
         javaIOThreadStopped = TRUE; /* Before appExit() */
-        appExit(1);
+        appExit(wrapperData->errorExitCode);
         return 1; /* For the compiler, we will never get here. */
     }
 
@@ -1201,15 +1201,15 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
                 first = FALSE;
             } else {
                 if (offsetDiff > wrapperData->timerSlowThreshold) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT(
+                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT(
                         "The timer fell behind the system clock by %dms."), (int)(offsetDiff * WRAPPER_TICK_MS));
                 } else if (offsetDiff < -1 * wrapperData->timerFastThreshold) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT(
+                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT(
                         "The system clock fell behind the timer by %dms."), (int)(-1 * offsetDiff * WRAPPER_TICK_MS));
                 }
 
                 if (wrapperData->isTickOutputEnabled) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT(
+                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT(
                         "    Timer: ticks=%08x, system ticks=%08x, offset=%08x, offsetDiff=%08x"),
                         nowTicks, sysTicks, tickOffset, offsetDiff);
                 }
@@ -1222,7 +1222,7 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
         /* This call is not queued to make sure it makes it to the log prior to a shutdown. */
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Fatal error in the Timer thread."));
         timerThreadStopped = TRUE; /* Before appExit() */
-        appExit(1);
+        appExit(wrapperData->errorExitCode);
         return 1; /* For the compiler, we will never get here. */
     }
 
@@ -1271,6 +1271,7 @@ void disposeTimer() {
             wrapperSleep(100);
         }
     }
+    CloseHandle(timerThreadHandle);
 }
 
 int initializeWinSock() {
@@ -1808,7 +1809,7 @@ int wrapperGetProcessStatus(TICKS nowTicks, int sigChild) {
         if (!GetExitCodeProcess(wrapperData->javaProcess, &exitCode)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 TEXT("Critical error: unable to obtain the exit code of the JVM process: %s"), getLastErrorText());
-            appExit(1);
+            appExit(wrapperData->errorExitCode);
         }
 
         if (exitCode == STILL_ACTIVE) {
@@ -1824,7 +1825,7 @@ int wrapperGetProcessStatus(TICKS nowTicks, int sigChild) {
                 TEXT("The JVM process terminated due to an uncaught exception: %s (0x%08x)"), exName, exitCode);
 
             /* Reset the exit code as the exeption value will confuse users. */
-            exitCode = 1;
+            exitCode = wrapperData->errorExitCode;
         }
 
         wrapperJVMProcessExited(nowTicks, exitCode);
@@ -1837,7 +1838,7 @@ int wrapperGetProcessStatus(TICKS nowTicks, int sigChild) {
     default:
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
             TEXT("Critical error: wait for JVM process failed: %s"), getLastErrorText());
-        appExit(1);
+        appExit(wrapperData->errorExitCode);
         break;
     }
 
@@ -2819,7 +2820,7 @@ void wrapperMaintainControlCodes() {
             /* Disable the thread dump on exit feature if it is set because it
              *  should not be displayed when the user requested the immediate exit. */
             wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
-            wrapperKillProcess();
+            wrapperKillProcess(FALSE);
         } else {
             /* Always force the shutdown as this is an external event. */
             wrapperStopProcess(0, TRUE);
@@ -3066,7 +3067,7 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
         log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
             TEXT("<-- Wrapper Stopping due to error in service control handler."));
-        appExit(1);
+        appExit(wrapperData->errorExitCode);
     }
 
     return result;
@@ -3151,7 +3152,7 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
                     (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                      TEXT("ERROR: Could not write pid file %s: %s"),
                      wrapperData->pidFilename, getLastErrorText());
-                appExit(1);
+                appExit(wrapperData->errorExitCode);
                 return; /* For clarity. */
             }
         }
@@ -3162,7 +3163,7 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
                     (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                      TEXT("ERROR: Could not write anchor file %s: %s"),
                      wrapperData->anchorFilename, getLastErrorText());
-                appExit(1);
+                appExit(wrapperData->errorExitCode);
                 return; /* For clarity. */
             }
         }
@@ -3200,7 +3201,7 @@ finally:
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
             TEXT("<-- Wrapper Stopping due to error in service main."));
-        appExit(1);
+        appExit(wrapperData->errorExitCode);
     }
 }
 
@@ -3959,13 +3960,13 @@ int wrapperSetup(int silent) {
         if (!silent) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Registering to the Event Log system..."));
         }
-        result = registerSyslogMessageFile(TRUE);
+        result = registerSyslogMessageFile(TRUE, FALSE);
     } else if (!silent) {
         /* it can be useful to deactivate the registration from the configuration file, especially if the setup include more tasks in the future. */
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Do not register to the Event Log because the property wrapper.syslog.ident.enable is set to FALSE."));
     }
 
-    /* we can add here more actions to be processed */
+    /* more setup actions can be added here. */
     
     if (result == 0) {
         if (!silent) {
@@ -3988,14 +3989,17 @@ int wrapperTeardown(int silent) {
     /* always make sure to clean the registry when calling teardown. */
     if (syslogMessageFileRegistered(FALSE)) {
         if (!silent) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Unregistering to the Event Log system..."));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Unregistering from the Event Log system..."));
         }
-        result = unregisterSyslogMessageFile(TRUE);
+        
+        /* set the syslog level to NONE to avoid a warning in disableSysLog(). */
+        setSyslogLevelInt(LEVEL_NONE);
+        result = unregisterSyslogMessageFile(FALSE);
     } else if (!silent) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("%s was not registered to the Event Log system."), getSyslogEventSourceName());
     }
 
-    /* we can add here more actions to be processed */
+    /* more teardown actions can be added here. */
     
     if (result == 0) {
         if (!silent) {
@@ -6574,7 +6578,7 @@ BOOL verifyEmbeddedSignature() {
             if (dwLastError == TRUST_E_BAD_DIGEST  || dwLastError == TRUST_E_CERT_SIGNATURE) {
                 if (isSHA2Supported()) {
                     /* Stop the Wrapper. */
-                    wrapperStopProcess(1, TRUE);
+                    wrapperStopProcess(wrapperData->errorExitCode, TRUE);
                     wrapperData->wState = WRAPPER_WSTATE_STOPPING;
                 } else {
                     /* Print the OS version for debugging and continue. */
@@ -6606,7 +6610,6 @@ void _tmain(int argc, TCHAR **argv) {
 #ifdef _DEBUG
     int i;
 #endif
-
     /* The StartServiceCtrlDispatcher requires this table to specify
      * the ServiceMain function to run in the calling process. The first
      * member in this example is actually ignored, since we will install
@@ -6614,7 +6617,7 @@ void _tmain(int argc, TCHAR **argv) {
      * members of the last entry are necessary to indicate the end of
      * the table; */
     SERVICE_TABLE_ENTRY serviceTable[2];
-    
+
     if (buildSystemPath()) {
         appExit(1);
         return; /* For clarity. */
@@ -6668,13 +6671,6 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         }
         
-        if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("su")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-setup"))) {
-            /* Wrapper will be run in setup mode. */
-            /* No need to warn about the Syslog to be unregistered because we will do it right after. */
-            /* We should set the flag as soon as possible because any log message before we effectively register could cause a warning. */
-            setWarnSyslogUnregistered(FALSE);
-        }
-        
         wrapperLoadHostName();
 
         /* At this point, we have a command, confFile, and possibly additional arguments. */
@@ -6726,7 +6722,8 @@ void _tmain(int argc, TCHAR **argv) {
                  *  it did not exist.  Show the usage. */
                 wrapperUsage(argv[0]);
             }
-            appExit(1);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  The Wrapper will stop."));
+            appExit(wrapperData->errorExitCode);
             return; /* For clarity. */
         }
 
@@ -6746,7 +6743,7 @@ void _tmain(int argc, TCHAR **argv) {
             } else {
                 /* are we launched secondary? */
                 if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
-                    appExit(1);
+                    appExit(wrapperData->errorExitCode);
                     return;
                 }
                 appExit(wrapperSetup(FALSE));
@@ -6764,7 +6761,7 @@ void _tmain(int argc, TCHAR **argv) {
             } else {
                 /* are we launched secondary? */
                 if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
-                    appExit(1);
+                    appExit(wrapperData->errorExitCode);
                     return;
                 }
                 appExit(wrapperTeardown(FALSE));
@@ -6783,7 +6780,7 @@ void _tmain(int argc, TCHAR **argv) {
             } else {
                 /* are we launched secondary? */
                 if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
-                    appExit(1);
+                    appExit(wrapperData->errorExitCode);
                     return;
                 }
                 wrapperSetup(TRUE);
@@ -6802,7 +6799,7 @@ void _tmain(int argc, TCHAR **argv) {
             } else {
                 /* are we launched secondary? */
                 if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
-                    appExit(1);
+                    appExit(wrapperData->errorExitCode);
                     return;
                 }
                 wrapperSetup(TRUE);
@@ -6824,7 +6821,7 @@ void _tmain(int argc, TCHAR **argv) {
             } else {
                 /* are we launched secondary? */
                 if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
-                    appExit(1);
+                    appExit(wrapperData->errorExitCode);
                     return;
                 }
                 /* don't call teardown here because it may be confusing if the user still wants to use the Wrapper as a console. */
@@ -6843,7 +6840,7 @@ void _tmain(int argc, TCHAR **argv) {
             } else {
                 /* are we launched secondary? */
                 if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
-                    appExit(1);
+                    appExit(wrapperData->errorExitCode);
                     return;
                 }
                 appExit(wrapperStartService());
@@ -6860,7 +6857,7 @@ void _tmain(int argc, TCHAR **argv) {
             } else {
                 /* are we launched secondary? */
                 if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
-                    appExit(1);
+                    appExit(wrapperData->errorExitCode);
                     return;
                 }
                 appExit(wrapperPauseService());
@@ -6877,7 +6874,7 @@ void _tmain(int argc, TCHAR **argv) {
             } else {
                 /* are we launched secondary? */
                 if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
-                    appExit(1);
+                    appExit(wrapperData->errorExitCode);
                     return;
                 }
                 appExit(wrapperResumeService());
@@ -6894,7 +6891,7 @@ void _tmain(int argc, TCHAR **argv) {
             } else {
                 /* are we launched secondary? */
                 if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
-                    appExit(1);
+                    appExit(wrapperData->errorExitCode);
                     return;
                 }
                 appExit(wrapperStopService(TRUE));
@@ -6911,7 +6908,7 @@ void _tmain(int argc, TCHAR **argv) {
             } else {
                 /* are we launched secondary? */
                 if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
-                    appExit(1);
+                    appExit(wrapperData->errorExitCode);
                     return;
                 }
                 appExit(wrapperSendServiceControlCode(argv, wrapperData->argCommandArg));
@@ -6928,7 +6925,7 @@ void _tmain(int argc, TCHAR **argv) {
             } else {
                 /* are we launched secondary? */
                 if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
-                    appExit(1);
+                    appExit(wrapperData->errorExitCode);
                     return;
                 }
                 appExit(wrapperRequestThreadDump(argv));
@@ -6945,7 +6942,7 @@ void _tmain(int argc, TCHAR **argv) {
             } else {
                 /* are we launched secondary? */
                 if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
-                    appExit(1);
+                    appExit(wrapperData->errorExitCode);
                     return;
                 }
                 appExit(wrapperServiceStatus(TRUE));
@@ -6962,7 +6959,7 @@ void _tmain(int argc, TCHAR **argv) {
             } else {
                 /* are we launched secondary? */
                 if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
-                    appExit(1);
+                    appExit(wrapperData->errorExitCode);
                     return;
                 }
                 appExit(wrapperServiceStatus(FALSE));
@@ -6992,7 +6989,7 @@ void _tmain(int argc, TCHAR **argv) {
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                          TEXT("ERROR: Could not write pid file %s: %s"),
                          wrapperData->pidFilename, getLastErrorText());
-                    appExit(1);
+                    appExit(wrapperData->errorExitCode);
                     return; /* For clarity. */
                 }
             }
@@ -7004,7 +7001,7 @@ void _tmain(int argc, TCHAR **argv) {
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                          TEXT("ERROR: Could not write anchor file %s: %s"),
                          wrapperData->anchorFilename, getLastErrorText());
-                    appExit(1);
+                    appExit(wrapperData->errorExitCode);
                     return; /* For clarity. */
                 }
             }
@@ -7015,7 +7012,7 @@ void _tmain(int argc, TCHAR **argv) {
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                          TEXT("ERROR: Could not write lock file %s: %s"),
                          wrapperData->lockFilename, getLastErrorText());
-                    appExit(1);
+                    appExit(wrapperData->errorExitCode);
                     return; /* For clarity. */
                 }
             }
@@ -7052,7 +7049,7 @@ void _tmain(int argc, TCHAR **argv) {
                 _tprintf(TEXT("For help, type\n"));
                 _tprintf(TEXT("%s -?\n"), argv[0]);
                 _tprintf(TEXT("\n"));
-                appExit(1);
+                appExit(wrapperData->errorExitCode);
                 return; /* For clarity. */
             }
 
@@ -7061,18 +7058,18 @@ void _tmain(int argc, TCHAR **argv) {
              * but the process should exit before the sleep completes. */
             wrapperSleep(10000);
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Timed out waiting for wrapperServiceMain"));
-            appExit(1);
+            appExit(wrapperData->errorExitCode);
             return; /* For clarity. */
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT(""));
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unrecognized option: -%s"), wrapperData->argCommand);
             wrapperUsage(argv[0]);
-            appExit(1);
+            appExit(wrapperData->errorExitCode);
             return; /* For clarity. */
         }
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("<-- Wrapper Stopping due to error"));
-        appExit(1);
+        appExit(wrapperData->errorExitCode);
         return; /* For clarity. */
     }
 }

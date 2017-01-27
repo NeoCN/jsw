@@ -20,6 +20,10 @@
 #else
  #include <glob.h>
  #include <string.h>
+ #include <limits.h>
+ #if defined(IRIX)
+  #define PATH_MAX FILENAME_MAX
+ #endif
 #endif
 
 #ifdef WIN32
@@ -588,6 +592,78 @@ void loggerFileFreeFiles(TCHAR** files) {
         i++;
     }
     free(files);
+}
+
+/**
+ * Given a path, resolve a real absolute path which has resolved all relative and symbolic links.
+ *
+ * The returned string must be freed by the caller.
+ *
+ * @param path The source path.
+ * @param pathDesc A description of the path used for error messages.
+ * @param errorLevel Level to log errors at.
+ *
+ * @return The absolute path, or NULL if there were any problems.
+ */
+TCHAR *tToolsGetRealPath(const TCHAR *path, const TCHAR *pathDesc, int errorLevel, int useQueue) {
+    TCHAR *realPath;
+#ifdef WIN32
+    DWORD len;
+#else
+    size_t len;
+    TCHAR *tempPath;
+#endif
+    
+#ifdef WIN32
+    len = GetFullPathName(path, 0, NULL, NULL);
+    if (!len) {
+        if (errorLevel > LEVEL_NONE) {
+            log_printf_queue(useQueue, WRAPPER_SOURCE_WRAPPER, errorLevel, TEXT("Unable to resolve the %s %s: %s"), pathDesc, path, getLastErrorText());
+        }
+        return NULL;
+    }
+    realPath = malloc(sizeof(TCHAR) * len);
+    if (!realPath) {
+        outOfMemory(TEXT("TTGRP"), 1);
+        return NULL;
+    }
+    if (!GetFullPathName(path, len, realPath, NULL)) {
+        if (errorLevel > LEVEL_NONE) {
+            log_printf_queue(useQueue, WRAPPER_SOURCE_WRAPPER, errorLevel, TEXT("Unable to resolve the %s %s: %s"), pathDesc, path, getLastErrorText());
+        }
+        free(realPath);
+        return NULL;
+    }
+#else
+    /* The solaris implementation of realpath will return a relative path if a relative
+     *  path is provided.  We always need an absolute path here.  So build up one and
+     *  then use realpath to remove any .. or other relative references. */
+    tempPath = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
+    if (!tempPath) {
+        outOfMemory(TEXT("TTGRP"), 2);
+        return NULL;
+    }
+    if (_trealpathN(path, tempPath, PATH_MAX + 1) == NULL) {
+        if (errorLevel > LEVEL_NONE) {
+            log_printf_queue(useQueue, WRAPPER_SOURCE_WRAPPER, errorLevel, TEXT("Unable to resolve the %s %s: %s"), pathDesc, path, getLastErrorText());
+        }
+        free(tempPath);
+        return NULL;
+    }
+    
+    /* Now that we know how big the resulting string is, put it into a buffer of the correct size to avoid waste. */
+    len = _tcslen(tempPath) + 1;
+    realPath = malloc(sizeof(TCHAR) * len);
+    if (!realPath) {
+        outOfMemory(TEXT("TTGRP"), 3);
+        free(tempPath);
+        return NULL;
+    }
+    _tcsncpy(realPath, tempPath, len);
+    free(tempPath);
+#endif
+    
+    return realPath;
 }
 
 #ifdef LOGGER_FILE_DEBUG
