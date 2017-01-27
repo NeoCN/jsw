@@ -1,6 +1,110 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 3.5.31
+* Fix script file to resolve the architecture name correctly on Z/Linux.
+* Change the default behavior of the script file to automatically detect the 
+  service management tool on Linux and AIX. See 'SERVICE_MANAGEMENT_TOOL' in
+  the script file.
+* Add new properties wrapper.ulimit.nofile.{soft|hard} to limit the use of open
+  files. It is similar to running the command "ulimit -n X" in a terminal.
+* Fix a bug introduced in 3.5.30 where the log file was opened for outputs with
+  a log level lower than the value specified by wrapper.logfile.loglevel. This
+  could cause a performance issue if the wrapper.logfile.close.timeout property
+  was set to a low value as it would cause to reopen the file regularly.
+* Fix a bug where messages generated shortly after the Wrapper starts could not
+  be redirected to the configured log file. This was happening when using a
+  custom working directory and when the path to the log file was set relative
+  to it.
+* Fix issues when processing queued log messages which could result in minor
+  memory leaks and dysfunction in the way log file change events are fired.
+* Fix a problem where the log rolling by date stopped working if at some point
+  the Wrapper could not access the configured log file and switched to the
+  default log file. From now on, the rolling will continue as soon as the
+  configured log file becomes available. As for the default log file, it is
+  always set up to roll with another single file, each file having a size limit
+  of 5Mb.
+* Fix misleading error messages when the Wrapper fails to write in the log file
+  or fails to terminate the JVM process. The system error codes and their
+  descriptions were incorrect.
+* Several improvements when the Wrapper switches to a different log file.
+  When the log file was not accessible, if its path was changed and the
+  configuration reloaded, the Wrapper failed to resume into the new log file.
+  Also improved log notifications whenever the log file changes.
+* Improve how the Wrapper checks if there is a source for the Windows Event
+  Log. Before, this was done on the first message being logged. Now, this check
+  is done at launch time for better performance and readability. If there is no
+  source registered, the logging to the Event Log will be disabled, with the
+  exception of critical messages such as when the log file changed.
+* Several improvements in the log outputs such as wrong entries in the property
+  dump, double outputs, thread messages being inserted in the middle of
+  multi-line messages, etc.
+* Fix a bug where the Wrapper did not stop even though the action specified
+  by wrapper.event.wrapper_pause.command.on_exit.<n>=SHUTDOWN was triggered.
+* Several improvements and bug fixes related to time zones, especially when
+  parsing the IANA time zone file.
+* Add new WrapperManager.getOS() and WrapperManager.getArch() methods to make
+  it easy to access the same resolved OS and architecture used by the Wrapper.
+* Fix a buffer overflow problem happening when collecting HostIds if the number
+  of adapters on the local machine exceeded 10. Also improved the display of
+  HostIds when calling 'wrapper -h'.
+* When launching the Wrapper in console mode, the UNIX shell script will now
+  return the exit code of the Wrapper. When using the start action, the script
+  will not wait for the Wrapper to finish and will not return its exit code.
+* Add a new property, wrapper.exit_code.error, which allows the user to specify
+  the exit code to use when the Wrapper stops with an error.  This can be used
+  to distinguish the Wrapper exit codes from other codes that the Java 
+  application may return.  Note that this will only take effect after the
+  configuration has been loaded.
+* Correct the exit code of a child process launched by WrapperManager.exec()
+  on UNIX platforms when it exited due to a crash.
+* Several bug fixes and improvements when setting the language and encoding.
+  If the configuration doesn't match with any locale installed on the system,
+  the Wrapper will try using a similar locale ignoring case and modifiers.
+  See the Internationalization/Localization page for details.
+* Stop setting the LANG environment variable on Windows.
+* Fix a problem where wrapper.lang.encoding was ignored if the LC_ALL
+  environment variable was set on the terminal that launched the Wrapper. To
+  solve this issue, LC_ALL is now set by the Wrapper with the same value as
+  LANG. This only applies to UNIX platforms when wrapper.lang is set.
+* Due to changes in the way locales are set, the value of the WRAPPER_LANG
+  environment variable may be affected. This variable was and is still set with
+  the 2 first characters of the locale used by the Wrapper, but it is now
+  always lowercase. This makes it match with the suffix used in the language
+  file. On the community edition, the value is always 'en'.
+* After a ping timeout takes place, the Wrapper will no longer wait for
+  wrapper.shutdown.timeout to elapse and will immediately kill the JVM if a
+  RESTART or SHUTDOWN action was specified. A hung JVM process can't be shut
+  down cleanly, so there is no need to wait for an additional timeout.
+* Deprecate the use of the wrapper.event.<event_name>.email.attach_log
+  properties in favor of wrapper.event.<event_name>.email.maillogs. These
+  new properties make it possible to control if the logs should be sent as an
+  attachment and/or directly in the body of the Notification emails. Also note
+  that, unlike the deprecated properties, logs inclusion can now be set for
+  individual events without activating it for the "default" event type.
+* Add new actions PAUSE, RESUME and CLOSE_LOGFILE to the signal properties
+  wrapper.signal.mode.hup, wrapper.signal.mode.usr1 and
+  wrapper.signal.mode.usr2. CLOSE_LOGFILE can be used to force the Wrapper to
+  recreate a new log file after it has been moved or renamed.
+* Add the possibility to pause and resume the Wrapper from the UNIX shell
+  script. Two modes were added and can be activated with the PAUSABLE_MODE
+  variable. The first mode, which is the default, uses the SIGUSR1 and SIGUSR2
+  signals to request pause and resume. The second mode uses the command file.
+  By default the script will not allow pausing or resuming unless the PAUSABLE
+  variable is explicitly set. When this feature is activated be aware that
+  depending on the mode, wrapper.signal.mode.usr1, wrapper.signal.mode.usr2,
+  or wrapper.commandfile will be passed as command properties to the wrapper
+  and thus override the corresponding properties of the configuration file.
+* Add event handler methods to the Demo application to show how to handle the
+  service control event sent by the Wrapper when wrapper.pausable.stop_jvm is
+  set to FALSE.
+* Stop allowing the Wrapper to run when versions of the Wrapper executable,
+  native library, and jar file do not match. The Wrapper had always shown a
+  warning then attempted to continue, but this would often lead to
+  unpredictable behaviour and some features simply not working. Please be sure
+  to upgrade all Wrapper files when upgrading the Wrapper.
+* Deprecate the use of the wrapper.command.poll_interval and
+  wrapper.anchor.poll_interval properties in favor of
+  wrapper.commandfile.poll_interval and wrapper.anchorfile.poll_interval.
 
 3.5.30
 * Improve the logging messages when using the IANA timezones introduced in
@@ -729,10 +833,10 @@ Java Service Wrapper Revision History.
 * (Standard, Professional) Implement the wrapper.ntservice.generate_console
   property when using the WrapperW.exe binary so it is now possible to disable
   the creation of the hidden console.
-* Modify the way the the wrapper.ntservice.generate_console property works so
+* Modify the way the wrapper.ntservice.generate_console property works so
   it is now easier to disable the generation of the console using just this
   property.
-* Improve the message logged when the the Wrapper attempts to perform a thread
+* Improve the message logged when the Wrapper attempts to perform a thread
   dump without a valid console being available.
 * Add new wrapper.ping.alert.threshold and wrapper.ping.alert.loglevel
   properties which make it much easier to debug ping timeout issues by asking
@@ -3113,7 +3217,7 @@ Java Service Wrapper Revision History.
 * Display a warning if the exit status of a JVM process ever returns the
   STILL_ACTIVE status on Windows.  There was no known problem here, just
   noticed it while looking over the code.
-* Display a descriptive error message on Windows if the the JVM process crashes
+* Display a descriptive error message on Windows if the JVM process crashes
   due to an uncaught exception in native JVM code.
 * Add a test for invalid jvm arguments set using the wrapper.java.additional.<n>
   properties.  Invalid arguments could cause the Wrapper startup to fail in
@@ -3661,7 +3765,7 @@ Java Service Wrapper Revision History.
   the JVM process to exit on its own before being forcibly terminated.
 * When there is a configuration problem or a resource is unavailable, a JVM
   will sometimes exit abnormally very shortly after being launched.  This
-  can lead the the JVM being infinitely restarted due to a simple class
+  can lead the JVM being infinitely restarted due to a simple class
   path misconfiguration.  To work around this, the Wrapper has always had
   a hard limit of 5 restarts within a short period of time.  If the JVM
   has been running for more than a few minutes, then the count was reset.

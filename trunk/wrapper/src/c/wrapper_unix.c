@@ -251,7 +251,7 @@ void takeSignalAction(int sigNum, const TCHAR *sigName, int mode) {
                     /* Disable the thread dump on exit feature if it is set because it
                      *  should not be displayed when the user requested the immediate exit. */
                     wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
-                    wrapperKillProcess();
+                    wrapperKillProcess(FALSE);
                 }
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
@@ -285,6 +285,25 @@ void takeSignalAction(int sigNum, const TCHAR *sigName, int mode) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     TEXT("%s trapped.  Unable to forward signal to JVM because it is not running."), sigName);
             }
+            break;
+
+        case WRAPPER_SIGNAL_MODE_PAUSE:
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                TEXT("%s trapped.  Pausing the application."), sigName);
+            wrapperPauseProcess(WRAPPER_ACTION_SOURCE_CODE_SIGNAL);
+            break;
+
+        case WRAPPER_SIGNAL_MODE_RESUME:
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                TEXT("%s trapped.  Resuming the application."), sigName);
+            wrapperResumeProcess(WRAPPER_ACTION_SOURCE_CODE_SIGNAL);
+            break;
+
+        case WRAPPER_SIGNAL_MODE_CLOSE_LOGFILE:
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                TEXT("%s trapped.  Closing the log file."), sigName);
+            flushLogfile();
+            closeLogfile();
             break;
 
         default: /* WRAPPER_SIGNAL_MODE_IGNORE */
@@ -857,15 +876,15 @@ void *timerRunner(void *arg) {
             first = FALSE;
         } else {
             if (offsetDiff > wrapperData->timerSlowThreshold) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
                     TEXT("The timer fell behind the system clock by %ldms."), offsetDiff * WRAPPER_TICK_MS);
             } else if (offsetDiff < -1 * wrapperData->timerFastThreshold) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
                     TEXT("The system clock fell behind the timer by %ldms."), -1 * offsetDiff * WRAPPER_TICK_MS);
             }
 
             if (wrapperData->isTickOutputEnabled) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT(
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT(
                     "    Timer: ticks=0x%08x, system ticks=0x%08x, offset=0x%08x, offsetDiff=0x%08x"),
                     nowTicks, sysTicks, tickOffset, offsetDiff);
             }
@@ -1258,7 +1277,7 @@ void launchChildProcessPrintJavaVersion() {
         }
     } else {
         /* Fork failed. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to spwan process to output Java version: %s"), getLastErrorText());
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to spawn process to output Java version: %s"), getLastErrorText());
     }
 }
 
@@ -1362,7 +1381,7 @@ int wrapperExecute() {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                     TEXT("%sUnable to set JVM's stdout: %s"), LOG_FORK_MARKER, getLastErrorText());
                 /* This process needs to end. */
-                exit(1);
+                exit(wrapperData->errorExitCode);
                 return TRUE; /* Will not get here. */
             }
 
@@ -1371,7 +1390,7 @@ int wrapperExecute() {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                     TEXT("%sUnable to set JVM's stderr: %s"), LOG_FORK_MARKER, getLastErrorText());
                 /* This process needs to end. */
-                exit(1);
+                exit(wrapperData->errorExitCode);
                 return TRUE; /* Will not get here. */
             }
             
@@ -1433,7 +1452,7 @@ int wrapperExecute() {
             }
 
             /* This process needs to end. */
-            exit(1);
+            exit(wrapperData->errorExitCode);
             return TRUE; /* Will not get here. */
         } else {
             /* We are the parent side and need to assume that at this point the JVM is up. */
@@ -1624,7 +1643,7 @@ int wrapperGetProcessStatus(TICKS nowTicks, int sigChild) {
             /* Error requesting the status. */
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to request JVM process status: %s"), getLastErrorText());
         }
-        exitCode = 1;
+        exitCode = wrapperData->errorExitCode;
         res = WRAPPER_PROCESS_DOWN;
         wrapperJVMProcessExited(nowTicks, exitCode);
     } else {
@@ -1751,7 +1770,7 @@ void daemonize(int argc, TCHAR** argv) {
     if ((pid = fork()) < 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Could not spawn daemon process: %s"),
             getLastErrorText());
-        appExit(1, argc, argv);
+        appExit(wrapperData->errorExitCode, argc, argv);
     } else if (pid != 0) {
         /* Intermediate process is now running.  This is the original process, so exit. */
 
@@ -1769,7 +1788,7 @@ void daemonize(int argc, TCHAR** argv) {
     if (setsid() == -1) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("setsid() failed: %s"),
            getLastErrorText());
-        appExit(1, argc, argv);
+        appExit(wrapperData->errorExitCode, argc, argv);
     }
 
     signal(SIGHUP, SIG_IGN); /* don't let future opens allocate controlling terminals */
@@ -1801,7 +1820,7 @@ void daemonize(int argc, TCHAR** argv) {
     if ((pid = fork()) < 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Could not spawn daemon process: %s"),
             getLastErrorText());
-        appExit(1, argc, argv);
+        appExit(wrapperData->errorExitCode, argc, argv);
     } else if (pid != 0) {
         /* Daemon process is now running.  This is the intermediate process, so exit. */
         /* Call exit rather than appExit as we are only exiting this process. */
@@ -1860,6 +1879,8 @@ int setWorkingDir(TCHAR *app) {
 #ifndef CUNIT
 #ifdef UNICODE
 int main(int argc, char **cargv) {
+    size_t req;
+    TCHAR **argv;
 #else
 int main(int argc, char **argv) {
 #endif
@@ -1867,10 +1888,7 @@ int main(int argc, char **argv) {
     int i;
 #endif
     TCHAR *retLocale;
-#ifdef UNICODE
-    size_t req;
-    TCHAR **argv;
-    
+
 #ifdef FREEBSD
     /* In the case of FreeBSD, we need to dynamically load and initialize the iconv library to work with all versions of FreeBSD. */
     if (loadIconvLibrary()) {
@@ -1880,8 +1898,8 @@ int main(int argc, char **argv) {
     }
 #endif  
   
-    /* we should set the locale before trying to convert cargv to argv,
-     * because there might be accentued letter in cargv */
+    /* Set the default locale here so any startup error messages will have a chance of working.
+     *  This should be done before converting cargv to argv, because there might be accentued letters in cargv. */
     retLocale = _tsetlocale(LC_ALL, TEXT(""));
     if (retLocale) {
 #if defined(UNICODE)
@@ -1898,6 +1916,7 @@ int main(int argc, char **argv) {
         */
     }
     
+#ifdef UNICODE
     /* Create UNICODE versions of the argv array for internal use. */
     argv = malloc(argc * sizeof(TCHAR *));
     if (!argv) {
@@ -1926,7 +1945,6 @@ int main(int argc, char **argv) {
         mbstowcs(argv[i], cargv[i], req + 1);
         argv[i][req] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
     }
-
 #endif
 
     if (wrapperInitialize()) {
@@ -2001,7 +2019,8 @@ int main(int argc, char **argv) {
              *  it did not exist.  Show the usage. */
             wrapperUsage(argv[0]);
         }
-        appExit(1, argc, argv);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  The Wrapper will stop."));
+        appExit(wrapperData->errorExitCode, argc, argv);
         return 1; /* For compiler. */
     }
 
@@ -2041,7 +2060,7 @@ int main(int argc, char **argv) {
             if (wrapperData->workingDir && wrapperData->originalWorkingDir) {
                 if (wrapperSetWorkingDir(wrapperData->originalWorkingDir, TRUE)) {
                     /* Failed to restore the working dir.  Shutdown the Wrapper */
-                    appExit(1, argc, argv);
+                    appExit(wrapperData->errorExitCode, argc, argv);
                     return 1; /* For compiler. */
                 }
             }
@@ -2055,7 +2074,7 @@ int main(int argc, char **argv) {
                      *  it did not exist.  Show the usage. */
                     wrapperUsage(argv[0]);
                 }
-                appExit(1, argc, argv);
+                appExit(wrapperData->errorExitCode, argc, argv);
                 return 1; /* For compiler. */
             }
         }
@@ -2084,7 +2103,7 @@ int main(int argc, char **argv) {
                     free(argv);
                 }
 #endif
-                exit(1);
+                exit(wrapperData->errorExitCode);
                 return 1; /* For compiler. */
             }
         }
@@ -2096,7 +2115,7 @@ int main(int argc, char **argv) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                      TEXT("ERROR: Could not write anchor file %s: %s"),
                      wrapperData->anchorFilename, getLastErrorText());
-                appExit(1, argc, argv);
+                appExit(wrapperData->errorExitCode, argc, argv);
                 return 1; /* For compiler. */
             }
         }
@@ -2123,7 +2142,7 @@ int main(int argc, char **argv) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT(""));
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unrecognized option: -%s"), wrapperData->argCommand);
         wrapperUsage(argv[0]);
-        appExit(1, argc, argv);
+        appExit(wrapperData->errorExitCode, argc, argv);
         return 1; /* For compiler. */
     }
 }

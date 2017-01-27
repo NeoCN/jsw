@@ -47,6 +47,13 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JDialog;
+import javax.swing.BoxLayout;
+import javax.swing.border.Border;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.CompoundBorder;
 import org.tanukisoftware.wrapper.WrapperActionServer;
 import org.tanukisoftware.wrapper.WrapperListener;
 import org.tanukisoftware.wrapper.WrapperManager;
@@ -54,6 +61,8 @@ import org.tanukisoftware.wrapper.WrapperResources;
 import org.tanukisoftware.wrapper.WrapperSystemPropertyUtil;
 import org.tanukisoftware.wrapper.event.WrapperEventListener;
 import org.tanukisoftware.wrapper.event.WrapperSecondInvocationEvent;
+import org.tanukisoftware.wrapper.event.WrapperServicePauseEvent;
+import org.tanukisoftware.wrapper.event.WrapperServiceResumeEvent;
 import org.tanukisoftware.wrapper.event.WrapperEvent;
 
 /**
@@ -86,6 +95,8 @@ public class Main
     private TextField m_consoleTitle;
     private TextField m_childCommand;
     private Checkbox m_childDetached;
+    
+    private JDialog m_pauseDialog;
     
     /*---------------------------------------------------------------
      * Constructors
@@ -293,6 +304,7 @@ public class Main
             
             addWindowListener( this );
             WrapperManager.addWrapperEventListener( Main.this, WrapperEventListener.EVENT_FLAG_REMOTE_CONTROL );
+            WrapperManager.addWrapperEventListener( Main.this, WrapperEventListener.EVENT_FLAG_SERVICE );
         }
         
         private void buildCommand( Container container,
@@ -482,6 +494,16 @@ public class Main
             // bring the window to front
             bringToFront(m_frame);
         }
+        if (event instanceof WrapperServicePauseEvent )
+        {
+            // pause the demo application
+            pause();
+        }
+        if (event instanceof WrapperServiceResumeEvent )
+        {
+            // resume the demo application
+            resume();
+        }
     }
 
     /*---------------------------------------------------------------
@@ -635,6 +657,65 @@ public class Main
         return exitCode;
     }
     
+    /**
+     * Pause the demo application. 
+     */
+    private void pause() {
+        // Update the title with the "paused" state.
+        m_frame.setTitle( m_frame.getTitle() + getRes().getString( " (paused)" ) );
+        
+        // Disable all components of the frame.
+        enableComponents( m_frame, false );
+        
+        // Show a dialog centered over the frame to indicate that the application was paused and is waiting the resume event.
+        JLabel label1 = new JLabel();
+        label1.setHorizontalAlignment( javax.swing.SwingConstants.CENTER );
+        label1.setAlignmentX(Component.CENTER_ALIGNMENT);
+        label1.setText( getRes().getString( "The demo application is paused." ) );
+        
+        JLabel label2 = new JLabel();
+        label2.setHorizontalAlignment( javax.swing.SwingConstants.CENTER );
+        label2.setAlignmentX(Component.CENTER_ALIGNMENT);
+        label2.setText( getRes().getString( "Resume it to make this dialog box disappear." ) );
+      
+        Border border1 = label1.getBorder();
+        Border margin1 = new EmptyBorder( 25, 25, 0, 25 );
+        label1.setBorder( new CompoundBorder(border1, margin1) );
+      
+        Border border2 = label2.getBorder();
+        Border margin2 = new EmptyBorder( 0, 25, 30, 25 );
+        label2.setBorder( new CompoundBorder(border2, margin2) );
+        
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
+        panel.add( label1 );
+        panel.add( label2 );
+
+        m_pauseDialog = new JDialog( m_frame, m_frame.getTitle(), false );
+        m_pauseDialog.getContentPane().add( panel );
+        m_pauseDialog.setResizable( false );
+        m_pauseDialog.setDefaultCloseOperation( javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE );
+        m_pauseDialog.pack();
+        m_pauseDialog.setLocationRelativeTo( m_frame );
+        m_pauseDialog.setVisible( true );
+    }
+
+    /**
+     * Resume the application. 
+     */
+    private void resume() {
+        // Update the title to remove the "paused" state.
+        m_frame.setTitle( m_frame.getTitle().replace( getRes().getString( " (paused)" ), "" ) );
+
+        // Enable all components of the frame.
+        enableComponents( m_frame, true );
+        
+        // Close the dialog.
+        m_pauseDialog.setDefaultCloseOperation( javax.swing.WindowConstants.DISPOSE_ON_CLOSE );
+        m_pauseDialog.setVisible(false);
+        m_pauseDialog.dispatchEvent(new WindowEvent(m_pauseDialog, WindowEvent.WINDOW_CLOSING));
+    }
+    
     public void controlEvent( int event )
     {
         System.out.println( getRes().getString( "TestWrapper: controlEvent({0})",  new Integer( event ) ) );
@@ -733,6 +814,19 @@ public class Main
         catch (Exception e)
         {
             return false;
+        }
+    }
+    
+    /**
+     * Helper method to disable or enable all components of a container
+     */
+    private void enableComponents(Container container, boolean enable) {
+        Component[] components = container.getComponents();
+        for (int a = 0; a < components.length; a++) {
+            components[a].setEnabled( enable );
+            if (components[a] instanceof Container) {
+                enableComponents((Container)components[a], enable);
+            }
         }
     }
     

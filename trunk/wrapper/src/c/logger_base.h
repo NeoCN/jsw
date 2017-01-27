@@ -50,7 +50,6 @@
 #define MAX_SOURCE_LENGTH 8
 
 /* * * Function predeclaration * * */
-#define strcmpIgnoreCase(str1, str2) _tcsicmp(str1, str2)
 
 /**
  * Returns a textual error message of the last error encountered.

@@ -1208,7 +1208,7 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
                         if (wrapperSetWorkingDir(wrapperData->originalWorkingDir, TRUE)) {
                             /* Failed to restore the working dir.  Shutdown the Wrapper */
                             wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
-                            wrapperData->exitCode = 1;
+                            wrapperData->exitCode = wrapperData->errorExitCode;
                             return;
                         }
                     }
@@ -1217,18 +1217,22 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
                         /* Failed to reload the configuration.  This is bad.
                          *  The JVM is already down.  Shutdown the Wrapper. */
                         wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
-                        wrapperData->exitCode = 1;
+                        wrapperData->exitCode = wrapperData->errorExitCode;
                         return;
                     }
                     
                     /* Dump the reloaded properties */
                     dumpProperties(properties);
+                    
+#ifndef WIN32
+                    wrapperShowResourceslimits();
+#endif
 
                     /* Change the working directory if configured to do so. */
                     if (wrapperData->workingDir && wrapperSetWorkingDir(wrapperData->workingDir, TRUE)) {
                         /* Failed to set the working dir.  Shutdown the Wrapper */
                         wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
-                        wrapperData->exitCode = 1;
+                        wrapperData->exitCode = wrapperData->errorExitCode;
                         return;
                     }
                 }
@@ -1242,7 +1246,7 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                     TEXT("Please use the %s class instead." ), TEXT("com.silveregg.wrapper.WrapperSimpleApp"));
                 wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
-                wrapperData->exitCode = 1;
+                wrapperData->exitCode = wrapperData->errorExitCode;
                 return;
             } else if (_tcsstr(mainClass, TEXT("com.silveregg.wrapper.WrapperStartStopApp")) != NULL) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
@@ -1250,7 +1254,7 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                     TEXT("Please use the %s class instead." ), TEXT("com.silveregg.wrapper.WrapperStartStopApp"));
                 wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
-                wrapperData->exitCode = 1;
+                wrapperData->exitCode = wrapperData->errorExitCode;
                 return;
             }
 
@@ -1266,7 +1270,7 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
                 /* The backend is not up.  An error should have been reported.  But this means we
                  *  are unable to continue. */
                 wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
-                wrapperData->exitCode = 1;
+                wrapperData->exitCode = wrapperData->errorExitCode;
                 return;
             }
 
@@ -1274,7 +1278,7 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
             if (wrapperBuildJavaCommand()) {
                 /* Failed. Wrapper shutdown. */
                 wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
-                wrapperData->exitCode = 1;
+                wrapperData->exitCode = wrapperData->errorExitCode;
                 return;
             }
 
@@ -1406,7 +1410,7 @@ void jStateLaunching(TICKS nowTicks, int nextSleep) {
                 displayLaunchingTimeoutMessage();
 
                 /* Give up on the JVM and start trying to kill it. */
-                wrapperKillProcess();
+                wrapperKillProcess(FALSE);
 
                 /* Restart the JVM. */
                 wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_AUTOMATIC;
@@ -1439,7 +1443,7 @@ void jStateLaunched(TICKS nowTicks, int nextSleep) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to send the start command to the JVM."));
 
         /* Give up on the JVM and start trying to kill it. */
-        wrapperKillProcess();
+        wrapperKillProcess(FALSE);
 
         /* Restart the JVM. */
         wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_AUTOMATIC;
@@ -1483,7 +1487,7 @@ void jStateStarting(TICKS nowTicks, int nextSleep) {
                            TEXT("Startup failed: Timed out waiting for signal from JVM."));
 
                 /* Give up on the JVM and start trying to kill it. */
-                wrapperKillProcess();
+                wrapperKillProcess(FALSE);
 
                 /* Restart the JVM. */
                 wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_AUTOMATIC;
@@ -1547,9 +1551,9 @@ void jStateStarted(TICKS nowTicks, int nextSleep) {
                     wrapperData->pingTimedOut = TRUE;
                 }
             }
-        } else if (wrapperGetTickAgeSeconds(wrapperAddToTicks(wrapperData->lastPingTicks, wrapperData->pingInterval), nowTicks) >= 0) {
+        } else if (wrapperGetTickAgeTicks(wrapperAddToTicks(wrapperData->lastPingTicks, wrapperData->pingInterval), nowTicks) >= 0) {
             /* It is time to send another ping to the JVM */
-            if (wrapperGetTickAgeSeconds(wrapperAddToTicks(wrapperData->lastLoggedPingTicks, wrapperData->pingIntervalLogged), nowTicks) >= 0) {
+            if (wrapperGetTickAgeTicks(wrapperAddToTicks(wrapperData->lastLoggedPingTicks, wrapperData->pingIntervalLogged), nowTicks) >= 0) {
                 if (wrapperData->isLoopOutputEnabled) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Loop: Sending a ping packet."));
                 }
@@ -1683,7 +1687,7 @@ void jStateStopping(TICKS nowTicks, int nextSleep) {
                            TEXT("Shutdown failed: Timed out waiting for signal from JVM."));
 
                 /* Give up on the JVM and start trying to kill it. */
-                wrapperKillProcess();
+                wrapperKillProcess(FALSE);
             }
         } else {
             /* Keep waiting. */
@@ -1719,7 +1723,7 @@ void jStateStopped(TICKS nowTicks, int nextSleep) {
                            TEXT("Shutdown failed: Timed out waiting for the JVM to terminate."));
 
                 /* Give up on the JVM and start trying to kill it. */
-                wrapperKillProcess();
+                wrapperKillProcess(FALSE);
             }
         } else {
             /* Keep waiting. */
@@ -1814,7 +1818,7 @@ void jStateKillConfirm(TICKS nowTicks, int nextSleep) {
             }
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,TEXT("Failed to terminate the JVM."));
             wrapperSetJavaState(WRAPPER_JSTATE_DOWN_CHECK, nowTicks, -1);                   
-            wrapperStopProcess(1, TRUE);
+            wrapperStopProcess(wrapperData->errorExitCode, TRUE);
         } else {
 
         }

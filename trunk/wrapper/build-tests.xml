@@ -2530,6 +2530,192 @@ export ENV_VAR_4=d]]></replacevalue>
 ../bin/wrapper -c ../test/passthrough.conf wrapper.java.additional.1=-Dorg.tanukisoftware.wrapper.WrapperStartStopApp.passthroughMode=IGNORE -- "**** This line should not appear at all."
 ../bin/wrapper -c ../test/passthrough.conf -- "**** This line should not appear at all."</echo>
         <chmod file="${test.dir}/passthrough" perm="+x"/>
+                 
+        <!-- Ulimit Test -->
+        <delete file="${test.dir}/resourcelimit.conf"/>
+        <filter token="app.name"          value="resourcelimit"/>
+        <filter token="app.long.name"     value="resourcelimit Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/resourcelimit.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/resourcelimit.conf">
+            <replacetoken><![CDATA[wrapper.app.parameter.1=<YourMainClass>]]></replacetoken>
+            <replacevalue><![CDATA[wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.QuickComplete]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/resourcelimit.conf">
+            <replacetoken>#wrapper.license.debug=TRUE</replacetoken>
+            <replacevalue><![CDATA[#wrapper.license.debug=TRUE
+
+#********************************************************************
+# Wrapper resourcelimit properties
+#********************************************************************
+wrapper.ulimit.loglevel=INFO
+]]></replacevalue>
+        </replace>
+
+        <touch file="${test.dir}/resourcelimit"/>
+        <echo  file="${test.dir}/resourcelimit"><![CDATA[#! /bin/sh
+
+# be careful, ulimit will have a different output when running on SHELL or BASH!
+# get the current soft limit
+CURRENT_NOFILE_SOFT=`ulimit -a | grep "nofiles" | awk '{print $NF}'`
+
+# get the current hard limit
+CURRENT_NOFILE_HARD=`ulimit -aH | grep "nofiles" | awk '{print $NF}'`
+
+
+
+printHeader() {
+    echo "-----------------------------------------------------------------------------"
+    echo $1
+    echo ""
+    echo "  Current soft limit=$CURRENT_NOFILE_SOFT | Current hard limit=$CURRENT_NOFILE_HARD"
+    echo ""
+    echo "  $2"
+    echo "  $3"
+    echo "  $4"
+    echo ""
+    echo "  Expected output: $EXPECTED_OUTPUT"
+    echo "-----------------------------------------------------------------------------"
+    echo ""
+}
+
+printResult() {
+    result=`grep "$EXPECTED_OUTPUT" resourcelimit.tmp`
+    if [ "X$result" != "X" ] ; then
+        printf "\033[32m=> TEST PASSED!\033[39m\n"
+    else
+        printf "\033[31m=> TEST FAILED!\033[39m\n"
+    fi
+    rm resourcelimit.tmp
+    echo ""
+}
+
+# use 2>&1 to merge stdout and stderr (we need to flush on each message to keep the order)
+# use tee command to redirect both to a temp file and the console
+#   http://stackoverflow.com/questions/692000/how-do-i-write-stderr-to-a-file-while-using-tee-with-a-pipe
+
+# Test 1-a
+NOFILE_SOFT=`expr $CURRENT_NOFILE_HARD - 1`
+EXPECTED_OUTPUT="File descriptor limits: $NOFILE_SOFT (soft), $CURRENT_NOFILE_HARD (hard)"
+printHeader "Test 1-a" "wrapper.ulimit.nofile.soft=$NOFILE_SOFT" "#wrapper.ulimit.nofile.hard=" "wrapper.ulimit.nofile.strict=FALSE"
+../bin/wrapper -c ../test/resourcelimit.conf wrapper.console.flush=TRUE wrapper.ulimit.nofile.soft=$NOFILE_SOFT wrapper.ulimit.nofile.strict=FALSE -- console 2>&1 | tee resourcelimit.tmp
+printResult
+
+# Test 1-b
+EXPECTED_OUTPUT="File descriptor limits: $NOFILE_SOFT (soft), $CURRENT_NOFILE_HARD (hard)"
+printHeader "Test 1-b" "wrapper.ulimit.nofile.soft=$NOFILE_SOFT" "#wrapper.ulimit.nofile.hard=" "wrapper.ulimit.nofile.strict=TRUE"
+../bin/wrapper -c ../test/resourcelimit.conf wrapper.console.flush=TRUE wrapper.ulimit.nofile.soft=$NOFILE_SOFT wrapper.ulimit.nofile.strict=TRUE -- console 2>&1 | tee resourcelimit.tmp
+printResult
+
+# Test 2-a
+NOFILE_SOFT=`expr $CURRENT_NOFILE_HARD + 1`
+EXPECTED_OUTPUT="File descriptor limits: $CURRENT_NOFILE_HARD (soft), $CURRENT_NOFILE_HARD (hard)"
+printHeader "Test 2-a" "wrapper.ulimit.nofile.soft=$NOFILE_SOFT" "#wrapper.ulimit.nofile.hard=" "wrapper.ulimit.nofile.strict=FALSE"
+../bin/wrapper -c ../test/resourcelimit.conf wrapper.console.flush=TRUE wrapper.ulimit.nofile.soft=$NOFILE_SOFT wrapper.ulimit.nofile.strict=FALSE -- console 2>&1 | tee resourcelimit.tmp
+printResult
+
+# Test 2-b
+EXPECTED_OUTPUT="The Wrapper will stop"
+printHeader "Test 2-b" "wrapper.ulimit.nofile.soft=$NOFILE_SOFT" "#wrapper.ulimit.nofile.hard=" "wrapper.ulimit.nofile.strict=TRUE"
+../bin/wrapper -c ../test/resourcelimit.conf wrapper.console.flush=TRUE wrapper.ulimit.nofile.soft=$NOFILE_SOFT wrapper.ulimit.nofile.strict=TRUE -- console 2>&1 | tee resourcelimit.tmp
+printResult
+
+# Test 3-a
+NOFILE_HARD=`expr $CURRENT_NOFILE_HARD - 1`
+EXPECTED_OUTPUT="File descriptor limits: $CURRENT_NOFILE_SOFT (soft), $NOFILE_HARD (hard)"
+printHeader "Test 3-a" "#wrapper.ulimit.nofile.soft=" "wrapper.ulimit.nofile.hard=$NOFILE_HARD" "wrapper.ulimit.nofile.strict=FALSE"
+../bin/wrapper -c ../test/resourcelimit.conf wrapper.console.flush=TRUE wrapper.ulimit.nofile.hard=$NOFILE_HARD wrapper.ulimit.nofile.strict=FALSE -- console 2>&1 | tee resourcelimit.tmp
+printResult
+
+# Test 3-b
+EXPECTED_OUTPUT="File descriptor limits: $CURRENT_NOFILE_SOFT (soft), $NOFILE_HARD (hard)"
+printHeader "Test 3-b" "#wrapper.ulimit.nofile.soft=" "wrapper.ulimit.nofile.hard=$NOFILE_HARD" "wrapper.ulimit.nofile.strict=TRUE"
+../bin/wrapper -c ../test/resourcelimit.conf wrapper.console.flush=TRUE wrapper.ulimit.nofile.hard=$NOFILE_HARD wrapper.ulimit.nofile.strict=TRUE -- console 2>&1 | tee resourcelimit.tmp
+printResult
+
+# Test 4-a
+NOFILE_HARD=`expr $CURRENT_NOFILE_HARD + 1`
+EXPECTED_OUTPUT="File descriptor limits: $CURRENT_NOFILE_SOFT (soft), $CURRENT_NOFILE_HARD (hard)"
+printHeader "Test 4-a" "#wrapper.ulimit.nofile.soft=" "wrapper.ulimit.nofile.hard=$NOFILE_HARD" "wrapper.ulimit.nofile.strict=FALSE"
+../bin/wrapper -c ../test/resourcelimit.conf wrapper.console.flush=TRUE wrapper.ulimit.nofile.hard=$NOFILE_HARD wrapper.ulimit.nofile.strict=FALSE -- console 2>&1 | tee resourcelimit.tmp
+printResult
+
+# Test 4-b
+EXPECTED_OUTPUT="The Wrapper will stop"
+printHeader "Test 4-b" "#wrapper.ulimit.nofile.soft=" "wrapper.ulimit.nofile.hard=$NOFILE_HARD" "wrapper.ulimit.nofile.strict=TRUE"
+../bin/wrapper -c ../test/resourcelimit.conf wrapper.console.flush=TRUE wrapper.ulimit.nofile.hard=$NOFILE_HARD wrapper.ulimit.nofile.strict=TRUE -- console 2>&1 | tee resourcelimit.tmp
+printResult
+
+# Test 5-a
+NOFILE_HARD=`expr $CURRENT_NOFILE_SOFT - 1`
+printHeader "Test 5-a" "#wrapper.ulimit.nofile.soft=" "wrapper.ulimit.nofile.hard=$NOFILE_HARD" "wrapper.ulimit.nofile.strict=FALSE"
+EXPECTED_OUTPUT="File descriptor limits: $NOFILE_HARD (soft), $NOFILE_HARD (hard)"
+../bin/wrapper -c ../test/resourcelimit.conf wrapper.console.flush=TRUE wrapper.ulimit.nofile.hard=$NOFILE_HARD wrapper.ulimit.nofile.strict=FALSE -- console 2>&1 | tee resourcelimit.tmp
+printResult
+
+# Test 5-b
+EXPECTED_OUTPUT="The Wrapper will stop"
+printHeader "Test 5-b" "#wrapper.ulimit.nofile.soft=" "wrapper.ulimit.nofile.hard=$NOFILE_HARD" "wrapper.ulimit.nofile.strict=TRUE"
+../bin/wrapper -c ../test/resourcelimit.conf wrapper.console.flush=TRUE wrapper.ulimit.nofile.hard=$NOFILE_HARD wrapper.ulimit.nofile.strict=TRUE -- console 2>&1 | tee resourcelimit.tmp
+printResult
+
+# Test 6-a
+NOFILE_HARD=`expr $CURRENT_NOFILE_HARD - 1`
+NOFILE_SOFT=`expr $CURRENT_NOFILE_HARD - 2`
+EXPECTED_OUTPUT="File descriptor limits: $NOFILE_SOFT (soft), $NOFILE_HARD (hard)"
+printHeader "Test 6-a" "wrapper.ulimit.nofile.soft=$NOFILE_SOFT" "wrapper.ulimit.nofile.hard=$NOFILE_HARD" "wrapper.ulimit.nofile.strict=FALSE"
+../bin/wrapper -c ../test/resourcelimit.conf wrapper.console.flush=TRUE wrapper.ulimit.nofile.soft=$NOFILE_SOFT wrapper.ulimit.nofile.hard=$NOFILE_HARD wrapper.ulimit.nofile.strict=FALSE -- console 2>&1 | tee resourcelimit.tmp
+printResult
+
+# Test 6-b
+EXPECTED_OUTPUT="File descriptor limits: $NOFILE_SOFT (soft), $NOFILE_HARD (hard)"
+printHeader "Test 6-b" "wrapper.ulimit.nofile.soft=$NOFILE_SOFT" "wrapper.ulimit.nofile.hard=$NOFILE_HARD" "wrapper.ulimit.nofile.strict=TRUE"
+../bin/wrapper -c ../test/resourcelimit.conf wrapper.console.flush=TRUE wrapper.ulimit.nofile.soft=$NOFILE_SOFT wrapper.ulimit.nofile.hard=$NOFILE_HARD wrapper.ulimit.nofile.strict=TRUE -- console 2>&1 | tee resourcelimit.tmp
+printResult
+
+# Test 7-a
+NOFILE_HARD=`expr $CURRENT_NOFILE_HARD + 1`
+NOFILE_SOFT=`expr $CURRENT_NOFILE_HARD - 2`
+EXPECTED_OUTPUT="File descriptor limits: $NOFILE_SOFT (soft), $CURRENT_NOFILE_HARD (hard)"
+printHeader "Test 7-a" "wrapper.ulimit.nofile.soft=$NOFILE_SOFT" "wrapper.ulimit.nofile.hard=$NOFILE_HARD" "wrapper.ulimit.nofile.strict=FALSE"
+../bin/wrapper -c ../test/resourcelimit.conf wrapper.console.flush=TRUE wrapper.ulimit.nofile.soft=$NOFILE_SOFT wrapper.ulimit.nofile.hard=$NOFILE_HARD wrapper.ulimit.nofile.strict=FALSE -- console 2>&1 | tee resourcelimit.tmp
+printResult
+
+# Test 7-b
+EXPECTED_OUTPUT="The Wrapper will stop"
+printHeader "Test 7-b" "wrapper.ulimit.nofile.soft=$NOFILE_SOFT" "wrapper.ulimit.nofile.hard=$NOFILE_HARD" "wrapper.ulimit.nofile.strict=TRUE"
+../bin/wrapper -c ../test/resourcelimit.conf wrapper.console.flush=TRUE wrapper.ulimit.nofile.soft=$NOFILE_SOFT wrapper.ulimit.nofile.hard=$NOFILE_HARD wrapper.ulimit.nofile.strict=TRUE -- console 2>&1 | tee resourcelimit.tmp
+printResult
+
+# Test 8-a
+NOFILE_HARD=`expr $CURRENT_NOFILE_HARD - 2`
+NOFILE_SOFT=`expr $CURRENT_NOFILE_HARD - 1`
+EXPECTED_OUTPUT="The Wrapper will stop"
+printHeader "Test 8-a" "wrapper.ulimit.nofile.soft=$NOFILE_SOFT" "wrapper.ulimit.nofile.hard=$NOFILE_HARD" "wrapper.ulimit.nofile.strict=FALSE"
+../bin/wrapper -c ../test/resourcelimit.conf wrapper.console.flush=TRUE wrapper.ulimit.nofile.soft=$NOFILE_SOFT wrapper.ulimit.nofile.hard=$NOFILE_HARD wrapper.ulimit.nofile.strict=FALSE -- console 2>&1 | tee resourcelimit.tmp
+printResult
+
+# Test 8-b
+EXPECTED_OUTPUT="The Wrapper will stop"
+printHeader "Test 8-b" "wrapper.ulimit.nofile.soft=$NOFILE_SOFT" "wrapper.ulimit.nofile.hard=$NOFILE_HARD" "wrapper.ulimit.nofile.strict=TRUE"
+../bin/wrapper -c ../test/resourcelimit.conf wrapper.console.flush=TRUE wrapper.ulimit.nofile.soft=$NOFILE_SOFT wrapper.ulimit.nofile.hard=$NOFILE_HARD wrapper.ulimit.nofile.strict=TRUE -- console 2>&1 | tee resourcelimit.tmp
+printResult
+
+# Test 9-a
+NOFILE_HARD=`expr $CURRENT_NOFILE_HARD + 1`
+NOFILE_SOFT=`expr $CURRENT_NOFILE_HARD + 2`
+EXPECTED_OUTPUT="The Wrapper will stop"
+printHeader "Test 9-a" "wrapper.ulimit.nofile.soft=$NOFILE_SOFT" "wrapper.ulimit.nofile.hard=$NOFILE_HARD" "wrapper.ulimit.nofile.strict=FALSE"
+../bin/wrapper -c ../test/resourcelimit.conf wrapper.console.flush=TRUE wrapper.ulimit.nofile.soft=$NOFILE_SOFT wrapper.ulimit.nofile.hard=$NOFILE_HARD wrapper.ulimit.nofile.strict=FALSE -- console 2>&1 | tee resourcelimit.tmp
+printResult
+
+# Test 9-b
+EXPECTED_OUTPUT="The Wrapper will stop"
+printHeader "Test 9-b" "wrapper.ulimit.nofile.soft=$NOFILE_SOFT" "wrapper.ulimit.nofile.hard=$NOFILE_HARD" "wrapper.ulimit.nofile.strict=TRUE"
+../bin/wrapper -c ../test/resourcelimit.conf wrapper.console.flush=TRUE wrapper.ulimit.nofile.soft=$NOFILE_SOFT wrapper.ulimit.nofile.hard=$NOFILE_HARD wrapper.ulimit.nofile.strict=TRUE -- console 2>&1 | tee resourcelimit.tmp
+printResult]]></echo>
+        <chmod file="${test.dir}/resourcelimit" perm="+x"/>
     </target>
     
     <!-- =================================================================== -->

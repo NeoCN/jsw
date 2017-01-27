@@ -96,6 +96,20 @@
 #define ROLL_MODE_DATE_TOKEN      TEXT("YYYYMMDD")
 
 
+/* Any log messages generated within signal handlers must be stored until we
+ *  have left the signal handler to avoid deadlocks in the logging code.
+ *  Messages are stored in a round robin buffer of log messages until
+ *  maintainLogger is next called.
+ * When we are inside of a signal, and thus when calling log_printf_queue,
+ *  we know that it is safe to modify the queue as needed.  But it is possible
+ *  that a signal could be fired while we are in maintainLogger, so case is
+ *  taken to make sure that volatile changes are only made in log_printf_queue.
+ */
+#define QUEUE_SIZE 20
+/* The size of QUEUED_BUFFER_SIZE_USABLE is arbitrary as the largest size which can be logged in full,
+ *  but to avoid crashes due to a bug in the HPUX libc (version < 1403), the length of the buffer passed to _vsntprintf must have a length of 1 + N, where N is a multiple of 8. */
+#define QUEUED_BUFFER_SIZE_USABLE (512 + 1)
+#define QUEUED_BUFFER_SIZE (QUEUED_BUFFER_SIZE_USABLE + 4)
 
 /* This can be called from within logging code that would otherwise get stuck in recursion.
  *  Log to the console exactly when it happens and then also try to get it into the log
@@ -158,6 +172,8 @@ void setLogBufferGrowth(int log);
 /* * Logfile functions * */
 extern int isLogfileAccessed();
 
+extern int resolveDefaultLogFilePath();
+
 /**
  * Sets the log file to be used.  If the specified file is not absolute then
  *  it will be resolved into an absolute path.  If there are any problems with
@@ -165,16 +181,11 @@ extern int isLogfileAccessed();
  *  cause will be written to the existing log.
  *
  * @param log_file_path Log file to start using.
- * @param workingDir The current working directory, used for relative paths.
- *                   This will be NULL if this is part of the bootstrap process,
- *                   in which case we should not attempt to resolve the absolute
- *                   path.
- * @param preload TRUE if called as part of the preload process.  We use this to
- *                suppress double warnings.
+ * @param isConfigured  The value comes from the configuration file.
  *
  * @return TRUE if there were any problems.
  */
-extern int setLogfilePath( const TCHAR *log_file_path, const TCHAR *workingDir, int preload);
+extern int setLogfilePath( const TCHAR *log_file_path, int isConfigured);
 
 /**
  * Returns the default logfile.
@@ -257,10 +268,9 @@ extern void setSyslogFacility( const TCHAR *loginfo_level );
 #endif
 extern void setSyslogEventSourceName( const TCHAR *event_source_name );
 extern void setThreadMessageBufferInitialSize(int initialValue);
-extern void setWarnSyslogUnregistered(int value);
 extern int syslogMessageFileRegistered(int useLoggerQueue);
-extern int registerSyslogMessageFile(int forceInstall);
-extern int unregisterSyslogMessageFile();
+extern int registerSyslogMessageFile(int forceInstall, int useLoggerQueue);
+extern int unregisterSyslogMessageFile(int useLoggerQueue);
 
 
 extern void resetDuration();

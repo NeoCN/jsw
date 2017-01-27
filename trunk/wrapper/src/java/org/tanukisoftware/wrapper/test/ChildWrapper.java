@@ -20,6 +20,7 @@ import org.tanukisoftware.wrapper.WrapperProcessConfig;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Random;
 
@@ -51,92 +52,122 @@ public class ChildWrapper
         }
     }
     
+    private static Thread outputThread( final String context, final Object process, final InputStream is, final String name  )
+        throws IOException
+    {
+        final BufferedReader br = new BufferedReader( new InputStreamReader( is, c_encoding ) );
+        Thread thread = new Thread( context + "-" + name )
+        {
+            public void run()
+            {
+                try
+                {
+                    try
+                    {
+                        try
+                        {
+                            String line;
+                            while ( ( line = br.readLine() ) != null )
+                            {
+                                System.out.println( name + ": " + line );
+                            }
+                        }
+                        finally
+                        {
+                            br.close();
+                        }
+                    }
+                    catch ( IOException e )
+                    {
+                        System.out.println( name + ": Error" );
+                        e.printStackTrace();
+                    }
+                }
+                finally
+                {
+                    System.out.println( name + ": End" );
+                }
+            }
+        };
+        thread.start();
+        
+        return thread;
+    }
+    
+    private static void joinThread( Thread thread )
+    {
+        if ( thread != null )
+        {
+            try
+            {
+                thread.join();
+            }
+            catch ( InterruptedException e )
+            {
+            }
+        }
+    }
+    
     private static void handleJavaProcess( String command )
         throws IOException, InterruptedException
     {
+        System.out.println( "Test Begin: " + command );
+        
+        Thread stderrThread;
+        Thread stdoutThread;
         Process process = Runtime.getRuntime().exec( command );
         try
         {
-            BufferedReader br;
-            String line;
-            
             // Dump all stdout
-            br = new BufferedReader( new InputStreamReader( process.getInputStream(), c_encoding ) );
-            try
-            {
-                while ( ( line = br.readLine() ) != null )
-                {
-                    System.out.println( "stdout: " + line );
-                }
-            }
-            finally
-            {
-                br.close();
-            }
+            stdoutThread = outputThread( "handleJavaProcess", process, process.getInputStream(), "stdout" );
             
             // Dump all stderr
-            br = new BufferedReader( new InputStreamReader( process.getErrorStream(), c_encoding ) );
-            try
-            {
-                while ( ( line = br.readLine() ) != null )
-                {
-                    System.out.println( "stderr: " + line );
-                }
-            }
-            finally
-            {
-                br.close();
-            }
+            stderrThread = outputThread( "handleJavaProcess", process, process.getErrorStream(), "stderr" );
         }
         finally
         {
             int exitCode = process.waitFor();
             System.out.println( "exitCode: " + exitCode );
         }
+        
+        // Wait for the stdout, stderr threads to complete.
+        joinThread( stdoutThread );
+        joinThread( stderrThread );
+        
+        System.out.println( "Test End" );
+        System.out.println();
+        System.out.println();
     }
 
     private static void handleWrapperProcess( String command )
         throws IOException, InterruptedException
     {
-        WrapperProcess process = WrapperManager.exec( command );
+        System.out.println( "Test Begin: " + command );
+        
+        Thread stderrThread;
+        Thread stdoutThread;
+        final WrapperProcess process = WrapperManager.exec( command );
         try
         {
-            BufferedReader br;
-            String line;
-            
             // Dump all stdout
-            br = new BufferedReader( new InputStreamReader( process.getInputStream(), c_encoding ) );
-            try
-            {
-                while ( ( line = br.readLine() ) != null )
-                {
-                    System.out.println( "stdout: " + line );
-                }
-            }
-            finally
-            {
-                br.close();
-            }
+            stdoutThread = outputThread( "handleJavaProcess", process, process.getInputStream(), "stdout" );
             
             // Dump all stderr
-            br = new BufferedReader( new InputStreamReader( process.getErrorStream(), c_encoding ) );
-            try
-            {
-                while ( ( line = br.readLine() ) != null )
-                {
-                    System.out.println( "stderr: " + line );
-                }
-            }
-            finally
-            {
-                br.close();
-            }
+            stderrThread = outputThread( "handleJavaProcess", process, process.getErrorStream(), "stderr" );
         }
         finally
         {
             int exitCode = process.waitFor();
             System.out.println( "exitCode: " + exitCode );
         }
+        
+        // Wait for the stdout, stderr threads to complete.
+        joinThread( stdoutThread );
+        joinThread( stderrThread );
+        
+        System.out.println( "Test End" );
+        System.out.println();
+        System.out.println();
     }
     
     /*---------------------------------------------------------------
@@ -169,6 +200,12 @@ public class ChildWrapper
             System.out.println( Main.getRes().getString( "Runtime.exec test (TestWrapper)." ) );
             handleJavaProcess( wrapperCmdTestWrapper );
             
+            System.out.println( Main.getRes().getString( "Runtime.exec test (SimpleWaiter)." ) );
+            handleJavaProcess( "../test/simplewaiter 99 3" );
+            
+            System.out.println( Main.getRes().getString( "Runtime.exec test (SimpleWaiter Crash)." ) );
+            handleJavaProcess( "../test/simplewaiter -crash 99 3" );
+            
             if ( WrapperManager.isStandardEdition() )
             {
                 System.out.println( Main.getRes().getString( "WrapperManager.exec test (Version)." ) );
@@ -176,6 +213,12 @@ public class ChildWrapper
                 
                 System.out.println( Main.getRes().getString( "WrapperManager.exec test (TestWrapper)." ) );
                 handleWrapperProcess( wrapperCmdTestWrapper );
+                
+                System.out.println( Main.getRes().getString( "WrapperManager.exec test (SimpleWaiter)." ) );
+                handleWrapperProcess( "../test/simplewaiter 99 3" );
+                
+                System.out.println( Main.getRes().getString( "WrapperManager.exec test (SimpleWaiter Crash)." ) );
+                handleWrapperProcess( "../test/simplewaiter -crash 99 3" );
             }
             
             if ( WrapperManager.isWindows() )

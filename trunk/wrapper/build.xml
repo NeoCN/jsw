@@ -57,6 +57,8 @@
                 <equals arg1="${os.name}" arg2="Windows Vista"/>
                 <equals arg1="${os.name}" arg2="Windows 7"/>
                 <equals arg1="${os.name}" arg2="Windows 8"/>
+                <equals arg1="${os.name}" arg2="Windows 8.1"/>
+                <equals arg1="${os.name}" arg2="Windows 10"/>
                 <equals arg1="${os.name}" arg2="Windows Server 2008"/>
                 <equals arg1="${os.name}" arg2="Windows Server 2008 R2"/>
                 <equals arg1="${os.name}" arg2="Windows Server 2012"/>
