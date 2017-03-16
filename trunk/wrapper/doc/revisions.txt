@@ -76,7 +76,7 @@ Java Service Wrapper Revision History.
   RESTART or SHUTDOWN action was specified. A hung JVM process can't be shut
   down cleanly, so there is no need to wait for an additional timeout.
 * Deprecate the use of the wrapper.event.<event_name>.email.attach_log
-  properties in favor of wrapper.event.<event_name>.email.maillogs. These
+  properties in favor of wrapper.event.<event_name>.email.maillog. These
   new properties make it possible to control if the logs should be sent as an
   attachment and/or directly in the body of the Notification emails. Also note
   that, unlike the deprecated properties, logs inclusion can now be set for
@@ -105,6 +105,9 @@ Java Service Wrapper Revision History.
 * Deprecate the use of the wrapper.command.poll_interval and
   wrapper.anchor.poll_interval properties in favor of
   wrapper.commandfile.poll_interval and wrapper.anchorfile.poll_interval.
+* Fixed a rounding issue causing the intervals between two pings or two
+  deadlock checks to be 900ms shorter than the value specified in the
+  configuration.
 
 3.5.30
 * Improve the logging messages when using the IANA timezones introduced in

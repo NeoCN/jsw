@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2016 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2017 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -153,7 +153,7 @@ TCHAR *workLogFileName;
 size_t confLogFileNameSize;
 TCHAR *confLogFileName;
 TCHAR *workConfLogFileName;
-int    confLogFileLevelInt;
+int    confLogFileLevelInt = LEVEL_UNKNOWN;
 int    whichLogFile;
 
 #define LOG_FILE_UNSET       0
@@ -328,7 +328,7 @@ void log_dumpHex(TCHAR *label, TCHAR *memory, size_t len) {
 #endif
 
 void invalidMultiByteSequence(const TCHAR *context, int id) {
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Invalid multibyte Sequence found in (%s%02d). %s"),
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Invalid multibyte Sequence found in (%s%02d). %s"),
         context, id, getLastErrorText());
 }
 
@@ -673,14 +673,17 @@ int isLogfileAccessed() {
 int resolveDefaultLogFilePath() {
     TCHAR* resolved_log_file_path;
     
-    resolved_log_file_path = tToolsGetRealPath(defaultLogFile, TEXT("default log file path"), LEVEL_WARN, TRUE);
-    if (resolved_log_file_path) {
-        if (defaultLogFile) {
+    if (defaultLogFile) {
+        resolved_log_file_path = getAbsolutePathOfFile(defaultLogFile, TEXT("default log file path"), LEVEL_WARN, TRUE);
+#ifdef _DEBUG
+        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Absolute path to the default log file resolved to %s."), resolved_log_file_path);
+#endif
+        if (resolved_log_file_path) {
             free(defaultLogFile);
+            /* defaultLogFile now points to resolved_log_file_path which was malloced. */
+            defaultLogFile = resolved_log_file_path;
+            return FALSE;
         }
-        /* defaultLogFile now points to resolved_log_file_path which was malloced. */
-        defaultLogFile = resolved_log_file_path;
-        return FALSE;
     }
     return TRUE;
 }
@@ -712,10 +715,16 @@ int setLogfilePath(const TCHAR *log_file_path, int isConfigured) {
         }
         _tcsncpy(prevLogFilePath, logFilePath, len + 1);
         free(logFilePath);
+        logFilePath = NULL;
     }
 
     /* Convert the path to an absolute path. */
-    logFilePath = tToolsGetRealPath(log_file_path, TEXT("log file path"), LEVEL_WARN, TRUE);
+    if (log_file_path) {
+        logFilePath = getAbsolutePathOfFile(log_file_path, TEXT("log file path"), LEVEL_WARN, TRUE);
+#ifdef _DEBUG
+        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Absolute path to the configured log file resolved to %s."), logFilePath);
+#endif
+    }
     if (!logFilePath) {
         /* Continue with the relative path. */
         len = _tcslen(log_file_path);
@@ -1047,6 +1056,8 @@ void setLogfileFormat( const TCHAR *log_file_format ) {
 }
 
 void setLogfileLevelInt( int log_file_level ) {
+    /* Update the configured log level in case the log file was disabled while reloading the configuration. */
+    confLogFileLevelInt = log_file_level;
     currentLogfileLevel = log_file_level;
 }
 
@@ -1111,11 +1122,6 @@ void setLogfileMaxFileSize( const TCHAR *max_file_size ) {
     }
 }
 
-void setLogfileMaxFileSizeInt( int max_file_size ) {
-    logFileMaxSize = max_file_size;
-    confLogFileMaxSize = max_file_size;
-}
-
 void setLogfileMaxLogFiles( int max_log_files ) {
     logFileMaxLogFiles = max_log_files;
     confLogFileMaxLogFiles = max_log_files;
@@ -1144,17 +1150,22 @@ void setLogfilePurgeSortMode(int sortMode) {
     logFilePurgeSortMode = sortMode;
 }
 
+/** 
+ * Disable the logfile.
+ */
 void disableLogFile() {
-    /* Save the log level. */
-    confLogFileLevelInt = getLogfileLevelInt();
-    
-    /* Disable the log file. */
-    setLogfileLevelInt(LEVEL_NONE);
+    /* Don't use setLogfileLevelInt() as it would overwrite confLogFileLevelInt. */
+    currentLogfileLevel = LEVEL_NONE;
+    whichLogFile = LOG_FILE_DISABLED;
 }
 
+/** 
+ * Restore the log level of the logfile. It is the responsibility
+ *  of the caller to specify which log file will be used after that.
+ */
 void enableLogFile() {
-    /* Restore the log level */
-    setLogfileLevelInt(confLogFileLevelInt);
+    /* Restore the log level. */
+    currentLogfileLevel = confLogFileLevelInt;
 }
 
 /** Returns the number of lines of log file activity since the last call. */
@@ -1955,15 +1966,16 @@ int openLogFile(struct tm *nowTM, TCHAR *message) {
                     _tcsncpy(tempBufferLastErrorText1, getLastErrorText(), 1023);
                     tempBufferLastErrorText1[1023] = 0;
                 } else {
-                    if (whichLogFile == LOG_FILE_DISABLED) {
-                        /* We previously disabled file logging. Reactivate it. */
-                        enableLogFile();
-                    } else if (logfileFP != NULL) {
+                    if (logfileFP != NULL) {
                         /* Make sure to close the default log file (we have not set logfileFP yet). */
                         /* We are already locked. */
                         fclose(logfileFP);
                         logfileFP = NULL;
                     }
+                    if (whichLogFile == LOG_FILE_DISABLED) {
+                        /* We previously disabled file logging. Reactivate it. */
+                        enableLogFile();
+                    } 
                     
                     /* We need to write our message into a buffer manually so we can use it
                      *  both for the log_printf_queue and log_printf_message_sysLog calls below. */
@@ -2128,7 +2140,6 @@ int openLogFile(struct tm *nowTM, TCHAR *message) {
                     }
                     disableLogFile();
                     logFileChanged = FALSE;
-                    whichLogFile = LOG_FILE_DISABLED;
                 }
             }
             umask(old_umask);
@@ -2200,9 +2211,11 @@ void log_printf_message_logFileInner(int source_id, int level, int threadId, int
 int log_printf_message_logFile(int source_id, int level, int threadId, int queued, TCHAR *message, struct tm *nowTM, int nowMillis, time_t durationMillis) {
     int logFileChanged = FALSE;
 
-    if (level >= currentLogfileLevel) {
+    if ((level >= currentLogfileLevel) || (whichLogFile == LOG_FILE_DISABLED)) {
         logFileChanged = openLogFile(nowTM, message);
-        log_printf_message_logFileInner(source_id, level, threadId, queued, message, nowTM, nowMillis, durationMillis);
+        if (level >= currentLogfileLevel) {
+            log_printf_message_logFileInner(source_id, level, threadId, queued, message, nowTM, nowMillis, durationMillis);
+        }
     }
     
     return logFileChanged;
@@ -2845,11 +2858,13 @@ static int eventLogSourceInstalled = FALSE;
  * Disable Event Log.
  *  This function has to be called if the registration could not be completed.
  */
-void disableSysLog(int useLoggerQueue) {
+void disableSysLog(int silent) {
     if (getSyslogLevelInt() != LEVEL_NONE) {
         setSyslogLevelInt(LEVEL_NONE);
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, 
-            TEXT("Disabling Event Log because the application is not registered.\n  Run the wrapper with the '--setup' option to register."));
+        if (!silent) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, 
+                TEXT("Disabling Event Log because the application is not registered.\n  Run the wrapper with the '--setup' option to register."));
+        }
     }
 }
 
@@ -2861,7 +2876,7 @@ void disableSysLog(int useLoggerQueue) {
  * 
  * Returns TRUE if registered, FALSE if not registered.
  */
-int syslogMessageFileRegistered(int useLoggerQueue) {
+int syslogMessageFileRegistered(int silent) {
     static int checked = FALSE;
     TCHAR bufferPath[_MAX_PATH];
     TCHAR bufferKVal[_MAX_PATH];
@@ -2883,11 +2898,15 @@ int syslogMessageFileRegistered(int useLoggerQueue) {
     SetLastError(ERROR_SUCCESS);
     usedLen = GetModuleFileName(NULL, bufferPath, _MAX_PATH);
     if (usedLen == 0) {
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, 
-            TEXT("Unable to obtain the full path to the Wrapper. %s"), getLastErrorText());
+        if (!silent) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, 
+                TEXT("Unable to obtain the full path to the Wrapper. %s"), getLastErrorText());
+        }
     } else if ((usedLen == _MAX_PATH) || (getLastError() == ERROR_INSUFFICIENT_BUFFER)) {
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, 
-            TEXT("Unable to obtain the full path to the Wrapper. Path to Wrapper binary too long."));
+        if (!silent) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, 
+                TEXT("Unable to obtain the full path to the Wrapper. Path to Wrapper binary too long."));
+        }
     } else {
         _sntprintf( regPath, 1024, TEXT("SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Application\\%s"), loginfoSourceName );
         
@@ -2899,17 +2918,23 @@ int syslogMessageFileRegistered(int useLoggerQueue) {
                     RegCloseKey( hKey );
                     eventLogSourceInstalled = TRUE;
                 } else {
-                    log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
-                        TEXT("The path registered for the Event Log (%s) did not match the location of the Wrapper binary (%s)."), bufferKVal, bufferPath);
+                    if (!silent) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
+                            TEXT("The path registered for the Event Log (%s) did not match the location of the Wrapper binary (%s)."), bufferKVal, bufferPath);
+                    }
                 }
             } else {
-                log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
-                    TEXT("The path registered for the Event Log could not be read (0x%x)."), error);
+                if (!silent) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
+                        TEXT("The path registered for the Event Log could not be read (0x%x)."), error);
+                }
             }
             RegCloseKey( hKey );
         } else if (error != ERROR_FILE_NOT_FOUND) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
-                TEXT("The Event Log source could not be found (0x%x)."), error);
+            if (!silent) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
+                    TEXT("The Event Log source could not be found (0x%x)."), error);
+            }
         }
     }
     
@@ -2925,7 +2950,7 @@ int syslogMessageFileRegistered(int useLoggerQueue) {
  *  CASE 1: If we need elevated privileges, it should be done through the setup process (see --setup argument).
  *  CASE 2: On older versions of windows where running elevated was not needed, registerSyslogMessageFile() can called when the wrapper runs.
  */
-int registerSyslogMessageFile(int forceInstall, int useLoggerQueue) {
+int registerSyslogMessageFile(int forceInstall, int silent) {
 #ifdef WIN32
     TCHAR buffer[_MAX_PATH];
     DWORD usedLen;
@@ -2935,7 +2960,7 @@ int registerSyslogMessageFile(int forceInstall, int useLoggerQueue) {
     DWORD categoryCount, typesSupported;
     DWORD error;
     
-    if (!forceInstall && syslogMessageFileRegistered(useLoggerQueue)) {
+    if (!forceInstall && syslogMessageFileRegistered(silent)) {
         return 0;
     }
 
@@ -2944,11 +2969,15 @@ int registerSyslogMessageFile(int forceInstall, int useLoggerQueue) {
     SetLastError(ERROR_SUCCESS);
     usedLen = GetModuleFileName(NULL, buffer, _MAX_PATH);
     if (usedLen == 0) {
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, 
-            TEXT("Unable to obtain the full path to the Wrapper. %s"), getLastErrorText());
+        if (!silent) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, 
+                TEXT("Unable to obtain the full path to the Wrapper. %s"), getLastErrorText());
+        }
     } else if ((usedLen == _MAX_PATH) || (getLastError() == ERROR_INSUFFICIENT_BUFFER)) {
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, 
-            TEXT("Unable to obtain the full path to the Wrapper. Path to Wrapper binary too long."));
+        if (!silent) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, 
+                TEXT("Unable to obtain the full path to the Wrapper. Path to Wrapper binary too long."));
+        }
     } else {
         _sntprintf( regPath, 1024, TEXT("SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Application\\%s"), loginfoSourceName );
 
@@ -2968,12 +2997,12 @@ int registerSyslogMessageFile(int forceInstall, int useLoggerQueue) {
                         /* Set CategoryCount */
                         _tcsncpy(regValueName, TEXT("CategoryCount"), 32);
                         categoryCount = 12;
-                        if ((error = RegSetValueEx(hKey, regValueName, 0, REG_SZ, (LPBYTE) &categoryCount, sizeof(DWORD))) == ERROR_SUCCESS) {
+                        if ((error = RegSetValueEx(hKey, regValueName, 0, REG_DWORD, (LPBYTE) &categoryCount, sizeof(DWORD))) == ERROR_SUCCESS) {
                             
                             /* Set TypesSupported */
                             _tcsncpy(regValueName, TEXT("TypesSupported"), 32);
                             typesSupported = 7;
-                            if ((error = RegSetValueEx(hKey, regValueName, 0, REG_SZ, (LPBYTE) &typesSupported, sizeof(DWORD))) == ERROR_SUCCESS) {
+                            if ((error = RegSetValueEx(hKey, regValueName, 0, REG_DWORD, (LPBYTE) &typesSupported, sizeof(DWORD))) == ERROR_SUCCESS) {
                                 eventLogSourceInstalled = TRUE;
                             }
                         }
@@ -2983,8 +3012,10 @@ int registerSyslogMessageFile(int forceInstall, int useLoggerQueue) {
                 RegCloseKey( hKey );
                 
                 if (error != ERROR_SUCCESS) {
-                    log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
-                        TEXT("Failed to set '%s' when registering to the Event Log (0x%x)."), regValueName, error);
+                    if (!silent) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
+                            TEXT("Failed to set '%s' when registering to the Event Log (0x%x)."), regValueName, error);
+                    }
                 }
             }
         }
@@ -2992,7 +3023,7 @@ int registerSyslogMessageFile(int forceInstall, int useLoggerQueue) {
 
     if (!eventLogSourceInstalled) {
         /* not registered or failed to register correctly */
-        disableSysLog(useLoggerQueue);
+        disableSysLog(silent);
         return -1;
     }
 
@@ -3005,7 +3036,7 @@ int registerSyslogMessageFile(int forceInstall, int useLoggerQueue) {
 /**
  * Unregister from the Log Event System
  */
-int unregisterSyslogMessageFile(int useLoggerQueue) {
+int unregisterSyslogMessageFile(int silent) {
 #ifdef WIN32
     DWORD error;
     /* If we deregister this application, then the event viewer will not work when the program is not running. */
@@ -3019,7 +3050,7 @@ int unregisterSyslogMessageFile(int useLoggerQueue) {
     error = RegDeleteKey(HKEY_LOCAL_MACHINE, regPath);
     if((error == ERROR_SUCCESS) || (error == ERROR_FILE_NOT_FOUND)) {
         eventLogSourceInstalled = FALSE;
-        disableSysLog(useLoggerQueue);
+        disableSysLog(silent);
         return 0;
     }
 

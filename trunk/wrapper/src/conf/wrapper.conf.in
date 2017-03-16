@@ -31,8 +31,7 @@
 # Specify the language and locale which the Wrapper should use.
 #wrapper.lang=en_US # en_US or ja_JP
 
-# Specify the location of the Wrapper's language resources.  If these are
-#  missing, the Wrapper will default to the en_US locale.
+# Specify the location of the language resource files (*.mo).
 wrapper.lang.folder=../lang
 
 #********************************************************************

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2016 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2017 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -2060,6 +2060,7 @@ int main(int argc, char **argv) {
             if (wrapperData->workingDir && wrapperData->originalWorkingDir) {
                 if (wrapperSetWorkingDir(wrapperData->originalWorkingDir, TRUE)) {
                     /* Failed to restore the working dir.  Shutdown the Wrapper */
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  The Wrapper will stop."));
                     appExit(wrapperData->errorExitCode, argc, argv);
                     return 1; /* For compiler. */
                 }
@@ -2074,6 +2075,7 @@ int main(int argc, char **argv) {
                      *  it did not exist.  Show the usage. */
                     wrapperUsage(argv[0]);
                 }
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  The Wrapper will stop."));
                 appExit(wrapperData->errorExitCode, argc, argv);
                 return 1; /* For compiler. */
             }

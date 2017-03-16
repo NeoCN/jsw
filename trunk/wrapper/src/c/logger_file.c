@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2016 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2017 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -595,6 +595,118 @@ void loggerFileFreeFiles(TCHAR** files) {
 }
 
 /**
+ * Combines two paths and take care to add only one separator between them.
+ *
+ * The returned string must be freed by the caller.
+ *
+ * @param path1 base path
+ * @param path2 relative path.
+ *
+ * @return The resulting path, or NULL if there were any problems.
+ */
+TCHAR *combinePath(const TCHAR *path1, const TCHAR *path2) {
+    TCHAR* result;
+    TCHAR* tempPath1 = NULL;
+    TCHAR* tempPath2 = NULL;
+    TCHAR* tempPath2Ptr;
+    TCHAR c1;
+    TCHAR c2;
+    size_t len1 = _tcslen(path1); 
+    size_t len2 = _tcslen(path2); 
+    size_t len = len1 + len2;
+    int i = 0;
+#ifdef WIN32
+    const TCHAR bad_sep  = TEXT('/');
+    const TCHAR good_sep = TEXT('\\');
+#else
+    const TCHAR bad_sep  = TEXT('\\');
+    const TCHAR good_sep = TEXT('/');
+#endif
+
+    if (len1 > 0) {
+        tempPath1 = malloc(sizeof(TCHAR) * (len1 + 1));
+        if (!tempPath1) {
+            outOfMemoryQueued(TEXT("CP"), 1);
+            return NULL;
+        }
+        _tcsncpy(tempPath1, path1, len1 + 1);
+    }
+    if (len2 > 0) {
+        tempPath2 = malloc(sizeof(TCHAR) * (len2 + 1));
+        if (!tempPath2) {
+            outOfMemoryQueued(TEXT("CP"), 2);
+            free(tempPath1);
+            return NULL;
+        }
+        _tcsncpy(tempPath2, path2, len2 + 1);
+    }
+    if (!tempPath1 && !tempPath2) {
+        result = NULL;
+    } else if (tempPath1 && !tempPath2) {
+        result = tempPath1;
+    } else if (!tempPath1 && tempPath2) {
+        result = tempPath2;
+    } else {
+        tempPath2Ptr = tempPath2;
+
+        /* first replace all directory separators by their standard according to the platform. 
+         *  we want to avoid that the two paths use different separators. */
+        while (tempPath1[i] != TEXT('\0')) {
+            if (tempPath1[i] == bad_sep) {
+                tempPath1[i] = good_sep;
+            }
+            i++;
+        }
+        i = 0;
+        while (tempPath2[i] != TEXT('\0')) {
+            if (tempPath2[i] == bad_sep) {
+                tempPath2[i] = good_sep;
+            }
+            i++;
+        }
+        
+        c1 = tempPath1[len1 - 1];
+        c2 = tempPath2[0];
+        
+        if (c1 == good_sep) {
+            if (c2 == good_sep) {
+                tempPath2Ptr++;
+            } else {
+                len += 1;
+            }
+            
+            result = malloc(sizeof(TCHAR) * len);
+            if (!result) {
+                outOfMemoryQueued(TEXT("CP"), 3);
+                free(tempPath1);
+                free(tempPath2);
+                return NULL;
+            }
+            _sntprintf(result, len, TEXT("%s%s"), tempPath1, tempPath2Ptr);
+        } else {
+            if (c2 == good_sep) {
+                tempPath2Ptr++;
+                len += 1;
+            } else {
+                len += 2;
+            }
+            
+            result = malloc(sizeof(TCHAR) * len);
+            if (!result) {
+                outOfMemoryQueued(TEXT("CP"), 4);
+                free(tempPath1);
+                free(tempPath2);
+                return NULL;
+            }
+            _sntprintf(result, len, TEXT("%s%c%s"), tempPath1, good_sep, tempPath2Ptr);
+        }
+        free(tempPath1);
+        free(tempPath2);
+    }
+    return result;
+}
+
+/**
  * Given a path, resolve a real absolute path which has resolved all relative and symbolic links.
  *
  * The returned string must be freed by the caller.
@@ -605,7 +717,7 @@ void loggerFileFreeFiles(TCHAR** files) {
  *
  * @return The absolute path, or NULL if there were any problems.
  */
-TCHAR *tToolsGetRealPath(const TCHAR *path, const TCHAR *pathDesc, int errorLevel, int useQueue) {
+TCHAR *getRealPath(const TCHAR *path, const TCHAR *pathDesc, int errorLevel, int useQueue) {
     TCHAR *realPath;
 #ifdef WIN32
     DWORD len;
@@ -617,19 +729,23 @@ TCHAR *tToolsGetRealPath(const TCHAR *path, const TCHAR *pathDesc, int errorLeve
 #ifdef WIN32
     len = GetFullPathName(path, 0, NULL, NULL);
     if (!len) {
-        if (errorLevel > LEVEL_NONE) {
-            log_printf_queue(useQueue, WRAPPER_SOURCE_WRAPPER, errorLevel, TEXT("Unable to resolve the %s %s: %s"), pathDesc, path, getLastErrorText());
+        if (errorLevel != LEVEL_NONE) {
+            log_printf_queue(useQueue, WRAPPER_SOURCE_WRAPPER, errorLevel, TEXT("Unable to resolve the %s '%s': %s"), pathDesc, path, getLastErrorText());
         }
         return NULL;
     }
     realPath = malloc(sizeof(TCHAR) * len);
     if (!realPath) {
-        outOfMemory(TEXT("TTGRP"), 1);
+        if (useQueue) {
+            outOfMemoryQueued(TEXT("GRP"), 1);
+        } else {
+            outOfMemory(TEXT("GRP"), 1);
+        }
         return NULL;
     }
     if (!GetFullPathName(path, len, realPath, NULL)) {
-        if (errorLevel > LEVEL_NONE) {
-            log_printf_queue(useQueue, WRAPPER_SOURCE_WRAPPER, errorLevel, TEXT("Unable to resolve the %s %s: %s"), pathDesc, path, getLastErrorText());
+        if (errorLevel != LEVEL_NONE) {
+            log_printf_queue(useQueue, WRAPPER_SOURCE_WRAPPER, errorLevel, TEXT("Unable to resolve the %s '%s': %s"), pathDesc, path, getLastErrorText());
         }
         free(realPath);
         return NULL;
@@ -640,12 +756,16 @@ TCHAR *tToolsGetRealPath(const TCHAR *path, const TCHAR *pathDesc, int errorLeve
      *  then use realpath to remove any .. or other relative references. */
     tempPath = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
     if (!tempPath) {
-        outOfMemory(TEXT("TTGRP"), 2);
+        if (useQueue) {
+            outOfMemoryQueued(TEXT("GRP"), 2);
+        } else {
+            outOfMemory(TEXT("GRP"), 2);
+        }
         return NULL;
     }
     if (_trealpathN(path, tempPath, PATH_MAX + 1) == NULL) {
-        if (errorLevel > LEVEL_NONE) {
-            log_printf_queue(useQueue, WRAPPER_SOURCE_WRAPPER, errorLevel, TEXT("Unable to resolve the %s %s: %s"), pathDesc, path, getLastErrorText());
+        if (errorLevel != LEVEL_NONE) {
+            log_printf_queue(useQueue, WRAPPER_SOURCE_WRAPPER, errorLevel, TEXT("Unable to resolve the %s '%s': %s"), pathDesc, path, getLastErrorText());
         }
         free(tempPath);
         return NULL;
@@ -655,7 +775,11 @@ TCHAR *tToolsGetRealPath(const TCHAR *path, const TCHAR *pathDesc, int errorLeve
     len = _tcslen(tempPath) + 1;
     realPath = malloc(sizeof(TCHAR) * len);
     if (!realPath) {
-        outOfMemory(TEXT("TTGRP"), 3);
+        if (useQueue) {
+            outOfMemoryQueued(TEXT("GRP"), 3);
+        } else {
+            outOfMemory(TEXT("GRP"), 3);
+        }
         free(tempPath);
         return NULL;
     }
@@ -664,6 +788,51 @@ TCHAR *tToolsGetRealPath(const TCHAR *path, const TCHAR *pathDesc, int errorLeve
 #endif
     
     return realPath;
+}
+
+/**
+ * Returns the absolute path of a file even if the file is not yet created.
+ *  The folder containing the file must exist.
+ *
+ * The returned string must be freed by the caller.
+ *
+ * @param path The source path.
+ * @param pathDesc A description of the path used for error messages.
+ * @param errorLevel Level to log errors at.
+ *
+ * @return The absolute path, or NULL if there were any problems.
+ */
+TCHAR* getAbsolutePathOfFile(const TCHAR* path, const TCHAR *pathDesc, int errorLevel, int useQueue) {
+    TCHAR* ptr;
+    TCHAR* dir;
+    const TCHAR* file;
+    TCHAR* result = NULL;
+    TCHAR* pathCpy;
+    
+    pathCpy = malloc(sizeof(TCHAR) * (_tcslen(path) + 1));
+    if (!pathCpy) {
+        outOfMemoryQueued(TEXT("GAPOF"), 1);
+    } else {
+        _tcsncpy(pathCpy, path, _tcslen(path) + 1);
+        ptr = __max(_tcsrchr(pathCpy, TEXT('\\')), _tcsrchr(pathCpy, TEXT('/')));
+        if (ptr) {
+            *ptr = 0;
+            ptr++;
+            dir = getRealPath(pathCpy, pathDesc, errorLevel, useQueue);
+            file = ptr;
+        } else {
+            dir = getRealPath(TEXT("."), pathDesc, errorLevel, useQueue);
+            file = pathCpy;
+        }
+        
+        if (dir) {
+            result = combinePath(dir, file);
+            free(dir);
+        }
+        free(pathCpy);
+    }
+    
+    return result;
 }
 
 #ifdef LOGGER_FILE_DEBUG

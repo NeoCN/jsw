@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper.test;
 
 /*
- * Copyright (c) 1999, 2016 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2017 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -196,6 +196,13 @@ public abstract class AbstractActionApp
         m_err = new DeadlockPrintStream( System.err );
         System.setErr( m_err );
     }
+    
+    protected void updateEventListener()
+    {
+        WrapperManager.removeWrapperEventListener( this );
+        WrapperManager.addWrapperEventListener( this, m_eventMask );
+    }
+    
     protected boolean doAction( String action )
     {
         if ( action.equals( "stop0" ) )
@@ -453,8 +460,7 @@ public abstract class AbstractActionApp
         else if ( action.equals( "listener" ) )
         {
             System.out.println( Main.getRes().getString( "Updating Event Listeners:" ) );
-            WrapperManager.removeWrapperEventListener( this );
-            WrapperManager.addWrapperEventListener( this, m_eventMask );
+            updateEventListener();
         }
         else if ( action.equals( "service_list" ) )
         {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2016 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2017 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -415,6 +415,18 @@ void appExit(int exitCode) {
     /* Do this here to unregister the syslog resources on exit.*/
     /*unregisterSyslogMessageFile(); */
     exit(exitCode);
+}
+
+/**
+ * This function should be called when the Wrapper needs to exit after performing actions that did not involve the JVM.
+ *  The exit code should always be the exit code of the Wrapper!
+ */
+void wrapperExit(int exitCode) {
+    if (exitCode == 0) {
+        appExit(0);
+    } else {
+        appExit(wrapperData->errorExitCode);
+    }
 }
 
 
@@ -3950,6 +3962,8 @@ BOOL wrapperAddPrivileges(TCHAR *account) {
  * Setup the Wrapper
  *  Execute installation tasks that require to be elevated.
  *
+ * @param silent can be used to skip INFO messages (errors & warnings will still be shown).
+ *
  * Returns 1 if there were any problems.
  */
 int wrapperSetup(int silent) {
@@ -3962,6 +3976,7 @@ int wrapperSetup(int silent) {
         }
         result = registerSyslogMessageFile(TRUE, FALSE);
     } else if (!silent) {
+        disableSysLog(TRUE);
         /* it can be useful to deactivate the registration from the configuration file, especially if the setup include more tasks in the future. */
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Do not register to the Event Log because the property wrapper.syslog.ident.enable is set to FALSE."));
     }
@@ -3981,6 +3996,8 @@ int wrapperSetup(int silent) {
  * Teardown the Wrapper
  *  Execute deletion tasks that require to be elevated.
  *
+ * @param silent can be used to skip INFO messages (errors & warnings will still be shown).
+ *
  * Returns 1 if there were any problems.
  */
 int wrapperTeardown(int silent) {
@@ -3996,6 +4013,7 @@ int wrapperTeardown(int silent) {
         setSyslogLevelInt(LEVEL_NONE);
         result = unregisterSyslogMessageFile(FALSE);
     } else if (!silent) {
+        disableSysLog(TRUE);
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("%s was not registered to the Event Log system."), getSyslogEventSourceName());
     }
 
@@ -6617,6 +6635,13 @@ void _tmain(int argc, TCHAR **argv) {
      * members of the last entry are necessary to indicate the end of
      * the table; */
     SERVICE_TABLE_ENTRY serviceTable[2];
+    int localeSet = FALSE;
+    
+    if (!localeSet) {
+        /* Set the default locale here so any startup error messages will have a chance of working.
+         *  We will go back and try to set the actual locale again later once it is configured. */
+        _tsetlocale(LC_ALL, TEXT(""));
+    }
 
     if (buildSystemPath()) {
         appExit(1);
@@ -6746,7 +6771,7 @@ void _tmain(int argc, TCHAR **argv) {
                     appExit(wrapperData->errorExitCode);
                     return;
                 }
-                appExit(wrapperSetup(FALSE));
+                wrapperExit(wrapperSetup(FALSE));
             }
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("td")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-teardown"))) {
@@ -6764,7 +6789,7 @@ void _tmain(int argc, TCHAR **argv) {
                     appExit(wrapperData->errorExitCode);
                     return;
                 }
-                appExit(wrapperTeardown(FALSE));
+                wrapperExit(wrapperTeardown(FALSE));
             }
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("i")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-install"))) {
@@ -6784,7 +6809,7 @@ void _tmain(int argc, TCHAR **argv) {
                     return;
                 }
                 wrapperSetup(TRUE);
-                appExit(wrapperInstall());
+                wrapperExit(wrapperInstall());
             }
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("it")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-installstart"))) {
@@ -6807,7 +6832,7 @@ void _tmain(int argc, TCHAR **argv) {
                 if (!result) {
                     result = wrapperStartService();
                 }
-                appExit(result);
+                wrapperExit(result);
             }
             return; /* For clarity. */
         } else if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("r")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-remove"))) {
@@ -6825,7 +6850,7 @@ void _tmain(int argc, TCHAR **argv) {
                     return;
                 }
                 /* don't call teardown here because it may be confusing if the user still wants to use the Wrapper as a console. */
-                appExit(wrapperRemove());
+                wrapperExit(wrapperRemove());
             }
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("t")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-start"))) {
@@ -6843,7 +6868,7 @@ void _tmain(int argc, TCHAR **argv) {
                     appExit(wrapperData->errorExitCode);
                     return;
                 }
-                appExit(wrapperStartService());
+                wrapperExit(wrapperStartService());
             }
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("a")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-pause"))) {
@@ -6860,7 +6885,7 @@ void _tmain(int argc, TCHAR **argv) {
                     appExit(wrapperData->errorExitCode);
                     return;
                 }
-                appExit(wrapperPauseService());
+                wrapperExit(wrapperPauseService());
             }
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("e")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-resume"))) {
@@ -6877,7 +6902,7 @@ void _tmain(int argc, TCHAR **argv) {
                     appExit(wrapperData->errorExitCode);
                     return;
                 }
-                appExit(wrapperResumeService());
+                wrapperExit(wrapperResumeService());
             }
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("p")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-stop"))) {
@@ -6894,7 +6919,7 @@ void _tmain(int argc, TCHAR **argv) {
                     appExit(wrapperData->errorExitCode);
                     return;
                 }
-                appExit(wrapperStopService(TRUE));
+                wrapperExit(wrapperStopService(TRUE));
             }
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("l")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-controlcode"))) {
@@ -6911,7 +6936,7 @@ void _tmain(int argc, TCHAR **argv) {
                     appExit(wrapperData->errorExitCode);
                     return;
                 }
-                appExit(wrapperSendServiceControlCode(argv, wrapperData->argCommandArg));
+                wrapperExit(wrapperSendServiceControlCode(argv, wrapperData->argCommandArg));
             }
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("d")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-dump"))) {
@@ -6928,7 +6953,7 @@ void _tmain(int argc, TCHAR **argv) {
                     appExit(wrapperData->errorExitCode);
                     return;
                 }
-                appExit(wrapperRequestThreadDump(argv));
+                wrapperExit(wrapperRequestThreadDump(argv));
             }
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("q")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-query"))) {
@@ -7329,12 +7354,12 @@ BOOL duplicateSTD() {
  * @param namedPipeName - the base name for the named pipes for the IPC between us and the new process.
  * @return the exit code of the elevated process
  */
-BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParameters, LPCTSTR pszDirectory, TCHAR* namedPipeName) {
+int myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParameters, LPCTSTR pszDirectory, TCHAR* namedPipeName) {
     DWORD returnValue;
     SHELLEXECUTEINFO shex;
     HANDLE hNamedPipeIn, hNamedPipeOut, hNamedPipeErr;
     TCHAR* strNamedPipeNameIn, *strNamedPipeNameOut, *strNamedPipeNameErr;
-    int ret = TRUE;
+    int ret = wrapperData->errorExitCode;
     size_t len;
 
     /* first we generate the filenames for the named pipes based on namedPipeName */
@@ -7342,7 +7367,7 @@ BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParamet
     strNamedPipeNameIn = malloc(sizeof(TCHAR) * len);
     if (!strNamedPipeNameIn) {
         outOfMemory(TEXT("MSE"), 1);
-        return TRUE;
+        return wrapperData->errorExitCode;
     }
     _sntprintf(strNamedPipeNameIn, len, TEXT("\\\\.\\pipe\\%sINN"), namedPipeName);
 
@@ -7350,7 +7375,7 @@ BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParamet
     if (!strNamedPipeNameOut) {
         free(strNamedPipeNameIn);
         outOfMemory(TEXT("MSE"), 2);
-        return TRUE;
+        return wrapperData->errorExitCode;
     }
     _sntprintf(strNamedPipeNameOut, len, TEXT("\\\\.\\pipe\\%sOUT"), namedPipeName);
 
@@ -7359,7 +7384,7 @@ BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParamet
         free(strNamedPipeNameIn);
         free(strNamedPipeNameOut);
         outOfMemory(TEXT("MSE"), 3);
-        return TRUE;
+        return wrapperData->errorExitCode;
     }
     _sntprintf(strNamedPipeNameErr, len, TEXT("\\\\.\\pipe\\%sERR"), namedPipeName);
     /* create the process information */
@@ -7389,7 +7414,7 @@ BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParamet
 
     if (hNamedPipeIn == INVALID_HANDLE_VALUE) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Stdin CreateNamedPipe failed (%d): %s"), GetLastError(), getLastErrorText());
-        ret = TRUE;
+        ret = wrapperData->errorExitCode;
     } else {
             hNamedPipeOut = CreateNamedPipe(strNamedPipeNameOut, PIPE_ACCESS_INBOUND ,
                                 PIPE_TYPE_MESSAGE |       // message type pipe
@@ -7403,7 +7428,7 @@ BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParamet
 
         if (hNamedPipeOut == INVALID_HANDLE_VALUE) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Stdout CreateNamedPipe failed (%d): %s"), GetLastError(), getLastErrorText());
-            ret = TRUE;
+            ret = wrapperData->errorExitCode;
         } else {
             hNamedPipeErr = CreateNamedPipe(strNamedPipeNameErr, PIPE_ACCESS_INBOUND ,
                                     PIPE_TYPE_MESSAGE |       // message type pipe
@@ -7417,7 +7442,7 @@ BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParamet
 
             if (hNamedPipeErr == INVALID_HANDLE_VALUE) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Stderr CreateNamedPipe failed (%d): %s"), GetLastError(), getLastErrorText());
-                ret = TRUE;
+                ret = wrapperData->errorExitCode;
             } else {
                 /* Now launch the process */
                 if (ShellExecuteEx(&shex) == TRUE) {
@@ -7431,19 +7456,19 @@ BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParamet
                         if (returnValue == WAIT_OBJECT_0) {
                             if (!GetExitCodeProcess(shex.hProcess, &ret)) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("WaitThread for Backend-Process: %s failed! (%d): %s"), TEXT("GetExitCodeProcess"), GetLastError(), getLastErrorText());
-                                ret = TRUE;
+                                ret = wrapperData->errorExitCode;
                             }
                         } else {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("The elevated Wrapper process is still alive. Trying to kill it. (%d): %s"), GetLastError(), getLastErrorText());
                             if (TerminateProcess(shex.hProcess, 1) == 0) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Failed to kill the elevated Wrapper process. (%d): %s"), GetLastError(), getLastErrorText());
                             }
-                            ret = TRUE;
+                            ret = wrapperData->errorExitCode;
                         }
                     }
                 } else {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Failed to obtain elevated status. (%d): %s"), GetLastError(), getLastErrorText());
-                    ret = TRUE;
+                    ret = wrapperData->errorExitCode;
                 }
                 CloseHandle(hNamedPipeErr);
             }
@@ -7465,7 +7490,7 @@ BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParamet
  * This is just a wrapper function between elevateThis and myShellExec filling in the verb
  * For more information please refer to myShellExec
  */
-BOOL runElevated(__in LPCTSTR pszPath, __in_opt LPCTSTR pszParameters, __in_opt LPCTSTR pszDirectory, TCHAR* namedPipeName) {
+int runElevated(__in LPCTSTR pszPath, __in_opt LPCTSTR pszParameters, __in_opt LPCTSTR pszDirectory, TCHAR* namedPipeName) {
     return myShellExec(NULL, TEXT("runas"), pszPath, pszParameters, pszDirectory, namedPipeName);
 }
 
@@ -7477,8 +7502,8 @@ BOOL runElevated(__in LPCTSTR pszPath, __in_opt LPCTSTR pszParameters, __in_opt 
  *
  * @return exit code of backend process
  */
-BOOL elevateThis(int argc, TCHAR **argv) {
-    int i, namedPipeInserted = 0, ret = FALSE;
+int elevateThis(int argc, TCHAR **argv) {
+    int i, namedPipeInserted = 0, ret = 0;
     size_t len = 0;
     TCHAR szPath[_MAX_PATH];
     TCHAR *parameter;
@@ -7493,7 +7518,7 @@ BOOL elevateThis(int argc, TCHAR **argv) {
         strNamedPipeName = malloc(sizeof(TCHAR) * 11);
         if (!strNamedPipeName) {
             outOfMemory(TEXT("MSE"), 1);
-            return TRUE;
+            return wrapperData->errorExitCode;
         }
         /* create a pseudo-random 10 digit string */
         _sntprintf(strNamedPipeName, 11, TEXT("%05d%05d"), rand() % 100000, rand() % 100000);
@@ -7512,7 +7537,7 @@ BOOL elevateThis(int argc, TCHAR **argv) {
         parameter = calloc(len, sizeof(TCHAR));
         if (!parameter) {
             outOfMemory(TEXT("ET"), 1);
-            return TRUE;
+            return wrapperData->errorExitCode;
         }
         /* now fill the parameter */
         for (i = 1; i < argc; i++) {
@@ -7540,7 +7565,7 @@ BOOL elevateThis(int argc, TCHAR **argv) {
         free(parameter);
         return ret;
     }
-    return TRUE;
+    return wrapperData->errorExitCode;
 
 }
 #endif /* ifdef WIN32 */

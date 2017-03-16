@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2016 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2017 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -54,6 +54,9 @@
 #endif
 #include "wrapper.h"
 #include "logger.h"
+#ifndef WIN32
+ #include "wrapper_ulimit.h"
+#endif
 #include "wrapper_i18n.h"
 
 #ifndef MAX
@@ -1225,7 +1228,7 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
                     dumpProperties(properties);
                     
 #ifndef WIN32
-                    wrapperShowResourceslimits();
+                    showResourceslimits();
 #endif
 
                     /* Change the working directory if configured to do so. */

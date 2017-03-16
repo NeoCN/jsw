@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2016 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2017 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -47,5 +47,9 @@ extern TCHAR** loggerFileGetFiles(const TCHAR* pattern, int sortMode);
  */
 extern void loggerFileFreeFiles(TCHAR** files);
 
-extern TCHAR *tToolsGetRealPath(const TCHAR *path, const TCHAR *pathDesc, int errorLevel, int useQueue);
+extern TCHAR *combinePath(const TCHAR *path1, const TCHAR *path2);
+
+extern TCHAR *getRealPath(const TCHAR *path, const TCHAR *pathDesc, int errorLevel, int useQueue);
+
+TCHAR* getAbsolutePathOfFile(const TCHAR* path, const TCHAR *pathDesc, int errorLevel, int useQueue);
 #endif
