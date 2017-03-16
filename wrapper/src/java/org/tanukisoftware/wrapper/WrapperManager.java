@@ -429,6 +429,7 @@ public final class WrapperManager
     private static String m_pendingStopMessage = null;
     private static int m_exitCode;
     private static boolean m_libraryOK = false;
+    private static boolean m_libraryLoaded = false;
     private static boolean m_libraryVersionOk = false;
     private static boolean m_wrapperVersionOk = false;
     private static byte[] m_commandBuffer = new byte[512];
@@ -1589,6 +1590,7 @@ public final class WrapperManager
         }
         if ( m_libraryOK )
         {
+            m_libraryLoaded = true;
             if ( m_debug )
             {
                 // This message is logged when localization is not yet initialized.
@@ -1650,6 +1652,7 @@ public final class WrapperManager
         }
         else
         {
+            m_libraryLoaded = false;
             // The library could not be loaded, so we want to give the user a useful
             //  clue as to why not.
             String libPath = System.getProperty( "java.library.path" );
@@ -1658,10 +1661,10 @@ public final class WrapperManager
             {
                 // No library path
                 // This message is logged when localization is unavailable.
-                m_outInfo.println( "WARNING - Unable to load the Wrapper's native library because the" );
-                m_outInfo.println( "          java.library.path was set to ''.  Please see the" );
-                m_outInfo.println( "          documentation for the wrapper.java.library.path" );
-                m_outInfo.println( "          configuration property." );
+                m_outInfo.println( "ERROR - Unable to load the Wrapper's native library because the" );
+                m_outInfo.println( "        java.library.path was set to ''.  Please see the" );
+                m_outInfo.println( "        documentation for the wrapper.java.library.path" );
+                m_outInfo.println( "        configuration property." );
             }
             else
             {
@@ -1692,54 +1695,52 @@ public final class WrapperManager
                 {
                     // The library could not be located on the library path.
                     // This message is logged when localization is unavailable.
-                    m_outInfo.println( "WARNING - Unable to load the Wrapper's native library because none of the" );
-                    m_outInfo.println( "          following files:" );
+                    m_outInfo.println( "ERROR - Unable to load the Wrapper's native library because none of the" );
+                    m_outInfo.println( "        following files:" );
                     for ( int i = 0; i < detailedNames.length; i++ )
                     {
                         if ( detailedFiles[i] != null )
                         {
-                            m_outInfo.println( "            " + detailedFiles[i] );
+                            m_outInfo.println( "          " + detailedFiles[i] );
                         }
                     }
-                    m_outInfo.println( "            " + file );
-                    m_outInfo.println( "          could be located on the following java.library.path:" );
+                    m_outInfo.println( "          " + file );
+                    m_outInfo.println( "        could be located on the following java.library.path:" );
                     
                     String pathSep = System.getProperty( "path.separator" );
                     StringTokenizer st = new StringTokenizer( libPath, pathSep );
                     while ( st.hasMoreTokens() )
                     {
                         File pathElement = new File( st.nextToken() );
-                        m_outInfo.println( "            " + pathElement.getAbsolutePath() );
+                        m_outInfo.println( "          " + pathElement.getAbsolutePath() );
                     }
-                    m_outInfo.println( "          Please see the documentation for the wrapper.java.library.path" );
-                    m_outInfo.println( "          configuration property." );
+                    m_outInfo.println( "        Please see the documentation for the wrapper.java.library.path" );
+                    m_outInfo.println( "        configuration property." );
                 }
                 else
                 {
                     // The library file was found but could not be loaded for some reason.
                     // This message is logged when localization is unavailable.
-                    m_outInfo.println( "WARNING - Unable to load the Wrapper's native library '" + libFile.getName() + "'." );
-                    m_outInfo.println( "          The file is located on the path at the following location but" );
-                    m_outInfo.println( "          could not be loaded:" );
-                    m_outInfo.println( "            " + libFile.getAbsolutePath() );
-                    m_outInfo.println( "          Please verify that the file is both readable and executable by the" );
-                    m_outInfo.println( "          current user and that the file has not been corrupted in any way." );
-                    m_outInfo.println( "          One common cause of this problem is running a 32-bit version" );
-                    m_outInfo.println( "          of the Wrapper with a 64-bit version of Java, or vica versa." );
+                    m_outInfo.println( "ERROR - Unable to load the Wrapper's native library '" + libFile.getName() + "'." );
+                    m_outInfo.println( "        The file is located on the path at the following location but" );
+                    m_outInfo.println( "        could not be loaded:" );
+                    m_outInfo.println( "          " + libFile.getAbsolutePath() );
+                    m_outInfo.println( "        Please verify that the file is both readable and executable by the" );
+                    m_outInfo.println( "        current user and that the file has not been corrupted in any way." );
+                    m_outInfo.println( "        One common cause of this problem is running a 32-bit version" );
+                    m_outInfo.println( "        of the Wrapper with a 64-bit version of Java, or vica versa." );
                     if ( m_jvmBits > 0 )
                     {
-                        m_outInfo.println( "          This is a " + m_jvmBits + "-bit JVM." );
+                        m_outInfo.println( "        This is a " + m_jvmBits + "-bit JVM." );
                     }
                     else
                     {
-                        m_outInfo.println( "          The bit depth of this JVM could not be determined." );
+                        m_outInfo.println( "        The bit depth of this JVM could not be determined." );
                     }
-                    m_outInfo.println( "          Reported cause:" );
-                    m_outInfo.println( "            " + error );
+                    m_outInfo.println( "        Reported cause:" );
+                    m_outInfo.println( "          " + error );
                 }
             }
-            // This message is logged when localization is unavailable.
-            m_outInfo.println( "          System signals will not be handled correctly." );
             m_outInfo.println();
         }
     }
@@ -1775,11 +1776,11 @@ public final class WrapperManager
         
         if ( !WrapperInfo.getVersion().equals( wrapperVersion ) )
         {
-            m_outInfo.println( getRes().getString( "ERROR - The Wrapper jar file currently in use is version \"{0}\"\n        while the version of the Wrapper which launched this JVM is\n        \"{0}\"", WrapperInfo.getVersion(), wrapperVersion ) );
+            m_outInfo.println( getRes().getString( "ERROR - The Wrapper jar file currently in use is version \"{0}\"\n        while the version of the Wrapper which launched this JVM is\n        \"{1}\"", WrapperInfo.getVersion(), wrapperVersion ) );
             m_outInfo.println();
-            m_libraryVersionOk = false;
+            m_wrapperVersionOk = false;
         } else {
-            m_libraryVersionOk = true;
+            m_wrapperVersionOk = true;
         }
     }
     
@@ -1818,9 +1819,9 @@ public final class WrapperManager
             m_outInfo.println( getRes().getString( 
                 "ERROR - The version of the Wrapper which launched this JVM is\n        \"{0}\" while the version of the native library\n        is \"{1}\".", wrapperVersion, jniVersion ) );
             m_outInfo.println();
-            m_wrapperVersionOk = false;
+            m_libraryVersionOk = false;
         } else {
-            m_wrapperVersionOk = true;
+            m_libraryVersionOk = true;
         }
     }
     
@@ -5929,9 +5930,11 @@ public final class WrapperManager
             verifyWrapperVersion();
             
             // Make sure that the native library's version is correct.
-            verifyNativeLibraryVersion();
+            if (m_libraryLoaded) {
+                verifyNativeLibraryVersion();
+            }
             
-            if ( !m_wrapperVersionOk || !m_libraryVersionOk ) {
+            if ( !m_wrapperVersionOk || !m_libraryVersionOk || !m_libraryLoaded) {
                 // We need to wait until the backend is opened before stopping the JVM,
                 //  else the Wrapper can't be informed that the JVM requested to stop.
                 stop( 1 );

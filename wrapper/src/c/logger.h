@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2016 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2017 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -222,7 +222,6 @@ extern void setLogfileLevelInt(int log_file_level);
 extern int getLogfileLevelInt();
 extern void setLogfileLevel( const TCHAR *log_file_level );
 extern void setLogfileMaxFileSize( const TCHAR *max_file_size );
-extern void setLogfileMaxFileSizeInt(int max_file_size);
 extern void setLogfileMaxLogFiles(int max_log_files);
 extern void setLogfilePurgePattern(const TCHAR *pattern);
 extern void setLogfilePurgeSortMode(int sortMode);
@@ -268,9 +267,10 @@ extern void setSyslogFacility( const TCHAR *loginfo_level );
 #endif
 extern void setSyslogEventSourceName( const TCHAR *event_source_name );
 extern void setThreadMessageBufferInitialSize(int initialValue);
-extern int syslogMessageFileRegistered(int useLoggerQueue);
-extern int registerSyslogMessageFile(int forceInstall, int useLoggerQueue);
-extern int unregisterSyslogMessageFile(int useLoggerQueue);
+extern void disableSysLog(int silent);
+extern int syslogMessageFileRegistered(int silent);
+extern int registerSyslogMessageFile(int forceInstall, int silent);
+extern int unregisterSyslogMessageFile(int silent);
 
 
 extern void resetDuration();

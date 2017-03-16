@@ -1,4 +1,4 @@
-# Copyright (c) 1999, 2016 Tanuki Software, Ltd.
+# Copyright (c) 1999, 2017 Tanuki Software, Ltd.
 # http://www.tanukisoftware.com
 # All rights reserved.
 #
@@ -13,11 +13,11 @@ INCLUDE=$(JAVA_HOME)/include
 
 DEFS = -I$(INCLUDE) -I$(INCLUDE)/linux
 
-wrapper_SOURCE = wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c logger_file.c wrapper_file.c wrapper_i18n.c wrapper_hashmap.c
+wrapper_SOURCE = wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c logger_file.c wrapper_file.c wrapper_i18n.c wrapper_hashmap.c wrapper_ulimit.c
 
 libwrapper_so_OBJECTS = wrapper_i18n.o wrapperjni_unix.o wrapperinfo.o wrapperjni.o loggerjni.o
 
-testsuite_SOURCE = testsuite.c test_example.c test_javaadditionalparam.c test_hashmap.c test_filter.c wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c logger_file.c wrapper_file.c wrapper_i18n.c wrapper_hashmap.c
+testsuite_SOURCE = testsuite.c test_example.c test_javaadditionalparam.c test_hashmap.c test_filter.c wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c logger_file.c wrapper_file.c wrapper_i18n.c wrapper_hashmap.c wrapper_ulimit.c
 
 BIN = ../../bin
 LIB = ../../lib

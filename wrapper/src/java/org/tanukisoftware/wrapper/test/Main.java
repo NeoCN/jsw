@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper.test;
 
 /*
- * Copyright (c) 1999, 2016 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2017 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -243,6 +243,7 @@ public class Main
             m_listenerFlags.add( "Control" );
             m_listenerFlags.add( "Logging" );
             m_listenerFlags.add( "Core" );
+            m_listenerFlags.add( "RemoteControl" );
             
             Panel flagPanel = new Panel();
             flagPanel.setLayout( new BorderLayout() );
@@ -303,8 +304,10 @@ public class Main
             buildCommand( panel, gridBag, c, getRes().getString( "Is Standard?" ), "is_standard", getRes().getString( "Prints true if this is a Standard Edition." ) );
             
             addWindowListener( this );
-            WrapperManager.addWrapperEventListener( Main.this, WrapperEventListener.EVENT_FLAG_REMOTE_CONTROL );
-            WrapperManager.addWrapperEventListener( Main.this, WrapperEventListener.EVENT_FLAG_SERVICE );
+            
+            // By default listen to Service and RemoteControl events.
+            buildEventMask( new String[] { "Service", "RemoteControl" } );
+            updateEventListener();
         }
         
         private void buildCommand( Container container,
@@ -348,6 +351,38 @@ public class Main
             container.add( desc );
         }
         
+        private void buildEventMask(String[] flags) 
+        {
+            // Create the mask.
+            long mask = 0;
+            for ( int i = 0; i < flags.length; i++ )
+            {
+                String flag = flags[i];
+                if ( flag.equals( "Service" ) )
+                {
+                    mask |= WrapperEventListener.EVENT_FLAG_SERVICE;
+                }
+                else if ( flag.equals( "Control" ) )
+                {
+                    mask |= WrapperEventListener.EVENT_FLAG_CONTROL;
+                }
+                else if ( flag.equals( "Logging" ) )
+                {
+                    mask |= WrapperEventListener.EVENT_FLAG_LOGGING;
+                }
+                else if ( flag.equals( "Core" ) )
+                {
+                    mask |= WrapperEventListener.EVENT_FLAG_CORE;
+                }
+                else if ( flag.equals( "RemoteControl" ) )
+                {
+                    mask |= WrapperEventListener.EVENT_FLAG_REMOTE_CONTROL;
+                }
+            }
+            
+            setEventMask( mask );
+        }
+        
         /**************************************************************************
          * ActionListener Methods
          *************************************************************************/
@@ -356,31 +391,8 @@ public class Main
             String action = event.getActionCommand();
             if ( action.equals( "listener" ) )
             {
-                // Create the mask.
-                long mask = 0;
                 String[] flags = m_listenerFlags.getSelectedItems();
-                for ( int i = 0; i < flags.length; i++ )
-                {
-                    String flag = flags[i];
-                    if ( flag.equals( "Service" ) )
-                    {
-                        mask |= WrapperEventListener.EVENT_FLAG_SERVICE;
-                    }
-                    else if ( flag.equals( "Control" ) )
-                    {
-                        mask |= WrapperEventListener.EVENT_FLAG_CONTROL;
-                    }
-                    else if ( flag.equals( "Logging" ) )
-                    {
-                        mask |= WrapperEventListener.EVENT_FLAG_LOGGING;
-                    }
-                    else if ( flag.equals( "Core" ) )
-                    {
-                        mask |= WrapperEventListener.EVENT_FLAG_CORE;
-                    }
-                }
-                
-                setEventMask( mask );
+                buildEventMask(flags);
             }
             
             int slowSeconds;
@@ -704,8 +716,9 @@ public class Main
      * Resume the application. 
      */
     private void resume() {
+        String title = m_frame.getTitle();
         // Update the title to remove the "paused" state.
-        m_frame.setTitle( m_frame.getTitle().replace( getRes().getString( " (paused)" ), "" ) );
+        m_frame.setTitle( title.substring( 0, title.indexOf( getRes().getString( " (paused)" ) ) ) );
 
         // Enable all components of the frame.
         enableComponents( m_frame, true );

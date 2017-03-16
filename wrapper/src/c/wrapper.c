@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2016 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2017 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -56,6 +56,9 @@
 #include "logger.h"
 #include "logger_file.h"
 #include "wrapper_file.h"
+#ifndef WIN32
+ #include "wrapper_ulimit.h"
+#endif
 
 #ifdef WIN32
  #include <direct.h>
@@ -615,138 +618,14 @@ int isCygwin() {
 }
 #endif
 
-#ifndef WIN32
-/**
- * Set the soft and hard resource limits (such as file descriptor).
- *  For each resource, we can set the limits being strict or not.
- *  - strict: the Wrapper will stop if it is not possible to set the limit as defined in the configuration.
- *  - not strict: the Wrapper will try to adjust the hard and soft limits to be as close as possible to the
- *                configuration and show warnings whenever a property is resolved to a different value.
- *  The constraints are the following: - the soft limit can't be greater than the hard limit.
- *                                     - the hard limit can only be raised by the root user.
- *
- * Returns 0 if no error. Otherwise returns 1.
- */
-int wrapperSetResourcesLimits() {
-    struct rlimit oldLimits, newLimits, confLimits;
-    int strict;
-    int logLevel;
-        
-    confLimits.rlim_cur = (rlim_t)getIntProperty(properties, TEXT("wrapper.ulimit.nofile.soft"), 0);
-    confLimits.rlim_max = (rlim_t)getIntProperty(properties, TEXT("wrapper.ulimit.nofile.hard"), 0);
-    if (confLimits.rlim_cur != 0 || confLimits.rlim_max != 0) {
-        /* The user has specified limits for the number of open file descriptors. */
-        if ((confLimits.rlim_cur != 0) && (confLimits.rlim_max != 0) && (confLimits.rlim_max < confLimits.rlim_cur)) {
-            /* This is a configuration error, return 1 no matter we are strict or not. */
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("The soft limit (%llu) for the number of open file descriptors is set higher than the hard limit (%llu)."), confLimits.rlim_cur, confLimits.rlim_max);
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("  Make sure to correctly set the values of the wrapper.ulimit.nofile.soft and wrapper.ulimit.nofile.hard properties."));
-            return 1;
-        }
-        
-        /* Get the limits for the resource. */
-        if (getrlimit(RLIMIT_NOFILE, &oldLimits) != 0) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to get the limits for the number of open file descriptors: (0x%x)"), errno);
-            return 1;
-        }
-        
-        /* Unless we fail to set the limits for some unknown reason, any error bellow will return 1 if we are strict, 0 otherwise. */
-        strict = getBooleanProperty(properties, TEXT("wrapper.ulimit.nofile.strict"), TRUE);
-        logLevel = strict ? LEVEL_FATAL : properties->logWarningLogLevel;
-        
-        /* Resolve the hard limit. */
-        if (confLimits.rlim_max == 0) {
-            /* Use the current value */
-            newLimits.rlim_max = oldLimits.rlim_max;
-        } else {
-            /* Use the configured value */
-            newLimits.rlim_max = confLimits.rlim_max;
-        }
-        
-        /* Resolve the soft limit. */
-        if (confLimits.rlim_cur == 0) {
-            /* Use the current value */
-            newLimits.rlim_cur = oldLimits.rlim_cur;
-        } else {
-            /* Use the configured value */
-            newLimits.rlim_cur = confLimits.rlim_cur;
-        }
-        
-        /* Resolve cases where the soft limit is greater than the hard limit. */
-        if (newLimits.rlim_max < newLimits.rlim_cur) {
-            if (confLimits.rlim_max == 0) {
-                /* The user has set only the SOFT limit. */
-                log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("The soft limit (%llu) for the number of open file descriptors is set higher than the current hard limit (%llu)."), confLimits.rlim_cur, oldLimits.rlim_max);
-                if (strict) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("  Make sure to correctly set the value of the wrapper.ulimit.nofile.soft property."));
-                    return 1;
-                }
-                newLimits.rlim_cur = oldLimits.rlim_max;
-            } else {
-                /* The user has set only the HARD limit. */
-                log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("The hard limit (%llu) for the number of open file descriptors is set lower than the current soft limit (%llu)."), confLimits.rlim_max, oldLimits.rlim_cur);
-                if (strict) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("  Make sure to correctly set the value of the wrapper.ulimit.nofile.hard property."));
-                    return 1;
-                }
-                newLimits.rlim_cur = newLimits.rlim_max;
-            }
-            log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("  Decreasing the soft limit to the value of the hard limit."));
-        }
-        
-        /* Try to set the limits */
-        if (setrlimit(RLIMIT_NOFILE, &newLimits) != 0) {
-            /* Resolve cases where the configured hard limit is greater than the current hard limit. */
-            if ((oldLimits.rlim_max < confLimits.rlim_max) && (errno == EPERM)) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("The process doesn't have sufficient privileges to raise the hard limit (from %llu to %llu) for the number of open file descriptors."), oldLimits.rlim_max, confLimits.rlim_max);
-                if (strict) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("  Please run the Wrapper with sufficient privileges or adjust the value of the wrapper.ulimit.nofile.hard property."));
-                    return 1;
-                }
-                newLimits.rlim_max = oldLimits.rlim_max;
-                if (newLimits.rlim_max < newLimits.rlim_cur) {
-                    newLimits.rlim_cur = newLimits.rlim_max;
-                    log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("  Ignoring the configured hard limit. Decreasing the configured soft limit to the value of the hard limit."));
-                } else {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("  Ignoring the configured hard limit."));
-                }
-                /* Set again the limits. */
-                if (setrlimit(RLIMIT_NOFILE, &newLimits) != 0) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to set the limits for the number of open file descriptors (0x%x)."), errno);
-                    return 1;
-                }
-            } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to set the limits for the number of open file descriptors (0x%x)."), errno);
-                return 1;
-            }
-        }
-    }
-
-    return 0;
-}
-
-/** 
- * Print out the soft and hard resource limits.
- */
-void wrapperShowResourceslimits() {
-    struct rlimit limits;
-    
-    int logLevel = getLogLevelForName(getStringProperty(properties, TEXT("wrapper.ulimit.loglevel"), TEXT("DEBUG")));
-    
-    if ((getLowLogLevel() <= logLevel) && (logLevel != LEVEL_NONE)) {
-        if (getrlimit(RLIMIT_NOFILE, &limits) != 0) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to get the limits for the number of open file descriptors: (0x%x)"), errno);
-        } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("File descriptor limits: %llu (soft), %llu (hard)."), limits.rlim_cur, limits.rlim_max);
-        }
-    }
-}
-#endif
-
 void wrapperLoadLoggingProperties(int preload) {
     const TCHAR *logfilePath;
     int logfileRollMode;
     int underCygwin = FALSE;
     int defaultFlushTimeOut = 1;
+#ifdef WIN32
+    int silent;
+#endif
     
     setLogPropertyWarnings(properties, !preload);
     
@@ -758,7 +637,7 @@ void wrapperLoadLoggingProperties(int preload) {
     wrapperData->logLFDelayThreshold = propIntMax(propIntMin(getIntProperty(properties, TEXT("wrapper.log.lf_delay.threshold"), 500), 3600000), 0);
 
     if (resolveDefaultLogFilePath()) {
-        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Failed to resolve the absolute path of the default log file."));
+        /* The error has already been logged. This is not fatal, we will continue with the relative path. */
     }
     
     logfilePath = getFileSafeStringProperty(properties, TEXT("wrapper.logfile"), TEXT("wrapper.log"));
@@ -854,26 +733,27 @@ void wrapperLoadLoggingProperties(int preload) {
 #ifdef WIN32
     /* Register or unregister an event source depending on the value of wrapper.syslog.ident.enable.
      *  The syslog will be disabled if the application is not registered after calling the functions
-     *  to register or unregister, so this has to be done on preload. */
-    if (preload) {
-        /* Make sure we are not running in setup, teardown or install mode. 
-         *  - Setup is automatically executed when installing a service - no need to do it here.
-         *  - TearDown is not executed when removing the service as this would remove the source 
-         *    of existing messages in the event log. */
-        if (strcmpIgnoreCase(wrapperData->argCommand, TEXT("su")) && strcmpIgnoreCase(wrapperData->argCommand, TEXT("-setup")) &&
-            strcmpIgnoreCase(wrapperData->argCommand, TEXT("td")) && strcmpIgnoreCase(wrapperData->argCommand, TEXT("-teardown")) &&
-            strcmpIgnoreCase(wrapperData->argCommand, TEXT("i"))  && strcmpIgnoreCase(wrapperData->argCommand, TEXT("-install")) &&
-            strcmpIgnoreCase(wrapperData->argCommand, TEXT("it")) && strcmpIgnoreCase(wrapperData->argCommand, TEXT("-installstart"))) {
-            /* The functions bellow need to be called even if we don't have the permission to edit the registry.
-             *   They will eventually disable event logging if the application is not registered. Since we are
-             *   calling them on preload, any log output should be queued (useLoggerQueue = TRUE). */
-            if (getSyslogRegister()) {
-                /* Register the syslog message */
-                registerSyslogMessageFile(FALSE, TRUE);
-            } else {
-                /* Unregister the syslog message */
-                unregisterSyslogMessageFile(TRUE);
-            }
+     *  to register or unregister, so this has to be done on preload. This has to be done again each
+     *  time the configuration is reloaded because wrapper.syslog.ident.enable may potentially change. */
+    /* Make sure we are not running in setup, teardown or install mode. 
+     *  - Setup is automatically executed when installing a service - no need to do it here.
+     *  - TearDown is not executed when removing the service as this would remove the source 
+     *    of existing messages in the event log. */
+    if (strcmpIgnoreCase(wrapperData->argCommand, TEXT("su")) && strcmpIgnoreCase(wrapperData->argCommand, TEXT("-setup")) &&
+        strcmpIgnoreCase(wrapperData->argCommand, TEXT("td")) && strcmpIgnoreCase(wrapperData->argCommand, TEXT("-teardown")) &&
+        strcmpIgnoreCase(wrapperData->argCommand, TEXT("i"))  && strcmpIgnoreCase(wrapperData->argCommand, TEXT("-install")) &&
+        strcmpIgnoreCase(wrapperData->argCommand, TEXT("it")) && strcmpIgnoreCase(wrapperData->argCommand, TEXT("-installstart"))) {
+        /* The functions bellow need to be called even if we don't have the permission to edit the registry.
+         *  They will eventually disable event logging if the application is not registered.
+         *  On preload use the silent mode to avoid double log outputs. */
+        silent = preload || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("r")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-remove"))
+                         || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("p")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-stop"));
+        if (getSyslogRegister()) {
+            /* Register the syslog message */
+            registerSyslogMessageFile(FALSE, silent);
+        } else {
+            /* Unregister the syslog message */
+            unregisterSyslogMessageFile(silent);
         }
     }
 #endif
@@ -903,7 +783,7 @@ void wrapperLoadLoggingProperties(int preload) {
  * @return TRUE if something failed.
  */
 int wrapperPreLoadConfigurationProperties(int *logLevelOnOverwriteProperties, int *exitOnOverwriteProperties) {
-    int returnVal;
+    int returnVal = FALSE;
     
     /* Load log file */
     wrapperLoadLoggingProperties(TRUE);
@@ -3371,7 +3251,7 @@ void wrapperGetFileBase(const TCHAR *fileName, TCHAR *baseName) {
 TCHAR *generateVersionBanner() {
     TCHAR *banner = TEXT("Java Service Wrapper %s Edition %s-bit %s\n  Copyright (C) 1999-%s Tanuki Software, Ltd. All Rights Reserved.\n    http://wrapper.tanukisoftware.com");
     TCHAR *product = TEXT("Community");
-    TCHAR *copyright = TEXT("2016");
+    TCHAR *copyright = TEXT("2017");
     TCHAR *buffer;
     size_t len;
 
@@ -5070,7 +4950,7 @@ int wrapperRunCommonInner() {
     }
     
 #ifndef WIN32
-    wrapperShowResourceslimits();
+    showResourceslimits();
 #endif
 
 #ifdef _DEBUG
@@ -5117,6 +4997,8 @@ int wrapperRunCommon(const TCHAR *runMode) {
         } else {
             exitCode = wrapperData->errorExitCode;
         }
+    } else {
+        exitCode = wrapperData->errorExitCode;
     }
 
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("<-- Wrapper Stopped"));
@@ -8406,6 +8288,7 @@ int loadConfiguration() {
     /* Decide on the error exit code */
     wrapperData->errorExitCode = getIntProperty(properties, TEXT("wrapper.exit_code.error"), 1);
     if (wrapperData->errorExitCode < 1 || wrapperData->errorExitCode > 255) {
+        wrapperData->errorExitCode = 1;
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
             TEXT("%s must be in the range %d to %d.  Changing to %d."), TEXT("wrapper.exit_code.error"), 1, 255, 1);
     }
@@ -8821,7 +8704,7 @@ int loadConfiguration() {
         return TRUE;
     }
 
-    if (wrapperSetResourcesLimits()) {
+    if (loadResourcesLimitsConfiguration()) {
         return TRUE;
     }
 #endif

@@ -1,4 +1,4 @@
-# Copyright (c) 1999, 2016 Tanuki Software, Ltd.
+# Copyright (c) 1999, 2017 Tanuki Software, Ltd.
 # http://www.tanukisoftware.com
 # All rights reserved.
 #
@@ -15,7 +15,7 @@ INCLUDE=$(JAVA_HOME)/include
 
 DEFS = -I$(INCLUDE) -I$(INCLUDE)/irix
 
-wrapper_OBJECTS = wrapper.o wrapperinfo.o wrappereventloop.o wrapper_unix.o property.o logger.o logger_file.o wrapper_file.o wrapper_i18n.o wrapper_hashmap.o
+wrapper_OBJECTS = wrapper.o wrapperinfo.o wrappereventloop.o wrapper_unix.o property.o logger.o logger_file.o wrapper_file.o wrapper_i18n.o wrapper_hashmap.o wrapper_ulimit.o
 
 libwrapper_so_OBJECTS = wrapper_i18n.o wrapperjni_unix.o wrapperinfo.o wrapperjni.o loggerjni.o
 

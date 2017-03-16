@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2016 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2017 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -789,12 +789,6 @@ extern void wrapperUpdateJavaStateTimeout(TICKS nowTicks, int delay);
  */
 extern void wrapperSetJavaState(int jState, TICKS nowTicks, int delay);
 
-#ifndef WIN32
-/**
- * Print out the soft and hard resource limits.
- */
-extern void  wrapperShowResourceslimits();
-#endif
 /******************************************************************************
  * Platform specific methods
  *****************************************************************************/
