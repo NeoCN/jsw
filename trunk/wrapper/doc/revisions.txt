@@ -1,5 +1,22 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.5.32
+* Fix a bug introduced in 3.5.31 where the Wrapper did not clean up child
+  processes when shutting down.
+* Fix a bug on z/OS where commands were ignored if the command file contained
+  an EBCDIC newline character.
+* In the script file, stop using "runuser" when running the Wrapper in console
+  mode and use "su" instead to handle signals properly.
+* In the script file, it is now possible to pass options to the command
+  "runuser" with $SU_OPTS.
+* Fix an issue where some messages coming from Wrapper invocations used to
+  control the Wrapper as a service were not marked with the "wrapperm" logging
+  source.
+* Fix a memory fault happening when the Wrapper exits after failing to write
+  the pid file. This was causing to return 139 instead of the normal exit code.
+  Since 3.5.31.
+* Fix a minor memory leak when sending emails.
+
 3.5.31
 * Fix script file to resolve the architecture name correctly on Z/Linux.
 * Change the default behavior of the script file to automatically detect the 

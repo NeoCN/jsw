@@ -169,6 +169,10 @@ extern void setPauseTime(int pauseTime);
  */
 void setLogBufferGrowth(int log);
 
+extern int getLoggingIsPreload();
+
+extern void setLoggingIsPreload(int value);
+
 /* * Logfile functions * */
 extern int isLogfileAccessed();
 

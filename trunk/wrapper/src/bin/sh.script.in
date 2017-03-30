@@ -16,7 +16,7 @@
 
 #-----------------------------------------------------------------------------
 # These settings can be modified to fit the needs of your application
-# Optimized for use with version 3.5.31 of the Wrapper.
+# Optimized for use with version 3.5.32 of the Wrapper.
 
 # IMPORTANT - Please always stop and uninstall an application before making
 #             any changes to this file.  Failure to do so could remove the
@@ -128,7 +128,7 @@ WAIT_FOR_STARTED_TIMEOUT=120
 #  ignore the value of SU_BIN.
 SU_BIN=su
 
-# Set option for 'su'.
+# Set option(s) for 'su' or 'runuser'.
 # In case the user set in RUN_AS_USER has no bash set, the 'su' command will fail.
 # The workaround for GNU/Linux system is to specify which bash to use with 
 #  the '-s' option.
@@ -792,11 +792,10 @@ checkUser() {
             shift
         done
 
-        # Use "runuser" if this exists.
-        # runuser should be used on RedHat in preference to su.
-        if test -f "/sbin/runuser"
-        then
-            /sbin/runuser - $RUN_AS_USER -c "\"$REALPATH\" $ADDITIONAL_PARA"
+        # runuser doesn't transmit signals (such as ctrl+c) to the Wrapper. This causes problem when running as a console.
+        # When the Wrapper is launched as a service on RedHat, runuser should be used in preference to su.
+        if [ -f "/sbin/runuser" -a $COMMAND != "console" ] ; then
+            /sbin/runuser - $RUN_AS_USER -c "\"$REALPATH\" $ADDITIONAL_PARA" $SU_OPTS
         else
             $SU_BIN - $RUN_AS_USER -c "\"$REALPATH\" $ADDITIONAL_PARA" $SU_OPTS
         fi
@@ -836,9 +835,8 @@ checkUser() {
 # With this function, we want to make sure we are able to fork.
 checkForkCommand() {
     
-    if test -f "/sbin/runuser"
-    then
-        /sbin/runuser - $RUN_AS_USER -c "ls \"$REALPATH\"" > /dev/null 2>&1 &
+    if [ -f "/sbin/runuser" -a $COMMAND != "console" ] ; then
+        /sbin/runuser - $RUN_AS_USER -c "ls \"$REALPATH\"" $SU_OPTS > /dev/null 2>&1 &
     else
         $SU_BIN - $RUN_AS_USER -c "ls \"$REALPATH\"" $SU_OPTS > /dev/null 2>&1 &
     fi
@@ -1050,7 +1048,7 @@ launchinternal() {
         prepAdditionalParams "$@"
 
         # The string passed to eval must handles spaces in paths correctly.
-        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.daemonize=TRUE $APPNAMEPROP $ANCHORPROP $IGNOREPROP $STATUSPROP $COMMANDPROP $LOCKPROP wrapper.script.version=3.5.31 $ADDITIONAL_PARA"
+        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.daemonize=TRUE $APPNAMEPROP $ANCHORPROP $IGNOREPROP $STATUSPROP $COMMANDPROP $LOCKPROP wrapper.script.version=3.5.32 $ADDITIONAL_PARA"
         eval $COMMAND_LINE
     else
         eval echo `gettext '$APP_LONG_NAME is already running.'`
@@ -1073,7 +1071,7 @@ console() {
         prepAdditionalParams "$@"
 
         # The string passed to eval must handles spaces in paths correctly.
-        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" $APPNAMEPROP $ANCHORPROP $STATUSPROP $COMMANDPROP $LOCKPROP wrapper.script.version=3.5.31 $ADDITIONAL_PARA"
+        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" $APPNAMEPROP $ANCHORPROP $STATUSPROP $COMMANDPROP $LOCKPROP wrapper.script.version=3.5.32 $ADDITIONAL_PARA"
         eval $COMMAND_LINE
         COMMAND_EXIT_CODE=$?
         if [ $COMMAND_EXIT_CODE -ne 0 ] ; then
@@ -1408,7 +1406,7 @@ start() {
         prepAdditionalParams "$@"
 
         # The string passed to eval must handles spaces in paths correctly.
-        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.daemonize=TRUE $APPNAMEPROP $ANCHORPROP $IGNOREPROP $STATUSPROP $COMMANDPROP $LOCKPROP wrapper.script.version=3.5.31 $ADDITIONAL_PARA"
+        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.daemonize=TRUE $APPNAMEPROP $ANCHORPROP $IGNOREPROP $STATUSPROP $COMMANDPROP $LOCKPROP wrapper.script.version=3.5.32 $ADDITIONAL_PARA"
         eval $COMMAND_LINE
     else
         eval echo `gettext '$APP_LONG_NAME is already running.'`
