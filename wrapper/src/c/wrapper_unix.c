@@ -1888,6 +1888,7 @@ int main(int argc, char **argv) {
     int i;
 #endif
     TCHAR *retLocale;
+    int exitCode;
 
 #ifdef FREEBSD
     /* In the case of FreeBSD, we need to dynamically load and initialize the iconv library to work with all versions of FreeBSD. */
@@ -2093,7 +2094,8 @@ int main(int argc, char **argv) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                      TEXT("ERROR: Could not write pid file %s: %s"),
                 wrapperData->pidFilename, getLastErrorText());
-                     /* Common wrapper cleanup code. */
+                exitCode = wrapperData->errorExitCode;
+                /* Common wrapper cleanup code. */
                 wrapperDispose();
 #if defined(UNICODE)
                 for (i = 0; i < argc; i++) {
@@ -2105,7 +2107,7 @@ int main(int argc, char **argv) {
                     free(argv);
                 }
 #endif
-                exit(wrapperData->errorExitCode);
+                exit(exitCode);
                 return 1; /* For compiler. */
             }
         }

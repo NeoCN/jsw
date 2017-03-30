@@ -6696,6 +6696,24 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         }
         
+        /* Set launcher mode as soon as possible after the arguments are parsed. */
+        if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("su")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-setup")) ||
+           !strcmpIgnoreCase(wrapperData->argCommand, TEXT("td")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-teardown")) ||
+           !strcmpIgnoreCase(wrapperData->argCommand, TEXT("i"))  || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-install")) ||
+           !strcmpIgnoreCase(wrapperData->argCommand, TEXT("it")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-installstart")) ||
+           !strcmpIgnoreCase(wrapperData->argCommand, TEXT("u"))  || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-update")) ||
+           !strcmpIgnoreCase(wrapperData->argCommand, TEXT("r"))  || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-remove")) ||
+           !strcmpIgnoreCase(wrapperData->argCommand, TEXT("t"))  || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-start")) ||
+           !strcmpIgnoreCase(wrapperData->argCommand, TEXT("a"))  || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-pause")) ||
+           !strcmpIgnoreCase(wrapperData->argCommand, TEXT("e"))  || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-resume")) ||
+           !strcmpIgnoreCase(wrapperData->argCommand, TEXT("p"))  || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-stop")) ||
+           !strcmpIgnoreCase(wrapperData->argCommand, TEXT("l"))  || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-controlcode")) ||
+           !strcmpIgnoreCase(wrapperData->argCommand, TEXT("d"))  || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-dump")) ||
+           !strcmpIgnoreCase(wrapperData->argCommand, TEXT("q"))  || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-query")) ||
+           !strcmpIgnoreCase(wrapperData->argCommand, TEXT("qs")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-querysilent"))) {
+            enterLauncherMode();
+        }
+        
         wrapperLoadHostName();
 
         /* At this point, we have a command, confFile, and possibly additional arguments. */
@@ -6758,7 +6776,6 @@ void _tmain(int argc, TCHAR **argv) {
         /* Perform the specified command */
         if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("su")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-setup"))) {
             /* Setup the Wrapper */
-            enterLauncherMode();
             
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
@@ -6776,7 +6793,6 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("td")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-teardown"))) {
             /* Setup the Wrapper */
-            enterLauncherMode();
             
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
@@ -6794,7 +6810,6 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("i")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-install"))) {
             /* Install an NT service */
-            enterLauncherMode();
             
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
@@ -6814,7 +6829,6 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("it")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-installstart"))) {
             /* Install and Start an NT service */
-            enterLauncherMode();
             
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
@@ -6837,7 +6851,6 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("r")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-remove"))) {
             /* Remove an NT service */
-            enterLauncherMode();
             
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
@@ -6855,7 +6868,6 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("t")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-start"))) {
             /* Start an NT service */
-            enterLauncherMode();
             
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
@@ -6873,7 +6885,6 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("a")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-pause"))) {
             /* Pause a started NT service */
-            enterLauncherMode();
             
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
@@ -6890,7 +6901,6 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("e")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-resume"))) {
             /* Resume a paused NT service */
-            enterLauncherMode();
             
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
@@ -6907,7 +6917,6 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("p")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-stop"))) {
             /* Stop an NT service */
-            enterLauncherMode();
             
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
@@ -6924,7 +6933,6 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("l")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-controlcode"))) {
             /* Send a control code to an NT service */
-            enterLauncherMode();
             
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
@@ -6941,7 +6949,6 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("d")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-dump"))) {
             /* Request a thread dump */
-            enterLauncherMode();
             
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
@@ -6958,7 +6965,6 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("q")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-query"))) {
             /* Return service status with console output. */
-            enterLauncherMode();
             
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
@@ -6975,7 +6981,6 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("qs")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-querysilent"))) {
             /* Return service status without console output. */
-            enterLauncherMode();
             
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);

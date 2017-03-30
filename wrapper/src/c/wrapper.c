@@ -627,6 +627,8 @@ void wrapperLoadLoggingProperties(int preload) {
     int silent;
 #endif
     
+    setLoggingIsPreload(preload);
+    
     setLogPropertyWarnings(properties, !preload);
     
     setLogPropertyWarningLogLevel(properties, getLogLevelForName(getStringProperty(properties, TEXT("wrapper.property_warning.loglevel"), TEXT("WARN"))));

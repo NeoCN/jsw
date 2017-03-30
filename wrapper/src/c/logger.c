@@ -201,6 +201,8 @@ int uptimeSeconds = 0;
 /* TRUE once the uptime is so large that it is meaningless. */
 int uptimeFlipped = FALSE;
 
+int isPreload = FALSE;
+
 /* Internal function declaration */
 #ifdef WIN32
 void sendEventlogMessage( int source_id, int level, const TCHAR *szBuff );
@@ -661,6 +663,14 @@ void setLauncherSource() {
 }
 #endif
 
+int getLoggingIsPreload() {
+    return isPreload;
+}
+
+void setLoggingIsPreload(int value) {
+    isPreload = value;
+}
+
 /* Logfile functions */
 int isLogfileAccessed() {
     return logFileAccessed;
@@ -720,7 +730,8 @@ int setLogfilePath(const TCHAR *log_file_path, int isConfigured) {
 
     /* Convert the path to an absolute path. */
     if (log_file_path) {
-        logFilePath = getAbsolutePathOfFile(log_file_path, TEXT("log file path"), LEVEL_WARN, TRUE);
+        /* Log in DEBUG here. We will later show a warning with checkLogfileDir() if the directory does not exist. */
+        logFilePath = getAbsolutePathOfFile(log_file_path, TEXT("log file path"), getLoggingIsPreload() ? LEVEL_NONE : LEVEL_DEBUG, FALSE);
 #ifdef _DEBUG
         log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Absolute path to the configured log file resolved to %s."), logFilePath);
 #endif

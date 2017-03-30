@@ -155,7 +155,7 @@ wrapper.filter.message.1001=The JVM has run out of memory.
 #wrapper.event.default.email.recipient=<Recipient email>
 
 # Configure the log attached to event emails.
-#wrapper.event.default.email.attach_log=TRUE
+#wrapper.event.default.email.maillog=ATTACHMENT
 #wrapper.event.default.email.maillog.lines=50
 #wrapper.event.default.email.maillog.format=LPTM
 #wrapper.event.default.email.maillog.loglevel=INFO
