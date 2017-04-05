@@ -1,5 +1,7 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.5.33
+
 3.5.32
 * Fix a bug introduced in 3.5.31 where the Wrapper did not clean up child
   processes when shutting down.
