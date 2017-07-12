@@ -1,6 +1,52 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 3.5.33
+* Fix a false positive when detecting Upstart on Linux.
+* Fix a bug where it was required to register the Wrapper to the Event Log on
+  Windows in order to send messages to a remote syslog server via UDP.
+* Fix a memory leak when sending messages to a remote syslog server. Since
+  3.5.27.
+* Fix wrong exit code when the Wrapper was configured to shutdown on a ping
+  timeout. The exit code was always 1 whereas it should be the value of the
+  wrapper.exit_code.error property.
+* Check that the configured service management tool is available before
+  installing a daemon on Linux and return an exit code of 1 whenever the
+  installation fails.
+* Add new properties wrapper.ulimit.data.{soft|hard} to limit the size of the
+  data segment of any process started by the Wrapper. It is similar to running
+  the command "ulimit -d X" in a terminal.
+* Improve the processing of the command file by ignoring blank lines and any
+  spaces before the command.
+* Correct invalid exit code that may be written in the command file along with
+  a STOP command. If the exit code is out of the range 0-255, it will be
+  resolved to the value of the wrapper.exit_code.error property.
+* Fix a misleading message when the Wrapper was paused using the command file.
+* Fix a bug where, on certain UNIX platforms, the locale was not correctly set
+  from the environment at startup.
+* Fix a bug on FreeBSD where conversions of JVM outputs to a different encoding
+  (specified with wrapper.lang.encoding) systematically failed because the
+  iconv library was not loaded by the native library.
+* On FreeBSD, it has been observed that certain versions of iconv fail to
+  convert some characters like backslashes when the SJIS encoding is specified.
+  In such case the Wrapper will consider SJIS as unsupported and fall back
+  using the encoding of the console which launched the Wrapper.
+* Fix garbled question marks that appeared in messages logged while performing
+  actions (install, start, pause, etc.) on a Windows service when the Wrapper
+  language was different than the system language.
+* On Windows, instead of printing system errors in the language of the UI, the
+  Wrapper will now first try to use the language specified in the configuration
+  (English for the community edition).
+* Enhance security by adding a linker option to enable ASLR (Address Space
+  Layout Randomization) on Windows Vista and above (Windows Itanium not
+  supported), and by attempting to enable DEP (Data Execution Prevention) right
+  after the Wrapper is launched (Windows XP SP3 and above). DEP enforcement
+  will only affect 32-bit versions as Windows automatically enables DEP for
+  64-bit binaries.
+* Fix double thread dump issue when pressing CTRL-\ while the Wrapper is 
+  running as a console on Linux. The problem remains on other UNIX platforms.
+* Fix a problem where backslashes in the path of the log file, configured with
+  the wrapper.logfile property, were not being handled correctly resulting in
+  the Wrapper being unable to create the log file (Unix only).
 
 3.5.32
 * Fix a bug introduced in 3.5.31 where the Wrapper did not clean up child

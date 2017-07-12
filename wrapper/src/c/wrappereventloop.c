@@ -519,10 +519,19 @@ void commandPoll(TICKS nowTicks) {
                             }
 
                             command = buffer;
+                            
+                            /* Remove any leading space or tabs */
+                            while (command[0] == TEXT(' ') || command[0] == TEXT('\t')) {
+                                command++;
+                            }
+                            if (command[0] == TEXT('\0')) {
+                                /* Empty line. Ignore it silently. */
+                                continue;
+                            }
 
                             /** Look for the first space, everything after it will be the parameter(s). */
                             /* Look for parameter 1. */
-                            if ((param1 = _tcschr(buffer, ' ')) != NULL ) {
+                            if ((param1 = _tcschr(command, ' ')) != NULL ) {
                                 param1[0] = TEXT('\0'); /* Terminate the command. */
 
                                 /* Find the first non-space character. */
@@ -560,6 +569,13 @@ void commandPoll(TICKS nowTicks) {
                                 } else {
                                     exitCode = _ttoi(param1);
                                 }
+                                
+                                if (exitCode < 0 || exitCode > 255) {
+                                    exitCode = wrapperData->errorExitCode;
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                                        TEXT("The exit code specified along with the 'STOP' command must be in the range %d to %d.\n  Changing to the default error exit code %d."), 1, 255, exitCode);
+                                }
+                                
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Shutting down with exit code %d."), command, exitCode);
 
                                 /* Always force the shutdown as this is an external event. */
@@ -574,7 +590,15 @@ void commandPoll(TICKS nowTicks) {
                                     wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
                                 }
                             } else if (strcmpIgnoreCase(command, TEXT("PAUSE")) == 0) {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Pausing JVM."), command);
+                                if (wrapperData->pausable) {
+                                    if (strcmpIgnoreCase(wrapperData->serviceName, TEXT("wrapper")) == 0) {
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Pausing the Wrapper."), command);
+                                    } else {
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Pausing %s."), command, wrapperData->serviceName);
+                                    }
+                                } else {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. The Wrapper was not set pausable. Ignoring the command."), command);
+                                }
                                 wrapperPauseProcess(WRAPPER_ACTION_SOURCE_CODE_COMMANDFILE);
                             } else if (strcmpIgnoreCase(command, TEXT("RESUME")) == 0) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Resuming JVM."), command);
@@ -716,6 +740,9 @@ void commandPoll(TICKS nowTicks) {
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                             TEXT("Unable to delete the command file, %s: %s"),
                             wrapperData->commandFilename, getLastErrorText());
+                    } else {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
+                            TEXT("Command file has been processed and deleted."));
                     }
                     
                     if (accessViolation) {
@@ -1206,7 +1233,8 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
 
                     /* If the working dir has been changed then we need to restore it before
                      *  the configuration can be reloaded.  This is needed to support relative
-                     *  references to include files. */
+                     *  references to include files.
+                     * The working directory will then be restored by wrapperLoadConfigurationProperties() just below. */
                     if (wrapperData->workingDir && wrapperData->originalWorkingDir) {
                         if (wrapperSetWorkingDir(wrapperData->originalWorkingDir, TRUE)) {
                             /* Failed to restore the working dir.  Shutdown the Wrapper */
@@ -1230,14 +1258,6 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
 #ifndef WIN32
                     showResourceslimits();
 #endif
-
-                    /* Change the working directory if configured to do so. */
-                    if (wrapperData->workingDir && wrapperSetWorkingDir(wrapperData->workingDir, TRUE)) {
-                        /* Failed to set the working dir.  Shutdown the Wrapper */
-                        wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
-                        wrapperData->exitCode = wrapperData->errorExitCode;
-                        return;
-                    }
                 }
             }
 

@@ -704,18 +704,21 @@ int resolveDefaultLogFilePath() {
  *  the path, like a directory not existing then the call will fail and the
  *  cause will be written to the existing log.
  *
- * @param log_file_path Log file to start using.
+ * @param log_file_path Path to the logfile.
  * @param isConfigured  The value comes from the configuration file.
  *
  * @return TRUE if there were any problems.
  */
 int setLogfilePath(const TCHAR *log_file_path, int isConfigured) {
     size_t len;
-#ifdef WIN32
-    TCHAR *c;
-#endif
     TCHAR* prevLogFilePath = NULL;
+    TCHAR* fixed_log_file_path;
 
+    if (!log_file_path) {
+        return TRUE;
+    }
+    
+    /* Save a copy of logFilePath and free it up. */
     if (logFilePath) {
         len = _tcslen(logFilePath);
         prevLogFilePath = malloc(sizeof(TCHAR) * (len + 1));
@@ -727,26 +730,34 @@ int setLogfilePath(const TCHAR *log_file_path, int isConfigured) {
         free(logFilePath);
         logFilePath = NULL;
     }
-
-    /* Convert the path to an absolute path. */
-    if (log_file_path) {
-        /* Log in DEBUG here. We will later show a warning with checkLogfileDir() if the directory does not exist. */
-        logFilePath = getAbsolutePathOfFile(log_file_path, TEXT("log file path"), getLoggingIsPreload() ? LEVEL_NONE : LEVEL_DEBUG, FALSE);
-#ifdef _DEBUG
-        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Absolute path to the configured log file resolved to %s."), logFilePath);
-#endif
+    
+    /* Create a copy of log_file_path and fix '/' and '\' depending on whether it is UNIX or Windows. */
+    len = _tcslen(log_file_path);
+    fixed_log_file_path = malloc(sizeof(TCHAR) * (len + 1));
+    if (!fixed_log_file_path) {
+        outOfMemoryQueued(TEXT("SLP"), 2);
+        return TRUE;
     }
+    _tcsncpy(fixed_log_file_path, log_file_path, len + 1);
+#ifdef WIN32
+    wrapperCorrectWindowsPath(fixed_log_file_path);
+#else
+    wrapperCorrectNixPath(fixed_log_file_path);
+#endif
+
+    /* Convert the path to an absolute path.
+     * Log in DEBUG here. We will later show a warning with checkLogfileDir() if the directory does not exist. */
+    logFilePath = getAbsolutePathOfFile(fixed_log_file_path, TEXT("log file path"), getLoggingIsPreload() ? LEVEL_NONE : LEVEL_DEBUG, FALSE);
+#ifdef _DEBUG
+    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Absolute path to the configured log file resolved to %s."), logFilePath);
+#endif
+
     if (!logFilePath) {
         /* Continue with the relative path. */
-        len = _tcslen(log_file_path);
-        logFilePath = malloc(sizeof(TCHAR) * (len + 1));
-        if (!logFilePath) {
-            outOfMemoryQueued(TEXT("SLP"), 1);
-            return TRUE;
-        }
-        _tcsncpy(logFilePath, log_file_path, len + 1);
+        logFilePath = fixed_log_file_path;
     } else {
         len = _tcslen(logFilePath);
+        free(fixed_log_file_path);
     }
 
     if (prevLogFilePath) {
@@ -766,7 +777,7 @@ int setLogfilePath(const TCHAR *log_file_path, int isConfigured) {
     }
     currentLogFileName = malloc(sizeof(TCHAR) * currentLogFileNameSize);
     if (!currentLogFileName) {
-        outOfMemoryQueued(TEXT("SLP"), 2);
+        outOfMemoryQueued(TEXT("SLP"), 3);
         free(logFilePath);
         logFilePath = NULL;
         return TRUE;
@@ -778,7 +789,7 @@ int setLogfilePath(const TCHAR *log_file_path, int isConfigured) {
     }
     workLogFileName = malloc(sizeof(TCHAR) * currentLogFileNameSize);
     if (!workLogFileName) {
-        outOfMemoryQueued(TEXT("SLP"), 3);
+        outOfMemoryQueued(TEXT("SLP"), 4);
         free(logFilePath);
         logFilePath = NULL;
         free(currentLogFileName);
@@ -787,15 +798,6 @@ int setLogfilePath(const TCHAR *log_file_path, int isConfigured) {
         return TRUE;
     }
     workLogFileName[0] = TEXT('\0');
-
-#ifdef WIN32
-    /* To avoid problems on some windows systems, the '/' characters must
-     *  be replaced by '\' characters in the specified path. */
-    c = (TCHAR *)logFilePath;
-    while((c = _tcschr(c, TEXT('/'))) != NULL) {
-        c[0] = TEXT('\\');
-    }
-#endif
 
     if (isConfigured) {
         if ((confLogFileName == NULL) || (strcmpIgnoreCase(logFilePath, confLogFileName) != 0)) {
@@ -810,7 +812,7 @@ int setLogfilePath(const TCHAR *log_file_path, int isConfigured) {
             }
             confLogFileName = malloc(sizeof(TCHAR) * confLogFileNameSize);
             if (!confLogFileName) {
-                outOfMemoryQueued(TEXT("SLP"), 4);
+                outOfMemoryQueued(TEXT("SLP"), 5);
                 free(logFilePath);
                 logFilePath = NULL;
                 free(currentLogFileName);
@@ -827,7 +829,7 @@ int setLogfilePath(const TCHAR *log_file_path, int isConfigured) {
             }
             workConfLogFileName = malloc(sizeof(TCHAR) * confLogFileNameSize);
             if (!confLogFileName) {
-                outOfMemoryQueued(TEXT("SLP"), 5);
+                outOfMemoryQueued(TEXT("SLP"), 6);
                 free(logFilePath);
                 logFilePath = NULL;
                 free(currentLogFileName);
@@ -2094,7 +2096,7 @@ int openLogFile(struct tm *nowTM, TCHAR *message) {
                     tempBufferLen = _tcslen(tempBufferFormat) - 2 - 2 - 2 + _tcslen(currentLogFileName) + _tcslen(tempBufferLastErrorText1) + _tcslen(defaultLogFile) + 1;
                     tempBuffer = malloc(sizeof(TCHAR) * tempBufferLen);
                     if (!tempBuffer) {
-                        outOfMemoryQueued(TEXT("OLF"), 5);
+                        outOfMemoryQueued(TEXT("OLF"), 3);
                     } else {
                         _sntprintf(tempBuffer, tempBufferLen, tempBufferFormat, currentLogFileName, tempBufferLastErrorText1, defaultLogFile);
                         
@@ -2136,7 +2138,7 @@ int openLogFile(struct tm *nowTM, TCHAR *message) {
                     tempBufferLen = _tcslen(tempBufferFormat) - 2 - 2 + _tcslen(currentLogFileName) + _tcslen(tempBufferLastErrorText2) + 1;
                     tempBuffer = malloc(sizeof(TCHAR) * tempBufferLen);
                     if (!tempBuffer) {
-                        outOfMemoryQueued(TEXT("OLF"), 6);
+                        outOfMemoryQueued(TEXT("OLF"), 4);
                     } else {
                         _sntprintf(tempBuffer, tempBufferLen, tempBufferFormat, currentLogFileName, tempBufferLastErrorText2);
                         
@@ -2767,6 +2769,20 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
 }
 
 /* Internal functions */
+#ifdef WIN32
+static int sysLangId = LANG_NEUTRAL;
+
+/**
+ * Sets the language id to use to format system messages.
+ *  This function should be called when resolving the locale.
+ *
+ * @param id Language Identifier (16-bit value that consists of a 
+ *           primary language identifier and a sublanguage identifier)
+ */
+void setLogSysLangId(int id) {
+    sysLangId = id;
+}
+#endif
 
 #define LAST_ERROR_TEXT_BUFFER_SIZE 1024
 /** Buffer holding the last error message.
@@ -2786,6 +2802,7 @@ const TCHAR* getErrorText(int errorNum, void* handle) {
     DWORD dwRet;
     TCHAR* lpszTemp = NULL;
     DWORD   dwFlags;
+    int formatError;
 #else
     char* lastErrorTextMB;
     size_t req;
@@ -2801,14 +2818,28 @@ const TCHAR* getErrorText(int errorNum, void* handle) {
     dwRet = FormatMessage(dwFlags,
                           handle,
                           errorNum,
-                          LANG_NEUTRAL,
+                          sysLangId,
                           (TCHAR*)&lpszTemp,
                           0,
                           NULL);
 
     if (!dwRet) {
         /* There was an error calling FormatMessage. */
-        _sntprintf(lastErrorTextBufferW, LAST_ERROR_TEXT_BUFFER_SIZE, TEXT("Failed to format system error message (Error: %d) (Original Error: 0x%x)"), GetLastError(), errorNum);
+        
+        formatError = getLastError();
+        if ((formatError == ERROR_MUI_FILE_NOT_FOUND) ||
+            (formatError == ERROR_MUI_INVALID_FILE) ||
+            (formatError == ERROR_MUI_INVALID_RC_CONFIG) ||
+            (formatError == ERROR_MUI_INVALID_LOCALE_NAME) ||
+            (formatError == ERROR_MUI_INVALID_ULTIMATEFALLBACK_NAME) ||
+            (formatError == ERROR_MUI_FILE_NOT_LOADED) ||
+            (formatError == ERROR_RESOURCE_LANG_NOT_FOUND)) {
+            /* fall back to the system language. Do it once cause probably other messages will not be found either. */
+            setLogSysLangId(LANG_NEUTRAL);
+            return getErrorText(errorNum, handle);
+        }
+        
+        _sntprintf(lastErrorTextBufferW, LAST_ERROR_TEXT_BUFFER_SIZE, TEXT("Failed to format system error message (Error: %d) (Original Error: 0x%x)"), formatError, errorNum);
     } else if ((long)LAST_ERROR_TEXT_BUFFER_SIZE - 1 < (long)dwRet + 14) {
         /* supplied buffer is not long enough (14 is for the length of the error code in hexadecimal notation (12)+ space + null termination character) */
         _sntprintf(lastErrorTextBufferW, LAST_ERROR_TEXT_BUFFER_SIZE, TEXT("System error message is too large to convert (Required size: %d) (Original Error: 0x%x)"), dwRet, errorNum);

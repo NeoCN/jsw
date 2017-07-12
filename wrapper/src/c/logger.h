@@ -50,6 +50,25 @@
 #ifndef DWORD
  #define DWORD unsigned long
 #endif
+/* Define constants that may not exist in WinError.h (e.g. on Windows IA). */
+#ifndef ERROR_MUI_FILE_NOT_FOUND
+ #define ERROR_MUI_FILE_NOT_FOUND                   0x3AFC
+#endif
+#ifndef ERROR_MUI_INVALID_FILE
+ #define ERROR_MUI_INVALID_FILE                     0x3AFD
+#endif
+#ifndef ERROR_MUI_INVALID_RC_CONFIG
+ #define ERROR_MUI_INVALID_RC_CONFIG                0x3AFE
+#endif
+#ifndef ERROR_MUI_INVALID_LOCALE_NAME
+ #define ERROR_MUI_INVALID_LOCALE_NAME              0x3AFF
+#endif
+#ifndef ERROR_MUI_INVALID_ULTIMATEFALLBACK_NAME
+ #define ERROR_MUI_INVALID_ULTIMATEFALLBACK_NAME    0x3B00
+#endif
+#ifndef ERROR_MUI_FILE_NOT_LOADED
+ #define ERROR_MUI_FILE_NOT_LOADED                  0x3B01
+#endif
 #include "logger_base.h"
 
 /* * * Log source constants * * */
@@ -317,4 +336,8 @@ extern void log_printf_queue( int useQueue, int source_id, int level, const TCHA
 
 extern void maintainLogger();
 extern void invalidMultiByteSequence(const TCHAR *context, int id);
+
+#ifdef WIN32
+extern void setLogSysLangId(int id);
+#endif
 #endif

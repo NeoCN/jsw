@@ -65,7 +65,7 @@ PIDFILE_CHECK_PID=true
 
 # FIXED_COMMAND tells the script to use a hard coded action rather than
 #  expecting the first parameter of the command line to be the command.
-#  By default the command will will be expected to be the first parameter.
+#  By default the command will be expected to be the first parameter.
 #FIXED_COMMAND=console
 
 # PASS_THROUGH tells the script to pass all arguments through to the JVM
@@ -1226,12 +1226,36 @@ upstartDetection() {
         return 1
     fi
     
-    result='initctl version | grep upstart'
+    result=`$INITCTL_BIN version | grep upstart`
     # if the word "restart" is in the result, then we assume upstart is installed.
     if [ $? -eq 0 ] ; then
         return 0
     fi
     return 1
+}
+
+upstartInstall() {
+    # Always verifies that upstart exists.
+    upstartDetection
+    if [ $? -ne 0 ] ; then
+        eval echo `gettext 'Unable to install the $APP_LONG_NAME daemon because upstart does not exist.'`
+        return 1
+    fi
+    
+    eval echo `gettext ' Installing the $APP_LONG_NAME daemon using upstart..'`
+    if [ -f "${REALDIR}/${APP_NAME}.install" ] ; then 
+        eval echo `gettext ' a custom upstart conf file ${APP_NAME}.install found'`
+        cp "${REALDIR}/${APP_NAME}.install" "/etc/init/${APP_NAME}.conf"
+    else
+        eval echo `gettext ' creating default upstart conf file..'`
+        echo "# ${APP_NAME} - ${APP_LONG_NAME}"                           > "/etc/init/${APP_NAME}.conf"
+        echo "description \"${APP_LONG_NAME}\""                          >> "/etc/init/${APP_NAME}.conf"
+        echo "author \"Tanuki Software Ltd. <info@tanukisoftware.com>\"" >> "/etc/init/${APP_NAME}.conf"
+        echo "start on runlevel [2345]"                                  >> "/etc/init/${APP_NAME}.conf"
+        echo "stop on runlevel [!2345]"                                  >> "/etc/init/${APP_NAME}.conf"
+        echo "env LANG=${LANG}"                                          >> "/etc/init/${APP_NAME}.conf"
+        echo "exec \"${REALPATH}\" upstartinternal"                      >> "/etc/init/${APP_NAME}.conf"
+    fi
 }
 
 upstartstart() {
@@ -1287,11 +1311,18 @@ systemdDetection() {
     if [ ! -x "$PIDOF_BIN" ] ; then
         return 1
     fi
-    result=`/bin/pidof systemd`
+    result=`$PIDOF_BIN systemd`
     return $?
 }
 
 systemdInstall() {
+    # Always verifies that systemd exists.
+    systemdDetection
+    if [ $? -ne 0 ] ; then
+      eval echo `gettext 'Unable to install the $APP_LONG_NAME daemon because systemd does not exist.'`
+      return 1
+    fi
+    
     eval echo `gettext ' Installing the $APP_LONG_NAME daemon using systemd...'`
     if [ -f "${REALDIR}/${APP_NAME}.service" ] ; then 
         eval echo `gettext ' a custom service file ${APP_NAME}.service found'`
@@ -1354,14 +1385,21 @@ systemdRemove() {
     systemctl daemon-reload
 }
 
-# Method to check if src is running.
-# Returns 0 if src is found, otherwise returns 1.
+# Method to check if SRC is running.
+# Returns 0 if SRC is found, otherwise returns 1.
 srcDetection() {
-    result=`ps -A | grep srcmstr`
+    result=`$PS_BIN -A | grep srcmstr`
     return $?
 }
 
 srcInstall() {
+    # Always verifies that SRC exists.
+    srcDetection
+    if [ $? -ne 0 ] ; then
+      eval echo `gettext 'Unable to install the $APP_LONG_NAME daemon because SRC does not exist.'`
+      return 1
+    fi
+    
     if [ "X$RUN_AS_USER" = "X" ] ; then
         USERID="0"
     else
@@ -1697,23 +1735,6 @@ validateAppNameLength() {
     fi
 }
 
-installUpstart() {
-    eval echo `gettext ' Installing the $APP_LONG_NAME daemon using upstart..'`
-    if [ -f "${REALDIR}/${APP_NAME}.install" ] ; then 
-        eval echo `gettext ' a custom upstart conf file ${APP_NAME}.install found'`
-        cp "${REALDIR}/${APP_NAME}.install" "/etc/init/${APP_NAME}.conf"
-    else
-        eval echo `gettext ' creating default upstart conf file..'`
-        echo "# ${APP_NAME} - ${APP_LONG_NAME}"                           > "/etc/init/${APP_NAME}.conf"
-        echo "description \"${APP_LONG_NAME}\""                          >> "/etc/init/${APP_NAME}.conf"
-        echo "author \"Tanuki Software Ltd. <info@tanukisoftware.com>\"" >> "/etc/init/${APP_NAME}.conf"
-        echo "start on runlevel [2345]"                                  >> "/etc/init/${APP_NAME}.conf"
-        echo "stop on runlevel [!2345]"                                  >> "/etc/init/${APP_NAME}.conf"
-        echo "env LANG=${LANG}"                                          >> "/etc/init/${APP_NAME}.conf"
-        echo "exec \"${REALPATH}\" upstartinternal"                      >> "/etc/init/${APP_NAME}.conf"
-    fi
-}
-
 installdaemon() {
     mustBeRootOrExit
     
@@ -1742,7 +1763,7 @@ installdaemon() {
                     systemdInstall
             else
                 if [ -n "$USE_UPSTART" -a -d "/etc/init" ] ; then
-                    installUpstart
+                    upstartInstall
                 else 
                     eval echo `gettext ' Installing the $APP_LONG_NAME daemon..'`
                     ln -s "$REALPATH" "/etc/init.d/$APP_NAME"
@@ -1769,7 +1790,7 @@ installdaemon() {
                 if [ -n "$USE_SYSTEMD" -a -d "/etc/systemd" ] ; then
                     systemdInstall
                 elif [ -n "$USE_UPSTART" -a -d "/etc/init" ] ; then
-                    installUpstart
+                    upstartInstall
                 else 
                     eval echo `gettext ' Installing the $APP_LONG_NAME daemon using init.d..'`
                     ln -s "$REALPATH" "/etc/init.d/$APP_NAME"
@@ -1920,7 +1941,19 @@ installdaemon() {
         exit 1
     fi
     
+    # Exit with 1 if the daemon was already installed when calling installdaemon().
+    #  The test below requires $installedStatus to be unchanged since the call to
+    #  checkInstalled() at the beginning of the function. If the script was launched
+    #  with 'installstart' we want to start normally, so don't exit here.
     if [ $installedStatus -gt 0 -a "$COMMAND" != 'installstart' ] ; then
+        exit 1
+    fi
+    
+    # Check again the installation status. The script should exit with 1 if the service
+    #  could not be installed (even if it was launched with 'installstart').
+    checkInstalled
+    if [ $installedStatus -eq 0 ] ; then
+        eval echo `gettext 'Service not installed.'`
         exit 1
     fi
 }
@@ -1944,11 +1977,8 @@ startdaemon() {
             shift
         fi
         
-        # In case the user set SERVICE_MANAGEMENT_TOOL to something different than 'auto' or 'initd',
-        # then we show a warning saying that because he didn't run "install", it will not use 
-        # the service management tool to start the service.
         if [ "$SERVICE_MANAGEMENT_TOOL" != "auto" -a "$SERVICE_MANAGEMENT_TOOL" != "initd" ] ; then
-            eval echo `gettext 'Script configured to use a service management tool $SERVICE_MANAGEMENT_TOOL, but the service was not installed.'`
+            eval echo `gettext "Starting without using the configured service management tool \'$SERVICE_MANAGEMENT_TOOL\' because the service $APP_NAME is not installed."`
         fi
         
         start "$@"
@@ -2246,12 +2276,13 @@ showUsage() {
     exit 1
 }
 
-# Resolve the service management tool for 3 platforms: linux, solairs, aix.
+# Resolve the service management tool for linux and aix.
 setServiceManagementTool() {
     if [ ! -n "$SERVICE_MANAGEMENT_TOOL" ] ; then
-        # Set the default value to auto
+        # Set the default value to auto.
         SERVICE_MANAGEMENT_TOOL=auto
     fi
+    
     if [ "$DIST_OS" = "linux" ] ; then
         setServiceManagementToolLinux
     elif [ "$DIST_OS" = "aix" ] ; then

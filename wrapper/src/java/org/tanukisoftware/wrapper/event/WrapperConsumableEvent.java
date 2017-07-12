@@ -42,7 +42,7 @@ public abstract class WrapperConsumableEvent
      *  has been handled.
      * <p>
      * On Windows, some events are sent both to the JVM and Wrapper processes.
-     *  Event if the CTRL-C event is ignored within the JVM, the Wrapper
+     *  Even if the CTRL-C event is ignored within the JVM, the Wrapper
      *  process may still initiate a shutdown.
      */
     public void consume()

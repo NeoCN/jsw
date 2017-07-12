@@ -427,7 +427,7 @@ int configFileReader_Read(ConfigFileReader *reader,
                         } else {
                             absoluteBuffer = malloc(sizeof(TCHAR) * size);
                             if (!absoluteBuffer) {
-                                outOfMemory(TEXT("RCF"), 1);
+                                outOfMemory(TEXT("RCF"), 2);
                             } else {
                                 if (!GetFullPathName(expBuffer, size, absoluteBuffer, NULL)) {
                                     if (reader->debugIncludes || includeRequired) {
@@ -443,7 +443,7 @@ int configFileReader_Read(ConfigFileReader *reader,
 #else
                         absoluteBuffer = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
                         if (!absoluteBuffer) {
-                            outOfMemory(TEXT("RCF"), 2);
+                            outOfMemory(TEXT("RCF"), 3);
                         } else {
                             if (_trealpathN(expBuffer, absoluteBuffer, PATH_MAX + 1) == NULL) {
                                 if (reader->debugIncludes || includeRequired) {

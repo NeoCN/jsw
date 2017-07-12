@@ -1,0 +1,62 @@
+#!/bin/bash
+#-----------------------------------------------------------------------------
+#------   FUNCTIONS FOR TESTS THAT PASS WHEN A CERTAIN OUTPUTS MATCH   -------
+#-----------------------------------------------------------------------------
+
+BASENAME=`basename "$0"`
+TEMPFILE="$BASENAME.tmp"
+
+printHeader() {
+    echo "-----------------------------------------------------------------------------"
+    echo $1
+    echo ""
+    shift
+    for p in "$@"
+    do
+        echo "  $p"
+    done
+    echo ""
+    echo "  Expected output: $EXPECTED_OUTPUT"
+    echo "-----------------------------------------------------------------------------"
+    echo ""
+}
+
+printResult() {
+    result1=`grep "$EXPECTED_OUTPUT" TEMPFILE`
+    
+    if [ -n "$EXPECTED_OUTPUT2" ] ; then
+        result2=`grep "$EXPECTED_OUTPUT2" TEMPFILE`
+    fi
+    
+    if [ "X$result1" != "X" ] || [ -n "$EXPECTED_OUTPUT2" -a "X$result2" != "X" ] ; then
+        printf "\033[32m=> TEST PASSED!\033[39m\n"
+        PASSED_TESTS_COUNT=`expr $PASSED_TESTS_COUNT + 1`
+    else
+        printf "\033[31m=> TEST FAILED!\033[39m\n"
+        FAILED_TESTS_COUNT=`expr $FAILED_TESTS_COUNT + 1`
+    fi
+    rm TEMPFILE
+    echo ""
+}
+
+runTest() {
+    ARGS=()
+    for p in "$@"; do
+        # Ignore arguments that are not properties
+        if [[ $p == wrapper.* ]] ; then
+            ARGS+=("$p")
+        fi
+    done
+    
+    # use 2>&1 to merge stdout and stderr (we need to flush on each message to keep the order)
+    # use tee command to redirect both to a temp file and the console
+    #   http://stackoverflow.com/questions/692000/how-do-i-write-stderr-to-a-file-while-using-tee-with-a-pipe
+    ../bin/wrapper -c ../test/$BASENAME.conf wrapper.console.flush=TRUE "${ARGS[@]}" -- console 2>&1 | tee TEMPFILE
+}
+
+runTestFull() {
+    printHeader "$@"
+    shift
+    runTest "$@"
+    printResult
+}

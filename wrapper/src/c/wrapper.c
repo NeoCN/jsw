@@ -440,7 +440,9 @@ int loadEnvironment() {
             pair = malloc(sizeof(TCHAR) * (len + 1));
             if (!pair) {
                 outOfMemory(TEXT("LE"), 1);
-#ifndef WIN32
+#ifdef WIN32
+                FreeEnvironmentStrings(lpvEnv);
+#else
                 free(sourcePair);
 #endif
                 return TRUE;
@@ -745,7 +747,7 @@ void wrapperLoadLoggingProperties(int preload) {
         strcmpIgnoreCase(wrapperData->argCommand, TEXT("td")) && strcmpIgnoreCase(wrapperData->argCommand, TEXT("-teardown")) &&
         strcmpIgnoreCase(wrapperData->argCommand, TEXT("i"))  && strcmpIgnoreCase(wrapperData->argCommand, TEXT("-install")) &&
         strcmpIgnoreCase(wrapperData->argCommand, TEXT("it")) && strcmpIgnoreCase(wrapperData->argCommand, TEXT("-installstart"))) {
-        /* The functions bellow need to be called even if we don't have the permission to edit the registry.
+        /* The functions below need to be called even if we don't have the permission to edit the registry.
          *  They will eventually disable event logging if the application is not registered.
          *  On preload use the silent mode to avoid double log outputs. */
         silent = preload || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("r")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-remove"))
@@ -786,6 +788,10 @@ void wrapperLoadLoggingProperties(int preload) {
  */
 int wrapperPreLoadConfigurationProperties(int *logLevelOnOverwriteProperties, int *exitOnOverwriteProperties) {
     int returnVal = FALSE;
+#ifdef WIN32
+    /* For the community edition, always try to display the system errors in English. */
+    setLogSysLangId((SUBLANG_ENGLISH_US << 10) + LANG_ENGLISH);
+#endif
     
     /* Load log file */
     wrapperLoadLoggingProperties(TRUE);
@@ -2861,7 +2867,7 @@ int wrapperInitialize() {
      *  platforms appear to initialize maloc'd memory to 0 while others do not. */
     wrapperData = malloc(sizeof(WrapperConfig));
     if (!wrapperData) {
-        _tprintf(TEXT("Out of memory (%s)\n"), TEXT("WI1"));
+        _tprintf(TEXT("Out of memory (%s)\n"), TEXT("WIZ1"));
         return 1;
     }
     memset(wrapperData, 0, sizeof(WrapperConfig));
@@ -2900,7 +2906,7 @@ int wrapperInitialize() {
     /* Initialize control code queue. */
     wrapperData->ctrlCodeQueue = malloc(sizeof(int) * CTRL_CODE_QUEUE_SIZE);
     if (!wrapperData->ctrlCodeQueue) {
-        _tprintf(TEXT("Out of memory (%s)\n"), TEXT("WI2"));
+        _tprintf(TEXT("Out of memory (%s)\n"), TEXT("WIZ2"));
         return 1;
     }
     wrapperData->ctrlCodeQueueWriteIndex = 0;
@@ -2936,7 +2942,7 @@ int wrapperInitialize() {
     /** Remember what the initial user directory was when the Wrapper was launched. */
     wrapperData->initialPath = (TCHAR *)malloc((maxPathLen + 1) * sizeof(TCHAR));
     if (!wrapperData->initialPath) {
-        outOfMemory(TEXT("WI"), 3);
+        outOfMemory(TEXT("WIZ"), 3);
         return 1;
     } else {
         if (!(wrapperData->initialPath = _tgetcwd((TCHAR*)wrapperData->initialPath, maxPathLen + 1))) {
@@ -4930,6 +4936,23 @@ int wrapperRunCommonInner() {
         if (isCygwin()) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Cygwin detected"));
         }
+        
+        if (_tcscmp(wrapperBits, TEXT("32")) == 0) {
+            if (wrapperData->DEPStatus) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("DEP status: Enabled"));
+            } else if (!wrapperData->DEPApiAvailable) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("DEP status: Not supported"));
+            } else if (wrapperData->DEPError == 5) {
+                /* If the operating system is configured to always use DEP for all processes,
+                 *  then SetProcessDEPPolicy() will return an Access Denied Error (5), but 
+                 *  that doesn't mean DEP is Disabled.*/
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("DEP status: Unchanged (set by the OS)"));
+            } else if (wrapperData->DEPError) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("DEP status: Disabled (0x%x)"), wrapperData->DEPError);
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("DEP status: Disabled"));
+            }
+        }
     }
 #endif
 
@@ -5575,9 +5598,11 @@ TCHAR* findPathOf(const TCHAR *exe, const TCHAR *name) {
                 }
                 return ret;
             }
-        } else {
-            if (wrapperData->isDebugging) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the real path of %s as an absolute reference: %s (Problem at: %s)"), name, exe, resolvedPath);
+        } else if (wrapperData->isDebugging) {
+            if (_tcslen(resolvedPath)) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the real path of %s as an absolute reference: %s. %s (Problem at: %s)"), name, exe, getLastErrorText(), resolvedPath);
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the real path of %s as an absolute reference: %s. %s"), name, exe, getLastErrorText());
             }
         }
 
@@ -5600,12 +5625,11 @@ TCHAR* findPathOf(const TCHAR *exe, const TCHAR *name) {
             }
             return ret;
         }
-    } else {
-        if (wrapperData->isDebugging) {
-            /* Some platforms (MACOSX) will return the point that was the problem, it seems to work
-             *  on some other platforms but is documented as undefined.   To be safe and keep things
-             *  in sync, don't use it. */
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the real path of %s as a relative reference: %s"), name, exe);
+    } else if (wrapperData->isDebugging) {
+        if (_tcslen(resolvedPath)) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the real path of %s as a relative reference: %s. %s (Problem at: %s)"), name, exe, getLastErrorText(), resolvedPath);
+        } else {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the real path of %s as a relative reference: %s. %s"), name, exe, getLastErrorText());
         }
     }
 
@@ -5651,6 +5675,13 @@ TCHAR* findPathOf(const TCHAR *exe, const TCHAR *name) {
                     /* Copy over the result. */
                     _tcsncpy(pth, resolvedPath, PATH_MAX + 1);
                     found = checkIfExecutable(pth);
+                } else if (wrapperData->isDebugging) {
+                    if (_tcslen(resolvedPath)) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the path %s: %s (Problem at: %s)"), pth, getLastErrorText(), resolvedPath);
+                    } else {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the path %s: %s"), pth, getLastErrorText());
+                    }
+                    stop = TRUE;
                 }
 
                 if (!stop) {
@@ -9293,7 +9324,7 @@ void wrapperPingResponded(TICKS pingSendTicks, int queueWarnings) {
 
 void wrapperPingTimeoutResponded() {
     wrapperProcessActionList(wrapperData->pingActionList, TEXT("JVM appears hung: Timed out waiting for signal from JVM."),
-                             WRAPPER_ACTION_SOURCE_CODE_PING_TIMEOUT, 0, TRUE, 1);
+                             WRAPPER_ACTION_SOURCE_CODE_PING_TIMEOUT, 0, TRUE, wrapperData->errorExitCode);
 }
 
 void wrapperStopRequested(int exitCode) {

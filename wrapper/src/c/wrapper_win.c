@@ -4125,7 +4125,7 @@ int wrapperInstall() {
             /* as this here is from the secondary instance we can read with _fgetts */
             wrapperData->ntServicePassword = calloc(65, sizeof(TCHAR));
             if (!wrapperData->ntServicePassword) {
-                outOfMemory(TEXT("WI"), 21);
+                outOfMemory(TEXT("WI"), 3);
                 free(binaryPath);
                 return 1;
             }
@@ -6624,10 +6624,16 @@ void enterLauncherMode() {
 
 #ifndef CUNIT
 void _tmain(int argc, TCHAR **argv) {
+    int localeSet = FALSE;
     int result;
 #ifdef _DEBUG
     int i;
 #endif
+    BOOL DEPApiAvailable = FALSE;
+    BOOL DEPStatus = FALSE;
+    DWORD DEPError = ERROR_SUCCESS;
+    HMODULE hk;
+    FARPROC pfnSetDEP;
     /* The StartServiceCtrlDispatcher requires this table to specify
      * the ServiceMain function to run in the calling process. The first
      * member in this example is actually ignored, since we will install
@@ -6635,7 +6641,28 @@ void _tmain(int argc, TCHAR **argv) {
      * members of the last entry are necessary to indicate the end of
      * the table; */
     SERVICE_TABLE_ENTRY serviceTable[2];
-    int localeSet = FALSE;
+    
+    /*　Enable DEP as soon as possible in the main method.
+     * 　- Use SetProcessDEPPolicy() instead of the /DYNAMICBASE link
+     *    option to allow DEP on WIN XP SP3 (/DYNAMICBASE is from Vista).
+     *  - Load it dynamically to allow the Wrapper running normally
+     *    (but without DEP) on older versions of Windows. 
+     *  - Retain the result of the invocation to log any messages after
+     *    the logging will be initialized. */
+    if (_tcscmp(wrapperBits, TEXT("32")) == 0) {
+        hk = GetModuleHandle(TEXT("KERNEL32.DLL"));
+        if (hk) {
+            pfnSetDEP = GetProcAddress(hk, "SetProcessDEPPolicy");
+            if (pfnSetDEP) {
+                DEPApiAvailable = TRUE;
+                DEPStatus = (BOOL)pfnSetDEP(0x00000001); /* 0x00000001 = PROCESS_DEP_ENABLE */
+                if (!DEPStatus) {
+                    DEPError = getLastError();
+                }
+            }
+            FreeLibrary(hk);
+        }
+    }
     
     if (!localeSet) {
         /* Set the default locale here so any startup error messages will have a chance of working.
@@ -6652,6 +6679,11 @@ void _tmain(int argc, TCHAR **argv) {
         appExit(1);
         return; /* For clarity. */
     }
+    
+    /* Store the DEP status to print it after the version banner. */
+    wrapperData->DEPApiAvailable = DEPApiAvailable;
+    wrapperData->DEPStatus       = DEPStatus;
+    wrapperData->DEPError        = DEPError;
 
     /* Main thread initialized in wrapperInitialize. */
 
