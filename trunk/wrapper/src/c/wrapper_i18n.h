@@ -526,6 +526,14 @@ extern int wrapperGetLastError();
  * filename - Filename to be modified.  Could be null.
  */
 extern void wrapperCorrectWindowsPath(TCHAR *filename);
+
+/*
+ * Corrects a path in place by replacing all '\' characters with '/'
+ *  on NIX platforms.  Does nothing on Windows platforms.
+ *
+ * filename - Filename to be modified.  Could be null.
+ */
+extern void wrapperCorrectNixPath(TCHAR *filename);
 #endif
 
 

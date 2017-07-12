@@ -120,9 +120,9 @@ rem Start the Wrapper
 rem
 :startup
 if not [%_PASS_THROUGH%]==[true] (
-	if not [%1]==[] (
-		echo WARNING: Extra arguments will be ignored. Please check usage in the batch file.
-	)
+    if not [%1]==[] (
+        echo WARNING: Extra arguments will be ignored. Please check usage in the batch file.
+    )
 )
 
 rem Collect the application parameters

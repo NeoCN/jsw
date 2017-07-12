@@ -1142,11 +1142,17 @@ int _tstat(const wchar_t* filename, struct stat *buf) {
 }
 
 /**
+ * Expands symlinks and resolves /./, /../ and extra '/' characters to produce a
+ *  canonicalized absolute pathname.
+ *  On some platforms (e.g MACOSX), even if the full path could not be resolved,
+ *  the valid part will be copied to resolvedName until a non-existant folder is 
+ *  encountered. resolvedName can then be used to point out where the problem was.
+ *
  * @param fileName The file name to be resolved.
  * @param resolvedName A buffer large enough to hold the expanded path.
  * @param resolvedNameSize The size of the resolvedName buffer, should usually be PATH_MAX + 1.
  *
- * @return resolvedName if successful, otherwise NULL.
+ * @return pointer to resolvedName if successful, otherwise NULL and errno is set to indicate the error.
  */
 wchar_t* _trealpathN(const wchar_t* fileName, wchar_t *resolvedName, size_t resolvedNameSize) {
     char *cFile;
@@ -1158,9 +1164,7 @@ wchar_t* _trealpathN(const wchar_t* fileName, wchar_t *resolvedName, size_t reso
     int sizeFile;
     int req;
     char* returnVal;
-
-    /* Initialize the return value. */
-    resolvedName[0] = TEXT('\0');
+    int err = 0;
 
     sizeFile = wcstombs(NULL, fileName, 0);
     if (sizeFile == (size_t)-1) {
@@ -1169,27 +1173,35 @@ wchar_t* _trealpathN(const wchar_t* fileName, wchar_t *resolvedName, size_t reso
 
     cFile = malloc(sizeFile + 1);
     if (cFile) {
+        /* Initialize the return value. */
+        resolvedName[0] = TEXT('\0');
+
         wcstombs(cFile, fileName, sizeFile + 1);
         
         /* get the canonicalized absolute pathname */
+        resolved[0] = '\0';
         returnVal = realpath(cFile, resolved);
+        err = errno;
 
         free(cFile);
 
-        /**
-         * In case realpath failed, resolved may contain a part of the path (until the folder that is invalid). So we convert it anyway. 
-         * For example cFile is "/home/user/alex/../nina" and in fact "/home/user/nina" doesn't exist.
-         * So realpath will fail and resolved will be "/home/user"
-         */
-        req = mbstowcs(NULL, resolved, MBSTOWCS_QUERY_LENGTH);
-        if (req == (size_t)-1) {
-            resolvedName[0] = TEXT('\0'); /* Terminate the output buffer as it does not contain a path. */
-            return NULL;
+        if (strlen(resolved) > 0) {
+            /* In case realpath failed, 'resolved' may contain a part of the path (until the invalid folder).
+             * Example: cFile is "/home/user/alex/../nina" but "/home/user/nina" doesn't exist.
+             *          => realpath will return NULL and resolved will be set to "/home/user" */
+            req = mbstowcs(NULL, resolved, MBSTOWCS_QUERY_LENGTH);
+            if (req == (size_t)-1) {
+                if (err != 0) {
+                    /* use errno set by realpath() if it failed. */
+                    errno = err;
+                }
+                return NULL;
+            }
+            mbstowcs(resolvedName, resolved, resolvedNameSize);
+            resolvedName[resolvedNameSize - 1] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
         }
-        mbstowcs(resolvedName, resolved, resolvedNameSize);
-        resolvedName[resolvedNameSize - 1] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
-
         
+        errno = err;
         if (returnVal == NULL) {
             return NULL;
         } else {
@@ -1458,6 +1470,25 @@ void wrapperCorrectWindowsPath(TCHAR *filename) {
         c = (TCHAR *)filename;
         while((c = _tcschr(c, TEXT('/'))) != NULL) {
             c[0] = TEXT('\\');
+        }
+    }
+#endif
+}
+
+/*
+ * Corrects a path in place by replacing all '\' characters with '/'
+ *  on NIX platforms.  Does nothing on Windows platforms.
+ *
+ * filename - Filename to be modified.  Could be null.
+ */
+void wrapperCorrectNixPath(TCHAR *filename) {
+#ifndef WIN32
+    TCHAR *c;
+
+    if (filename) {
+        c = (TCHAR *)filename;
+        while((c = _tcschr(c, TEXT('\\'))) != NULL) {
+            c[0] = TEXT('/');
         }
     }
 #endif

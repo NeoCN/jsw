@@ -40,7 +40,7 @@
  #define WRAPPER_RLIM_INFINITY  RLIM_INFINITY
 #endif
 
-PResourceLimit getResourceProperty(Properties *properties, const TCHAR *propertyName) {
+PResourceLimit getResourceProperty(Properties *properties, const TCHAR *propertyName, const int multiplier) {
     const TCHAR* value;
     PResourceLimit result;
 
@@ -72,19 +72,19 @@ PResourceLimit getResourceProperty(Properties *properties, const TCHAR *property
         } else if (value[0] == TEXT('-')) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Encountered an invalid value '%s' in the %s property."), value, propertyName);
         } else {
-            result->value = (rlim_t)_tcstoul(value, NULL, 10);
+            result->value = (rlim_t)(_tcstoul(value, NULL, 10) * multiplier);
             if (((result->value == 0) && (errno != 0))) {
                 /* Failed to convert to an integer. */
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Encountered an invalid value '%s' in the %s property."), value, propertyName);
             } else {
-                result->isValid = TRUE;                
+                result->isValid = TRUE;
             }
         }
     }
     return result;
 }
 
-PResourceLimits getResourcePropertyPair(Properties *properties, const TCHAR *propertyBaseName) {
+PResourceLimits getResourcePropertyPair(Properties *properties, const TCHAR *propertyBaseName, const int multiplier) {
     TCHAR propSoft[MAX_PROPERTY_NAME_LENGTH];
     TCHAR propHard[MAX_PROPERTY_NAME_LENGTH];
     PResourceLimit softLimit;
@@ -97,8 +97,8 @@ PResourceLimits getResourcePropertyPair(Properties *properties, const TCHAR *pro
     _sntprintf(propHard, MAX_PROPERTY_NAME_LENGTH, TEXT("%s.hard"), propertyBaseName);
     propHard[MAX_PROPERTY_NAME_LENGTH-1] = 0;
     
-    softLimit = getResourceProperty(properties, propSoft);
-    hardLimit = getResourceProperty(properties, propHard);
+    softLimit = getResourceProperty(properties, propSoft, multiplier);
+    hardLimit = getResourceProperty(properties, propHard, multiplier);
     
     if (softLimit && softLimit->isValid && hardLimit && hardLimit->isValid) {
         result = malloc(sizeof(ResourceLimits));
@@ -132,17 +132,17 @@ void disposeResourceLimits(PResourceLimits limits) {
     }
 }
 
-TCHAR* printRlim(rlim_t value, TCHAR* buffer) {
+TCHAR* printRlim(rlim_t value, TCHAR* buffer, const int divisor) {
     if (value == WRAPPER_RLIM_INFINITY) {
         _sntprintf(buffer, 32, TEXT("unlimited"));
     } else {
-        _sntprintf(buffer, 32, TEXT("%lu"), (unsigned long)value);
+        _sntprintf(buffer, 32, TEXT("%lu"), (unsigned long)(value/divisor));
     }
     buffer[31] = 0;
     return buffer;
 }
 
-int setResourceLimits(int resourceId, const TCHAR* resourceName, const TCHAR* propertyBaseName, PResourceLimits confLimits, int strict) {
+int setResourceLimits(int resourceId, const TCHAR* resourceName, const TCHAR* propertyBaseName, PResourceLimits confLimits, int strict, const int divisor) {
     struct rlimit oldLimits, newLimits, checkLimits;
     TCHAR limBuf1[32];
     TCHAR limBuf2[32];
@@ -154,7 +154,7 @@ int setResourceLimits(int resourceId, const TCHAR* resourceName, const TCHAR* pr
         /* The user has specified limits for the number of open file descriptors. */
         if (!confLimits->rlim_cur->useCurrent && !confLimits->rlim_cur->useHard && !confLimits->rlim_max->useCurrent && (confLimits->rlim_max->value < confLimits->rlim_cur->value)) {
             /* This is a configuration error, return 1 no matter we are strict or not. */
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("The soft limit (%s) for %s is set higher than the hard limit (%s)."), printRlim(confLimits->rlim_cur->value, limBuf1), resourceName, printRlim(confLimits->rlim_max->value, limBuf2));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("The soft limit (%s) for %s is set higher than the hard limit (%s)."), printRlim(confLimits->rlim_cur->value, limBuf1, divisor), resourceName, printRlim(confLimits->rlim_max->value, limBuf2, divisor));
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("  Make sure to correctly set the values of the %s.soft and %s.hard properties."), propertyBaseName, propertyBaseName);
             return 1;
         }
@@ -165,7 +165,7 @@ int setResourceLimits(int resourceId, const TCHAR* resourceName, const TCHAR* pr
             return 1;
         }
         
-        /* Unless we fail to set the limits for some unknown reason, any error bellow will return 1 if we are strict, 0 otherwise. */
+        /* Unless we fail to set the limits for some unknown reason, any error below will return 1 if we are strict, 0 otherwise. */
         logLevel = strict ? LEVEL_FATAL : properties->logWarningLogLevel;
         
         /* Resolve the hard limit. */
@@ -193,7 +193,7 @@ int setResourceLimits(int resourceId, const TCHAR* resourceName, const TCHAR* pr
         if (newLimits.rlim_max < newLimits.rlim_cur) {
             if (confLimits->rlim_max->useCurrent) {
                 /* The user has set only the SOFT limit. */
-                log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("The soft limit (%s) for %s is set higher than the current hard limit (%s)."), printRlim(confLimits->rlim_cur->value, limBuf1), resourceName, printRlim(oldLimits.rlim_max, limBuf2));
+                log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("The soft limit (%s) for %s is set higher than the current hard limit (%s)."), printRlim(confLimits->rlim_cur->value, limBuf1, divisor), resourceName, printRlim(oldLimits.rlim_max, limBuf2, divisor));
                 if (strict) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("  Make sure to correctly set the value of the %s.soft property."), propertyBaseName);
                     return 1;
@@ -201,7 +201,7 @@ int setResourceLimits(int resourceId, const TCHAR* resourceName, const TCHAR* pr
                 newLimits.rlim_cur = oldLimits.rlim_max;
             } else {
                 /* The user has set only the HARD limit. */
-                log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("The hard limit (%s) for %s is set lower than the current soft limit (%s)."), printRlim(confLimits->rlim_max->value, limBuf1), resourceName, printRlim(oldLimits.rlim_cur, limBuf2));
+                log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("The hard limit (%s) for %s is set lower than the current soft limit (%s)."), printRlim(confLimits->rlim_max->value, limBuf1, divisor), resourceName, printRlim(oldLimits.rlim_cur, limBuf2, divisor));
                 if (strict) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("  Make sure to correctly set the value of the %s.hard property."), propertyBaseName);
                     return 1;
@@ -237,9 +237,9 @@ int setResourceLimits(int resourceId, const TCHAR* resourceName, const TCHAR* pr
             /* Resolve cases where the configured hard limit is greater than the current hard limit. */
             if ((oldLimits.rlim_max < confLimits->rlim_max->value) && ((errorNum == EPERM) || (errorNum == EINVAL))) {
                 if (errorNum == EPERM) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("The process doesn't have sufficient privileges to raise the hard limit (from %s to %s) for %s."), printRlim(oldLimits.rlim_max, limBuf1), printRlim(confLimits->rlim_max->value, limBuf2), resourceName);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("The process doesn't have sufficient privileges to raise the hard limit (from %s to %s) for %s."), printRlim(oldLimits.rlim_max, limBuf1, divisor), printRlim(confLimits->rlim_max->value, limBuf2, divisor), resourceName);
                 } else {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("Could not raise the hard limit (from %s to %s) for %s."), printRlim(oldLimits.rlim_max, limBuf1), printRlim(confLimits->rlim_max->value, limBuf2), resourceName);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("Could not raise the hard limit (from %s to %s) for %s."), printRlim(oldLimits.rlim_max, limBuf1, divisor), printRlim(confLimits->rlim_max->value, limBuf2, divisor), resourceName);
                 }
                 if (strict) {
                     if (errorNum == EPERM) {
@@ -284,20 +284,35 @@ int setResourceLimits(int resourceId, const TCHAR* resourceName, const TCHAR* pr
  */
 int loadResourcesLimitsConfiguration() {
     PResourceLimits nofileLimits;
+    PResourceLimits dataLimits;
     int nofileStrict;
+    int dataStrict;
     
     /* number of open file descriptors */
-    nofileLimits = getResourcePropertyPair(properties, TEXT("wrapper.ulimit.nofile"));
+    nofileLimits = getResourcePropertyPair(properties, TEXT("wrapper.ulimit.nofile"), 1);
     if (!nofileLimits) {
         return 1;
     }
     nofileStrict = getBooleanProperty(properties, TEXT("wrapper.ulimit.nofile.strict"), TRUE);
     
-    if (setResourceLimits(RLIMIT_NOFILE, TEXT("the number of open file descriptors"), TEXT("wrapper.ulimit.nofile"), nofileLimits, nofileStrict)) {
+    if (setResourceLimits(RLIMIT_NOFILE, TEXT("the number of open file descriptors"), TEXT("wrapper.ulimit.nofile"), nofileLimits, nofileStrict, 1)) {
         disposeResourceLimits(nofileLimits);
         return 1;
     }
     disposeResourceLimits(nofileLimits);
+    
+    /* size of a process's data segment */
+    dataLimits = getResourcePropertyPair(properties, TEXT("wrapper.ulimit.data"), 1024);
+    if (!dataLimits) {
+        return 1;
+    }
+    dataStrict = getBooleanProperty(properties, TEXT("wrapper.ulimit.data.strict"), TRUE);
+    
+    if (setResourceLimits(RLIMIT_DATA, TEXT("the size of a process's data segment"), TEXT("wrapper.ulimit.data"), dataLimits, dataStrict, 1024)) {
+        disposeResourceLimits(dataLimits);
+        return 1;
+    }
+    disposeResourceLimits(dataLimits);
     
     return 0;
 }
@@ -316,7 +331,12 @@ void showResourceslimits() {
         if (getrlimit(RLIMIT_NOFILE, &limits) != 0) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to get the limits for the number of open file descriptors: (0x%x)"), errno);
         } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("Number of open file descriptors limits: %s (soft), %s (hard)."), printRlim(limits.rlim_cur, limBuf1), printRlim(limits.rlim_max, limBuf2));
+            log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("Number of open file descriptors limits: %s (soft), %s (hard)."), printRlim(limits.rlim_cur, limBuf1, 1), printRlim(limits.rlim_max, limBuf2, 1));
+        }
+        if (getrlimit(RLIMIT_DATA, &limits) != 0) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to get the limits for the data segment size: (0x%x)"), errno);
+        } else {
+            log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("Data segment size limits: %s (soft), %s (hard)."), printRlim(limits.rlim_cur, limBuf1, 1024), printRlim(limits.rlim_max, limBuf2, 1024));
         }
     }
 }

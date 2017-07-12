@@ -1153,20 +1153,12 @@ wrapper.filter.action.999=NONE]]></replacevalue>
         <!-- Set files to windows line feeds for .zip files -->
         <fixcrlf srcdir="${releasesrcdir}" eol="crlf" includes="**/*.java, **/*.properties, **/*.txt, **/*.xml, **/*.html, **/*.css, **/*.conf*, **/*.c.in, **/*.c, **/*.h, **/*.log"/>
 
-        <copy todir="${releasesrcdir}" overwrite="true" encoding="UTF-8" outputencoding="MS932">
+        <copy todir="${releasesrcdir}" overwrite="true" encoding="UTF-8" outputencoding="UTF-8">
             <fileset dir="${basedir}" >
-                <include name="README_ja.txt" />
+                <include name="README_*.txt" />
             </fileset>
         </copy>
-        <copy todir="${releasesrcdir}" overwrite="true" encoding="UTF-8" outputencoding="Cp1252">
-            <fileset dir="${basedir}" >
-                <include name="README_en.txt" />
-                <include name="README_es.txt" />
-                <include name="README_de.txt" />
-            </fileset>
-        </copy>
-        <fixcrlf srcdir="${releasesrcdir}" encoding="Cp1252" outputencoding="Cp1252" includes="README_en.txt, README_es.txt, README_de.txt" eol="crlf"/>
-        <fixcrlf srcdir="${releasesrcdir}" encoding="MS932" outputencoding="MS932" includes="README_ja.txt" eol="crlf"/>
+        <fixcrlf srcdir="${releasesrcdir}" encoding="UTF-8" outputencoding="UTF-8" includes="README_*.txt" eol="crlf"/>
         <!-- Source archives  -->
         <zip zipfile="${dist.dir}/${releasesrcfile}.zip"
             basedir="${build.dir}"
@@ -1277,26 +1269,21 @@ wrapper.filter.action.999=NONE]]></replacevalue>
         <!-- Set files to windows line feeds for .zip files -->
         <fixcrlf srcdir="${intermdir}" eol="crlf" includes="**/*.java, **/*.properties, **/*.txt, **/*.xml, **/*.html, **/*.css, **/*.conf*, **/*.c.in, **/*.c, **/*.h, **/*.log"/>
 
-        <!-- Copy the README's and convert the encoding for windows -->
-        <copy todir="${intermdir}" overwrite="true" encoding="UTF-8" outputencoding="MS932">
+        <!-- Copy the README's -->
+        <copy todir="${intermdir}" overwrite="true" encoding="UTF-8" outputencoding="UTF-8">
             <fileset dir="${basedir}" >
-                <include name="README_ja.txt" />
+                <include name="README_*.txt" />
             </fileset>
         </copy>
-        <copy todir="${intermdir}" overwrite="true" encoding="UTF-8" outputencoding="Cp1252">
-            <fileset dir="${basedir}" >
-                <include name="README_en.txt" />
-                <include name="README_es.txt" />
-                <include name="README_de.txt" />
-            </fileset>
-        </copy>
-        <fixcrlf srcdir="${intermdir}" encoding="Cp1252" outputencoding="Cp1252" includes="README_en.txt, README_es.txt, README_de.txt" eol="crlf"/>
-        <fixcrlf srcdir="${intermdir}" encoding="MS932" outputencoding="MS932" includes="README_ja.txt" eol="crlf"/>
+        <fixcrlf srcdir="${intermdir}" encoding="UTF-8" outputencoding="UTF-8" includes="README_*.txt" eol="crlf"/>
+        
+        <!-- Create the pre-release package -->
         <zip zipfile="${dist.dir}/${intermfile}.zip"
             basedir="${build.dir}"
             compress="true">
             <include name="${intermfile}/**/*" />
-        </zip>      
+        </zip>
+        
         <!-- Make the intermediate build for Unix -->
         <fixcrlf srcdir="${intermdir}" eol="lf" includes="**/*.java, **/*.properties, **/*.txt, **/*.xml, **/*.html, **/*.css, **/*.conf*, **/*.c.in, **/*.c, **/*.h, **/*.log"/>
 
@@ -1482,20 +1469,12 @@ wrapper.filter.action.999=NONE]]></replacevalue>
         
         <fixcrlf srcdir="${releasedir}" includes="**/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.log" eol="crlf"/>
                 
-        <copy todir="${releasedir}" overwrite="true" encoding="MS932" outputencoding="MS932">
+        <copy todir="${releasedir}" overwrite="true" encoding="UTF-8" outputencoding="UTF-8">
             <fileset dir="${basedir}" >
-                <include name="README_ja.txt" />
+                <include name="README_*.txt" />
             </fileset>
         </copy>
-        <copy todir="${releasedir}" overwrite="true" encoding="Cp1252" outputencoding="Cp1252">
-            <fileset dir="${basedir}" >
-                <include name="README_en.txt" />
-                <include name="README_es.txt" />
-                <include name="README_de.txt" />
-            </fileset>
-        </copy>
-        <fixcrlf srcdir="${releasedir}" encoding="Cp1252" outputencoding="Cp1252" includes="README_en.txt, README_es.txt, README_de.txt" eol="crlf"/>
-        <fixcrlf srcdir="${releasedir}" encoding="MS932" outputencoding="MS932" includes="README_ja.txt" eol="crlf"/>
+        <fixcrlf srcdir="${releasedir}" encoding="UTF-8" outputencoding="UTF-8" includes="README_*.txt" eol="crlf"/>
 
         <zip zipfile="${dist.dir}/${releasefile}.zip"
             basedir="${build.dir}"
@@ -1963,20 +1942,12 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <fixcrlf srcdir="${releasedir}" includes="**/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.log" eol="crlf"/>
 
 
-        <copy todir="${releasedir}" overwrite="true" encoding="UTF-8" outputencoding="MS932">
+        <copy todir="${releasedir}" overwrite="true" encoding="UTF-8" outputencoding="UTF-8">
             <fileset dir="${basedir}" >
-                <include name="README_ja.txt" />
+                <include name="README_*.txt" />
             </fileset>
         </copy>
-        <copy todir="${releasedir}" overwrite="true" encoding="UTF-8" outputencoding="Cp1252">
-            <fileset dir="${basedir}" >
-                <include name="README_en.txt" />
-                <include name="README_es.txt" />
-                <include name="README_de.txt" />
-            </fileset>
-        </copy>
-        <fixcrlf srcdir="${releasedir}" encoding="Cp1252" outputencoding="Cp1252" includes="README_en.txt, README_es.txt, README_de.txt" eol="crlf"/>
-        <fixcrlf srcdir="${releasedir}" encoding="MS932" outputencoding="MS932" includes="README_ja.txt" eol="crlf"/>
+        <fixcrlf srcdir="${releasedir}" encoding="UTF-8" outputencoding="UTF-8" includes="README_*.txt" eol="crlf"/>
 
         
         <zip zipfile="${dist.dir}/${deltareleasefile}.zip"

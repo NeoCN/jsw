@@ -439,6 +439,9 @@ struct WrapperConfig {
     int     ntShutdownWaitHint;     /* Delay in seconds requested by the Wrapper when it reports a STOPPING or PAUSING status to the service controler. */
     int     ntStartupWaitHint;      /* Delay in seconds requested by the Wrapper when it reports a STARTING or RESUMING status to the service controler. */
     int     threadDumpControlCode;  /* Control code which can be used to trigger a thread dump. */
+    BOOL    DEPApiAvailable;        /* TRUE if the DEP API is available in Kernel32, false otherwise. */
+    BOOL    DEPStatus;              /* TRUE if DEP has been enabled. */
+    DWORD   DEPError;               /* Error code returned when failing to enable DEP. */
 #else /* UNIX */
     int     daemonize;              /* TRUE if the process  should be spawned as a daemon process on launch. */
     int     signalHUPMode;          /* Controls what happens when the Wrapper receives a HUP signal. */
@@ -474,6 +477,7 @@ struct WrapperConfig {
 #else
     int     signalInterruptTrapped; /* SIGINT was trapped. */
     int     signalQuitTrapped;      /* SIGQUIT was trapped. */
+    int     signalQuitKernel;       /* SIGQUIT was originated by the kernel. */
     int     signalChildTrapped;     /* SIGCHLD was trapped. */
     int     signalTermTrapped;      /* SIGTERM was trapped. */
     int     signalHUPTrapped;       /* SIGHUP was trapped. */

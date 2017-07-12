@@ -333,7 +333,17 @@ void wrapperMaintainSignals() {
     if (wrapperData->signalQuitTrapped) {
         wrapperData->signalQuitTrapped = FALSE;
         
-        wrapperRequestDumpJVMState();
+        if (wrapperData->signalQuitKernel) {
+            /* When CTRL+'\' is captured by the terminal driver (in the kernel), SIGQUIT
+             *  is sent to the foreground process group of the current session.
+             *  Since the JVM and Wrapper processes belong to the same process group,
+             *  the JVM would receive the signal twice if we forward it. Instead, just log
+             *  a message and let the JVM handle the signal on its own. */
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Dumping JVM state."));
+            wrapperData->signalQuitKernel = FALSE;
+        } else {
+            wrapperRequestDumpJVMState();
+        }
     }
     
     /* SIGCHLD */
@@ -580,6 +590,12 @@ void sigActionQuit(int sigNum, siginfo_t *sigInfo, void *na) {
         }
     } else {
         wrapperData->signalQuitTrapped = TRUE;
+#ifdef SI_KERNEL
+        wrapperData->signalQuitKernel = (sigInfo->si_code == SI_KERNEL);
+#else
+        /* On some platforms we can't know the source of a signal. */
+        wrapperData->signalQuitKernel = FALSE;
+#endif
     }
 }
 
@@ -1889,6 +1905,7 @@ int main(int argc, char **argv) {
 #endif
     TCHAR *retLocale;
     int exitCode;
+    int localeSet;
 
 #ifdef FREEBSD
     /* In the case of FreeBSD, we need to dynamically load and initialize the iconv library to work with all versions of FreeBSD. */
@@ -1901,20 +1918,25 @@ int main(int argc, char **argv) {
   
     /* Set the default locale here so any startup error messages will have a chance of working.
      *  This should be done before converting cargv to argv, because there might be accentued letters in cargv. */
+    envLang = _tgetenv(TEXT("LANG"));
     retLocale = _tsetlocale(LC_ALL, TEXT(""));
+    if (!retLocale) {
+        /* On some platforms (i.e. Linux ARM), the locale can't be set if LC_ALL is empty.
+         *  In such case, set LC_ALL to the value of LANG and try again. */
+        setEnv(TEXT("LC_ALL"), envLang, ENV_SOURCE_APPLICATION);
+        retLocale = _tsetlocale(LC_ALL, TEXT(""));
+    }
     if (retLocale) {
 #if defined(UNICODE)
         free(retLocale);
+        if (envLang) {
+            free(envLang);
+        }
 #endif
+        localeSet = TRUE;
     } else {
-        /* TODO - We need to be careful about LANG here as it is not set on all systems. */
-        /*
-        envLang = _tgetenv(TEXT("LANG"));
-        _tprintf(TEXT("Can't set the locale(%s); make sure $LC_* and $LANG are correct.\n"), envLang);
-#if defined(UNICODE)
-        free(envLang);
-#endif
-        */
+        /* Do not free envLang yet. We will use it below to print a warning. */
+        localeSet = FALSE;
     }
     
 #ifdef UNICODE
@@ -1977,6 +1999,16 @@ int main(int argc, char **argv) {
     if (!wrapperParseArguments(argc, argv)) {
         appExit(1, argc, argv);
         return 1; /* For compiler. */
+    }
+    if (!localeSet) {
+        if (strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate")) != 0) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Unable to set the locale to '%s'.  Please make sure $LC_* and $LANG are correct."), (envLang ? envLang : TEXT("<NULL>")));
+        }
+#if defined(UNICODE)
+        if (envLang) {
+            free(envLang);
+        }
+#endif
     }
     wrapperLoadHostName();
     if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate"))) {
