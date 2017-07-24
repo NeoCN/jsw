@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /bin/sh
 #-----------------------------------------------------------------------------
 #------   FUNCTIONS FOR TESTS THAT PASS WHEN A CERTAIN OUTPUTS MATCH   -------
 #-----------------------------------------------------------------------------
@@ -17,6 +17,9 @@ printHeader() {
     done
     echo ""
     echo "  Expected output: $EXPECTED_OUTPUT"
+    if [ -n "$EXPECTED_OUTPUT2" ] ; then
+        echo "  Expected output 2: $EXPECTED_OUTPUT2"
+    fi
     echo "-----------------------------------------------------------------------------"
     echo ""
 }
@@ -40,18 +43,20 @@ printResult() {
 }
 
 runTest() {
-    ARGS=()
+    ARGS=""
     for p in "$@"; do
         # Ignore arguments that are not properties
-        if [[ $p == wrapper.* ]] ; then
-            ARGS+=("$p")
-        fi
+        case "$p" in
+            wrapper.*)
+                ARGS="$ARGS $p"
+                ;;
+        esac
     done
+    ARGS="$ARGS "
     
     # use 2>&1 to merge stdout and stderr (we need to flush on each message to keep the order)
     # use tee command to redirect both to a temp file and the console
-    #   http://stackoverflow.com/questions/692000/how-do-i-write-stderr-to-a-file-while-using-tee-with-a-pipe
-    ../bin/wrapper -c ../test/$BASENAME.conf wrapper.console.flush=TRUE "${ARGS[@]}" -- console 2>&1 | tee TEMPFILE
+    ../bin/wrapper -c ../test/$BASENAME.conf wrapper.console.flush=TRUE $ARGS -- console 2>&1 | tee TEMPFILE
 }
 
 runTestFull() {

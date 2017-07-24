@@ -974,6 +974,20 @@ extern void wrapperStopProcess(int exitCode, int force);
 extern const TCHAR *wrapperGetRestartProcessMessage();
 
 /**
+ * Depending on the current state, we want to change the exact message displayed when pausing the Wrapper.
+ *
+ * The logic here needs to match that in wrapperPauseProcess.
+ */
+extern const TCHAR *wrapperGetPauseProcessMessage();
+
+/**
+ * Depending on the current state, we want to change the exact message displayed when resuming the Wrapper.
+ *
+ * The logic here needs to match that in wrapperResumeProcess.
+ */
+extern const TCHAR *wrapperGetResumeProcessMessage();
+
+/**
  * Used to ask the state engine to shut down the JVM.
  */
 extern void wrapperRestartProcess();

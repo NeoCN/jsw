@@ -20,7 +20,7 @@ Java Service Wrapper Revision History.
 * Correct invalid exit code that may be written in the command file along with
   a STOP command. If the exit code is out of the range 0-255, it will be
   resolved to the value of the wrapper.exit_code.error property.
-* Fix a misleading message when the Wrapper was paused using the command file.
+* Improve messages when the Wrapper is paused or resumed.
 * Fix a bug where, on certain UNIX platforms, the locale was not correctly set
   from the environment at startup.
 * Fix a bug on FreeBSD where conversions of JVM outputs to a different encoding

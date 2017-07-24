@@ -34,7 +34,7 @@
 #include "wrapper.h"
 #include "wrapper_ulimit.h"
 
-#if defined(LINUX) && defined(__USE_FILE_OFFSET64) && !defined(DJSW64)
+#if defined(LINUX) && defined(__USE_FILE_OFFSET64) && !defined(JSW64)
  #define WRAPPER_RLIM_INFINITY  ((unsigned long int)(~0UL))
 #else
  #define WRAPPER_RLIM_INFINITY  RLIM_INFINITY
@@ -133,7 +133,9 @@ void disposeResourceLimits(PResourceLimits limits) {
 }
 
 TCHAR* printRlim(rlim_t value, TCHAR* buffer, const int divisor) {
-    if (value == WRAPPER_RLIM_INFINITY) {
+    /* On Linux 32-bit, the value can be greater than (unsigned long int)(~0UL)
+     *  when the compilation option __USE_FILE_OFFSET64 is used. */
+    if (value >= WRAPPER_RLIM_INFINITY) {
         _sntprintf(buffer, 32, TEXT("unlimited"));
     } else {
         _sntprintf(buffer, 32, TEXT("%lu"), (unsigned long)(value/divisor));
@@ -146,6 +148,8 @@ int setResourceLimits(int resourceId, const TCHAR* resourceName, const TCHAR* pr
     struct rlimit oldLimits, newLimits, checkLimits;
     TCHAR limBuf1[32];
     TCHAR limBuf2[32];
+    TCHAR limBuf3[32];
+    TCHAR limBuf4[32];
     int logLevel;
     int errorNum = 0;
     int setResult;
@@ -192,7 +196,7 @@ int setResourceLimits(int resourceId, const TCHAR* resourceName, const TCHAR* pr
         /* Resolve cases where the soft limit is greater than the hard limit. */
         if (newLimits.rlim_max < newLimits.rlim_cur) {
             if (confLimits->rlim_max->useCurrent) {
-                /* The user has set only the SOFT limit. */
+                /* The user has only set the SOFT limit. */
                 log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("The soft limit (%s) for %s is set higher than the current hard limit (%s)."), printRlim(confLimits->rlim_cur->value, limBuf1, divisor), resourceName, printRlim(oldLimits.rlim_max, limBuf2, divisor));
                 if (strict) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("  Make sure to correctly set the value of the %s.soft property."), propertyBaseName);
@@ -200,7 +204,7 @@ int setResourceLimits(int resourceId, const TCHAR* resourceName, const TCHAR* pr
                 }
                 newLimits.rlim_cur = oldLimits.rlim_max;
             } else {
-                /* The user has set only the HARD limit. */
+                /* The user has only set the HARD limit. */
                 log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("The hard limit (%s) for %s is set lower than the current soft limit (%s)."), printRlim(confLimits->rlim_max->value, limBuf1, divisor), resourceName, printRlim(oldLimits.rlim_cur, limBuf2, divisor));
                 if (strict) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("  Make sure to correctly set the value of the %s.hard property."), propertyBaseName);
@@ -226,9 +230,25 @@ int setResourceLimits(int resourceId, const TCHAR* resourceName, const TCHAR* pr
                 /* Mark as an EINVAL error and continue. */
                 errorNum = EINVAL;
                 setResult = -1;
-            } else if ((checkLimits.rlim_max != newLimits.rlim_max) || (checkLimits.rlim_cur != newLimits.rlim_cur)) {
+            } else if (((checkLimits.rlim_max != newLimits.rlim_max) || (checkLimits.rlim_cur != newLimits.rlim_cur))
+#if defined(LINUX) && defined(__USE_FILE_OFFSET64) && !defined(JSW64)
+                        /* On Linux 32-bit, we defined WRAPPER_RLIM_INFINITY to use the max value of unsigned long
+                         *  (see comment near the definition of WRAPPER_RLIM_INFINITY). However, since we compile
+                         *  with __USE_FILE_OFFSET64, the real unlimited value is the max of unsigned long long.
+                         *  setrlimit() will set unlimited limits even with WRAPPER_RLIM_INFINITY being unsigned long,
+                         *  but getrlimit() will collect greater values (max of unsigned long long). The limits are
+                         *  set correctly, so just ignore this case. We will no longer need this when using C99. */
+                        && !(newLimits.rlim_max == WRAPPER_RLIM_INFINITY && (checkLimits.rlim_max > newLimits.rlim_max))
+                        && !(newLimits.rlim_cur == WRAPPER_RLIM_INFINITY && (checkLimits.rlim_cur > newLimits.rlim_cur))
+#endif
+            ) {
                 /* This should never happen... */
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to set the limits for %s."), resourceName);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to set the limits for %s (HARD: expected %s, got %s; SOFT: expected %s, got %s)."),
+                    resourceName, 
+                    printRlim(newLimits.rlim_max  , limBuf1, divisor),
+                    printRlim(checkLimits.rlim_max, limBuf2, divisor),
+                    printRlim(newLimits.rlim_cur  , limBuf3, divisor),
+                    printRlim(checkLimits.rlim_cur, limBuf4, divisor));
                 return 1;
             }
         }

@@ -289,13 +289,13 @@ void takeSignalAction(int sigNum, const TCHAR *sigName, int mode) {
 
         case WRAPPER_SIGNAL_MODE_PAUSE:
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                TEXT("%s trapped.  Pausing the application."), sigName);
+                TEXT("%s trapped.  %s"), sigName, wrapperGetPauseProcessMessage());
             wrapperPauseProcess(WRAPPER_ACTION_SOURCE_CODE_SIGNAL);
             break;
 
         case WRAPPER_SIGNAL_MODE_RESUME:
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                TEXT("%s trapped.  Resuming the application."), sigName);
+                TEXT("%s trapped.  %s"), sigName, wrapperGetResumeProcessMessage());
             wrapperResumeProcess(WRAPPER_ACTION_SOURCE_CODE_SIGNAL);
             break;
 
@@ -1906,6 +1906,7 @@ int main(int argc, char **argv) {
     TCHAR *retLocale;
     int exitCode;
     int localeSet;
+    TCHAR *envLang;
 
 #ifdef FREEBSD
     /* In the case of FreeBSD, we need to dynamically load and initialize the iconv library to work with all versions of FreeBSD. */
