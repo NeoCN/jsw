@@ -3546,12 +3546,12 @@ void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int acti
                     break;
 
                 case ACTION_PAUSE:
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s  Pausing..."), triggerMsg);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s  %s"), triggerMsg, wrapperGetPauseProcessMessage());
                     wrapperPauseProcess(actionSourceCode);
                     break;
 
                 case ACTION_RESUME:
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s  Resuming..."), triggerMsg);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s  %s"), triggerMsg, wrapperGetResumeProcessMessage());
                     wrapperResumeProcess(actionSourceCode);
                     break;
 
@@ -5156,7 +5156,47 @@ const TCHAR *wrapperGetRestartProcessMessage() {
         return TEXT("Restarting JVM.");
     }
 }
-        
+
+/**
+ * Depending on the current state, we want to change the exact message displayed when pausing the Wrapper.
+ *
+ * The logic here needs to match that in wrapperPauseProcess.
+ */
+const TCHAR *wrapperGetPauseProcessMessage() {
+    if (!wrapperData->pausable) {
+        return TEXT("Pause (Ignoring, the Wrapper was not set pausable).");
+    } else if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
+               (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
+        return TEXT("Pause (Ignoring, already stopping)."); 
+    } else if (wrapperData->wState == WRAPPER_WSTATE_PAUSING) {
+        return TEXT("Pause (Ignoring, already pausing)."); 
+    } else if (wrapperData->wState == WRAPPER_WSTATE_PAUSED) {
+        return TEXT("Pause (Ignoring, already paused)."); 
+    } else {
+        return TEXT("Pausing..."); 
+    }
+}
+
+/**
+ * Depending on the current state, we want to change the exact message displayed when resuming the Wrapper.
+ *
+ * The logic here needs to match that in wrapperResumeProcess.
+ */
+const TCHAR *wrapperGetResumeProcessMessage() {
+    if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
+        (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
+        return TEXT("Resume (Ignoring, already stopping)."); 
+    } else if (wrapperData->wState == WRAPPER_WSTATE_STARTING) {
+        return TEXT("Resume (Ignoring, already starting)."); 
+    } else if (wrapperData->wState == WRAPPER_WSTATE_STARTED) {
+        return TEXT("Resume (Ignoring, already started)."); 
+    } else if (wrapperData->wState == WRAPPER_WSTATE_RESUMING) {
+        return TEXT("Resume (Ignoring, already resuming)."); 
+    } else {
+        return TEXT("Resuming..."); 
+    }
+}
+
 /**
  * Used to ask the state engine to shut down the JVM.  This are always intentional restart requests.
  */

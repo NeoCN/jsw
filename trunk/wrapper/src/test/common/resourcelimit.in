@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /bin/sh
 #-----------------------------------------------------------------------------
 #------------------   FUNCTIONS FOR RESOURCE LIMIT TESTS   -------------------
 #-----------------------------------------------------------------------------
@@ -34,6 +34,11 @@ setup() {
         ulimit -S -$L $CURRENT_SOFT
         # retrieve the value from the result of the ulimit command in case the limit was resolved to a different value
         CURRENT_SOFT=`ulimit -S -$L`
+        if [ "$CURRENT_SOFT" = "unlimited" ] ; then
+            # on z/OS (maybe other platforms as well?) the limits for '-d' are always unlimited
+            echo "The soft and hard limits of this resource are always unlimited on this platform."
+            exit 0
+        fi
     fi
 
     if [ "$CURRENT_HARD" = "unlimited" ] ; then

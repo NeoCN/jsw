@@ -1146,6 +1146,7 @@ wrapper.filter.action.999=NONE]]></replacevalue>
         <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat" eol="crlf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat.in" eol="crlf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="**/*.script.in" eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="src/test/**/*.in" eol="lf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="build32.sh" eol="lf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="build64.sh" eol="lf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="**/Makefile-*" eol="lf" />
@@ -1244,6 +1245,8 @@ wrapper.filter.action.999=NONE]]></replacevalue>
                 <include name="src/c/*.bmp" />
                 <include name="src/c/*.bin" />
                 <include name="src/c/*.manifest" />
+                <include name="src/test/*.in" />
+                <include name="src/test/common/*.in" />
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
@@ -1252,6 +1255,7 @@ wrapper.filter.action.999=NONE]]></replacevalue>
         <fixcrlf srcdir="${intermdir}" includes="**/*.bat" eol="crlf" />
         <fixcrlf srcdir="${intermdir}" includes="**/*.bat.in" eol="crlf" />
         <fixcrlf srcdir="${intermdir}" includes="**/*.script.in" eol="lf" />
+        <fixcrlf srcdir="${intermdir}" includes="src/test/**/*.in" eol="lf" />
         <fixcrlf srcdir="${intermdir}" includes="build32.sh" eol="lf" />
         <fixcrlf srcdir="${intermdir}" includes="build64.sh" eol="lf" />
         <fixcrlf srcdir="${intermdir}" includes="**/Makefile-*" eol="lf" />
@@ -1466,7 +1470,7 @@ wrapper.filter.action.999=NONE]]></replacevalue>
         <fixcrlf srcdir="${releasedir}" includes="**/*.bat.in" eol="crlf" />
         <fixcrlf srcdir="${releasedir}" includes="bin/${app.name}" eol="lf" />
         <fixcrlf srcdir="${releasedir}" includes="**/*.script.in" eol="lf" />
-        
+        <fixcrlf srcdir="${releasedir}" includes="src/test/**/*.in" eol="lf" />
         <fixcrlf srcdir="${releasedir}" includes="**/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.log" eol="crlf"/>
                 
         <copy todir="${releasedir}" overwrite="true" encoding="UTF-8" outputencoding="UTF-8">
@@ -1584,6 +1588,7 @@ wrapper.filter.action.999=NONE]]></replacevalue>
         <fixcrlf srcdir="${releasedir}" includes="**/*.bat.in" eol="crlf" />
         <fixcrlf srcdir="${releasedir}" includes="bin/${app.name}" eol="lf" />
         <fixcrlf srcdir="${releasedir}" includes="**/*.script.in" eol="lf" />
+        <fixcrlf srcdir="${releasedir}" includes="src/test/**/*.in" eol="lf" />
         
         <fixcrlf srcdir="${releasedir}" includes="**/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.log" eol="lf"/>
 
@@ -1937,6 +1942,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <fixcrlf srcdir="${releasedir}" includes="**/*.bat.in" eol="crlf" />
         <fixcrlf srcdir="${releasedir}" includes="bin/${app.name}" eol="lf" />
         <fixcrlf srcdir="${releasedir}" includes="**/*.script.in" eol="lf" />
+        <fixcrlf srcdir="${releasedir}" includes="src/test/**/*.in" eol="lf" />
         
         <!-- Create release targetted at windows users. -->
         <fixcrlf srcdir="${releasedir}" includes="**/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.log" eol="crlf"/>

@@ -561,7 +561,7 @@ void commandPoll(TICKS nowTicks) {
 
                             /* Process the command. */
                             if (strcmpIgnoreCase(command, TEXT("RESTART")) == 0) {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'.  %s"), command, wrapperGetRestartProcessMessage());
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. %s"), command, wrapperGetRestartProcessMessage());
                                 wrapperRestartProcess();
                             } else if (strcmpIgnoreCase(command, TEXT("STOP")) == 0) {
                                 if (param1 == NULL) {
@@ -590,18 +590,10 @@ void commandPoll(TICKS nowTicks) {
                                     wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
                                 }
                             } else if (strcmpIgnoreCase(command, TEXT("PAUSE")) == 0) {
-                                if (wrapperData->pausable) {
-                                    if (strcmpIgnoreCase(wrapperData->serviceName, TEXT("wrapper")) == 0) {
-                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Pausing the Wrapper."), command);
-                                    } else {
-                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Pausing %s."), command, wrapperData->serviceName);
-                                    }
-                                } else {
-                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. The Wrapper was not set pausable. Ignoring the command."), command);
-                                }
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. %s"), command, wrapperGetPauseProcessMessage());
                                 wrapperPauseProcess(WRAPPER_ACTION_SOURCE_CODE_COMMANDFILE);
                             } else if (strcmpIgnoreCase(command, TEXT("RESUME")) == 0) {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Resuming JVM."), command);
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. %s"), command, wrapperGetResumeProcessMessage());
                                 wrapperResumeProcess(WRAPPER_ACTION_SOURCE_CODE_COMMANDFILE);
                             } else if (strcmpIgnoreCase(command, TEXT("DUMP")) == 0) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Requesting a Thread Dump."), command);

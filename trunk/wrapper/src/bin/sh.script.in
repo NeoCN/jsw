@@ -16,7 +16,7 @@
 
 #-----------------------------------------------------------------------------
 # These settings can be modified to fit the needs of your application
-# Optimized for use with version 3.5.33-a of the Wrapper.
+# Optimized for use with version 3.5.33 of the Wrapper.
 
 # IMPORTANT - Please always stop and uninstall an application before making
 #             any changes to this file.  Failure to do so could remove the
@@ -1048,7 +1048,7 @@ launchinternal() {
         prepAdditionalParams "$@"
 
         # The string passed to eval must handles spaces in paths correctly.
-        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.daemonize=TRUE $APPNAMEPROP $ANCHORPROP $IGNOREPROP $STATUSPROP $COMMANDPROP $LOCKPROP wrapper.script.version=3.5.33-a $ADDITIONAL_PARA"
+        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.daemonize=TRUE $APPNAMEPROP $ANCHORPROP $IGNOREPROP $STATUSPROP $COMMANDPROP $LOCKPROP wrapper.script.version=3.5.33 $ADDITIONAL_PARA"
         eval $COMMAND_LINE
     else
         eval echo `gettext '$APP_LONG_NAME is already running.'`
@@ -1071,7 +1071,7 @@ console() {
         prepAdditionalParams "$@"
 
         # The string passed to eval must handles spaces in paths correctly.
-        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" $APPNAMEPROP $ANCHORPROP $STATUSPROP $COMMANDPROP $LOCKPROP wrapper.script.version=3.5.33-a $ADDITIONAL_PARA"
+        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" $APPNAMEPROP $ANCHORPROP $STATUSPROP $COMMANDPROP $LOCKPROP wrapper.script.version=3.5.33 $ADDITIONAL_PARA"
         eval $COMMAND_LINE
         COMMAND_EXIT_CODE=$?
         if [ $COMMAND_EXIT_CODE -ne 0 ] ; then
@@ -1221,21 +1221,28 @@ macosxRestart() {
 # Detect if upstart is installed
 # Returns 0 if upstart is found, otherwise returns 1.
 upstartDetection() {
+    if [ ! -d "/etc/init" ] ; then
+        return 1
+    fi
+
     INITCTL_BIN="/sbin/initctl"
     if [ ! -x "$INITCTL_BIN" ] ; then
         return 1
     fi
     
-    result=`$INITCTL_BIN version | grep upstart`
-    # if the word "restart" is in the result, then we assume upstart is installed.
+    result=`$INITCTL_BIN version 2>/dev/null`
     if [ $? -eq 0 ] ; then
-        return 0
+        # if the word "upstart" is in the result, then we assume upstart is installed.
+        result=`echo $result | grep upstart`
+        if [ $? -eq 0 ] ; then
+            return 0
+        fi
     fi
     return 1
 }
 
 upstartInstall() {
-    # Always verifies that upstart exists.
+    # Always verify that upstart exists.
     upstartDetection
     if [ $? -ne 0 ] ; then
         eval echo `gettext 'Unable to install the $APP_LONG_NAME daemon because upstart does not exist.'`
@@ -1307,6 +1314,10 @@ upstartRestart() {
 # Method to check if systemd is running.
 # Returns 0 if systemd is found, otherwise returns 1.
 systemdDetection() {
+    if [ ! -d "/etc/systemd" ] ; then
+        return 1
+    fi
+
     PIDOF_BIN="/bin/pidof"
     if [ ! -x "$PIDOF_BIN" ] ; then
         return 1
@@ -1316,7 +1327,7 @@ systemdDetection() {
 }
 
 systemdInstall() {
-    # Always verifies that systemd exists.
+    # Always verify that systemd exists.
     systemdDetection
     if [ $? -ne 0 ] ; then
       eval echo `gettext 'Unable to install the $APP_LONG_NAME daemon because systemd does not exist.'`
@@ -1393,7 +1404,7 @@ srcDetection() {
 }
 
 srcInstall() {
-    # Always verifies that SRC exists.
+    # Always verify that SRC exists.
     srcDetection
     if [ $? -ne 0 ] ; then
       eval echo `gettext 'Unable to install the $APP_LONG_NAME daemon because SRC does not exist.'`
@@ -1444,7 +1455,7 @@ start() {
         prepAdditionalParams "$@"
 
         # The string passed to eval must handles spaces in paths correctly.
-        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.daemonize=TRUE $APPNAMEPROP $ANCHORPROP $IGNOREPROP $STATUSPROP $COMMANDPROP $LOCKPROP wrapper.script.version=3.5.33-a $ADDITIONAL_PARA"
+        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.daemonize=TRUE $APPNAMEPROP $ANCHORPROP $IGNOREPROP $STATUSPROP $COMMANDPROP $LOCKPROP wrapper.script.version=3.5.33 $ADDITIONAL_PARA"
         eval $COMMAND_LINE
     else
         eval echo `gettext '$APP_LONG_NAME is already running.'`
@@ -1759,10 +1770,10 @@ installdaemon() {
             eval echo `gettext 'Detected RHEL or Fedora:'`
             if [ $installedStatus -gt 0 ] ; then
                 eval echo `gettext ' The $APP_LONG_NAME daemon is already installed with $installedWith.'`
-            elif [ -n "$USE_SYSTEMD" -a -d "/etc/systemd" ] ; then
+            elif [ -n "$USE_SYSTEMD" ] ; then
                     systemdInstall
             else
-                if [ -n "$USE_UPSTART" -a -d "/etc/init" ] ; then
+                if [ -n "$USE_UPSTART" ] ; then
                     upstartInstall
                 else 
                     eval echo `gettext ' Installing the $APP_LONG_NAME daemon..'`
@@ -1775,7 +1786,7 @@ installdaemon() {
             eval echo `gettext 'Detected SuSE or SLES:'`
             if [ $installedStatus -gt 0 ] ; then
                 eval echo `gettext ' The $APP_LONG_NAME daemon is already installed with $installedWith.'`
-            elif [ -n "$USE_SYSTEMD" -a -d "/etc/systemd" ] ; then
+            elif [ -n "$USE_SYSTEMD" ] ; then
                     systemdInstall
             else
                 eval echo `gettext ' Installing the $APP_LONG_NAME daemon..'`
@@ -1787,9 +1798,9 @@ installdaemon() {
             if [ $installedStatus -gt 0 ] ; then
                 eval echo `gettext ' The $APP_LONG_NAME daemon is already installed with $installedWith.'`
             else
-                if [ -n "$USE_SYSTEMD" -a -d "/etc/systemd" ] ; then
+                if [ -n "$USE_SYSTEMD" ] ; then
                     systemdInstall
-                elif [ -n "$USE_UPSTART" -a -d "/etc/init" ] ; then
+                elif [ -n "$USE_UPSTART" ] ; then
                     upstartInstall
                 else 
                     eval echo `gettext ' Installing the $APP_LONG_NAME daemon using init.d..'`
@@ -2288,6 +2299,10 @@ setServiceManagementTool() {
     elif [ "$DIST_OS" = "aix" ] ; then
         setServiceManagementToolAix
     else
+        if [ "$SERVICE_MANAGEMENT_TOOL" != "auto" ] ; then
+            eval echo `gettext "The script does not support the service management tool \'$SERVICE_MANAGEMENT_TOOL\' on this platform."`
+            SERVICE_MANAGEMENT_TOOL=auto
+        fi
         return
     fi
     
@@ -2344,7 +2359,6 @@ setServiceManagementToolAix() {
 }
 
 docommand() {
-    setServiceManagementTool
   
     case "$COMMAND" in
         'console')
@@ -2356,10 +2370,12 @@ docommand() {
             ;;
     
         'start')
+            setServiceManagementTool
             startdaemon "$@"
             ;;
     
         'stop')
+            setServiceManagementTool
             if [ "$DIST_OS" = "macosx" -a -f "/Library/LaunchDaemons/${APP_PLIST}" ] ; then
                 macosxStop
             elif [ "$DIST_OS" = "linux" -a -n "$USE_UPSTART" ] && [ -f "/etc/init/${APP_NAME}.conf" ] ; then
@@ -2375,6 +2391,7 @@ docommand() {
             ;;
     
         'restart')
+            setServiceManagementTool
             if [ "$DIST_OS" = "macosx" -a -f "/Library/LaunchDaemons/${APP_PLIST}" ] ; then
                 macosxRestart
             elif [ "$DIST_OS" = "linux" -a -n "$USE_UPSTART" ] && [ -f "/etc/init/${APP_NAME}.conf" ] ; then
@@ -2397,6 +2414,7 @@ docommand() {
             ;;
     
         'condrestart')
+            setServiceManagementTool
             checkUser touchlock "$COMMAND"
             if [ ! -n "$FIXED_COMMAND" ] ; then
                 shift
@@ -2406,6 +2424,7 @@ docommand() {
             ;;
     
         'pause')
+            setServiceManagementTool
             if [ -n "$PAUSABLE" ]
             then
                 pause
@@ -2415,6 +2434,7 @@ docommand() {
             ;;
     
         'resume')
+            setServiceManagementTool
             if [ -n "$PAUSABLE" ]
             then
                 resume
@@ -2424,19 +2444,23 @@ docommand() {
             ;;
     
         'status')
+            setServiceManagementTool
             status
             ;;
     
         'install')
+            setServiceManagementTool
             installdaemon "$@"
             ;;
     
         'installstart')
+            setServiceManagementTool
             installdaemon "$@"
             startdaemon "$@"
             ;;
     
         'remove')
+            setServiceManagementTool
             removedaemon
             ;;
     
