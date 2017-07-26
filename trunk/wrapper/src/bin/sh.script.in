@@ -1238,6 +1238,15 @@ upstartDetection() {
             return 0
         fi
     fi
+    
+    # The command /sbin/initctl may fail if the user doesn't have enough privilege 
+    # but that doesn't mean upstart is not present.
+    # In this case we can assume upstart exists if the service was previously 
+    # installed by the root user.
+    if  [ -f "/etc/init/${APP_NAME}.conf" ] ; then
+        return 0
+    fi
+    
     return 1
 }
 
