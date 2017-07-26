@@ -1,5 +1,7 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.5.34
+
 3.5.33
 * Fix a false positive when detecting Upstart on Linux.
 * Fix a bug where it was required to register the Wrapper to the Event Log on
