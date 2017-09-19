@@ -18,7 +18,7 @@ import java.util.Date;
 /**
  *
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class LoadedLogOutput {
     /*---------------------------------------------------------------

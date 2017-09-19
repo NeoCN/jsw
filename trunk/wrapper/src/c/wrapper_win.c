@@ -1334,7 +1334,7 @@ int collectUserInfo() {
                 if (GetTokenInformation(hProcessToken, TokenUser, tokenUser, tokenUserSize, &tokenUserSize)) {
                     /* Get the text representation of the sid. */
                     if (ConvertSidToStringSid(tokenUser->User.Sid, &sidText) == 0) {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Failed to Convert SId to String: %s"), getLastErrorText());
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Failed to convert SId to String: %s"), getLastErrorText());
                         result = TRUE;
                     } else {
                         /* We now have an SID, use it to lookup the account. */
@@ -3286,7 +3286,7 @@ TCHAR *readPassword() {
 /**
  * RETURNS TRUE if the current Windows OS supports SHA-2 code-signning certificates
  */
-BOOL isSHA2Supported() {
+BOOL isSHA2CertificateSupported() {
     OSVERSIONINFOEX osver;
 
     osver.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
@@ -3364,7 +3364,7 @@ BOOL isWinXP() {
 BOOL isElevated() {
     TOKEN_ELEVATION te = {0};
     BOOL bIsElevated = FALSE;
-    HRESULT hResult = E_FAIL; // assume an error occured
+    HRESULT hResult = E_FAIL; // assume an error occurred
     HANDLE hToken   = NULL;
     DWORD dwReturnLength = 0;
     if (isVista()) {
@@ -4882,7 +4882,7 @@ int wrapperStartService() {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
                                 TEXT("  Configuration File  : %s"), wrapperData->argConfFile);
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                                TEXT("  Congigured Log File : %s" ), logFileFullPath);
+                                TEXT("  Configured Log File : %s" ), logFileFullPath);
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
                                 TEXT("  Default Log File    : %s" ), defaultLogFileFullPath);
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
@@ -6368,8 +6368,8 @@ LPTSTR printWholeCertificateInfo(LPCWSTR wrapperExeName, int level) {
 
             /* Find Date of timestamp. */
             if (GetDateOfTimeStamp(pCounterSignerInfo, &st)) {
-                size += _tcslen( TEXT("    Date of TimeStamp : %04d/%02d/%02d %02d:%02d")) - 8 + 1;
-                dateSet = FALSE;
+                size += _tcslen( TEXT("    Date of TimeStamp : %04d/%02d/%02d %02d:%02d:%02d")) - 10 + 1;
+                dateSet = TRUE;
                 //log_printf(WRAPPER_SOURCE_WRAPPER, level, TEXT("    Date of TimeStamp : %04d/%02d/%02d %02d:%02d"),
                 //    st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute);
             }
@@ -6409,8 +6409,8 @@ LPTSTR printWholeCertificateInfo(LPCWSTR wrapperExeName, int level) {
             _sntprintf(buffer + _tcslen(buffer), size - _tcslen(buffer), TEXT("\n%s\n"), string2);
         }
         if (dateSet) {
-            _sntprintf(buffer + _tcslen(buffer), size - _tcslen(buffer), TEXT("    Date of TimeStamp : %04d/%02d/%02d %02d:%02d"),
-                                            st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute);
+            _sntprintf(buffer + _tcslen(buffer), size - _tcslen(buffer), TEXT("    Date of TimeStamp : %04d/%02d/%02d %02d:%02d:%02d"),
+                                            st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
         }
         buffer[size - 1] = TEXT('\0');
 
@@ -6451,7 +6451,7 @@ LPTSTR printWholeCertificateInfo(LPCWSTR wrapperExeName, int level) {
     return buffer;
 }
 
-BOOL verifyEmbeddedSignature() {
+void verifyEmbeddedSignature() {
     LONG lStatus;
     DWORD dwLastError;
     const TCHAR* lastErrMsg;
@@ -6464,7 +6464,7 @@ BOOL verifyEmbeddedSignature() {
     int logLevel;
     
     if (!GetModuleFileName(NULL, pwszSourceFile, _MAX_PATH)) {
-        return FALSE;
+        return;
     }
     memset(&FileData, 0, sizeof(FileData));
     FileData.cbStruct = sizeof(WINTRUST_FILE_INFO);
@@ -6485,6 +6485,7 @@ BOOL verifyEmbeddedSignature() {
     WinTrustData.dwProvFlags = WTD_USE_DEFAULT_OSVER_CHECK;
     WinTrustData.dwUIContext = 0;
     WinTrustData.pFile = &FileData;
+    
     /* On old versions of Windows (tested with 2000), the last error code is not set by WinVerifyTrust(). We will have to use lStatus instead. */
     SetLastError(ERROR_SUCCESS);
     lStatus = WinVerifyTrust(NULL, &WVTPolicyGUID, &WinTrustData);
@@ -6568,11 +6569,11 @@ BOOL verifyEmbeddedSignature() {
                 dwLastError = (DWORD)lStatus;
             }
             lastErrMsg = getErrorText(dwLastError, NULL);
-            logLevel = isSHA2Supported() ? LEVEL_WARN : LEVEL_DEBUG;
+            logLevel = isSHA2CertificateSupported() ? LEVEL_WARN : LEVEL_DEBUG;
             buffer = printWholeCertificateInfo(pwszSourceFile, logLevel);
             if (buffer) {
                 if (dwLastError == TRUST_E_BAD_DIGEST  || dwLastError == TRUST_E_CERT_SIGNATURE) {
-                    if (isSHA2Supported()) {
+                    if (isSHA2CertificateSupported()) {
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s\n%s\nThe Wrapper will shutdown!"), pwszSourceFile, lStatus, lastErrMsg, buffer);
                     } else {
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s\n%s"), pwszSourceFile, lStatus, lastErrMsg, buffer);
@@ -6583,7 +6584,7 @@ BOOL verifyEmbeddedSignature() {
                 free(buffer);
             } else {
                 if (dwLastError == TRUST_E_BAD_DIGEST  || dwLastError == TRUST_E_CERT_SIGNATURE) {
-                    if (isSHA2Supported()) {
+                    if (isSHA2CertificateSupported()) {
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s\nThe Wrapper will shutdown!"), pwszSourceFile, lStatus, lastErrMsg);
                     } else {
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s"), pwszSourceFile, lStatus, lastErrMsg);
@@ -6594,7 +6595,7 @@ BOOL verifyEmbeddedSignature() {
             }
 
             if (dwLastError == TRUST_E_BAD_DIGEST  || dwLastError == TRUST_E_CERT_SIGNATURE) {
-                if (isSHA2Supported()) {
+                if (isSHA2CertificateSupported()) {
                     /* Stop the Wrapper. */
                     wrapperStopProcess(wrapperData->errorExitCode, TRUE);
                     wrapperData->wState = WRAPPER_WSTATE_STOPPING;
@@ -6611,7 +6612,10 @@ BOOL verifyEmbeddedSignature() {
             }
             break;
     }
-    return TRUE;
+    /* free memory allocated by WinVerifyTrust */
+    WinTrustData.dwStateAction = WTD_STATEACTION_CLOSE;
+    WinVerifyTrust(NULL, &WVTPolicyGUID, &WinTrustData);
+    return;
 }
 
 /**
@@ -6626,7 +6630,7 @@ void enterLauncherMode() {
 void _tmain(int argc, TCHAR **argv) {
     int localeSet = FALSE;
     int result;
-#ifdef _DEBUG
+#if defined(_DEBUG) || defined(WRAPPERW)
     int i;
 #endif
     BOOL DEPApiAvailable = FALSE;
@@ -7153,7 +7157,7 @@ BOOL readAndWriteNamedPipes(HANDLE in, HANDLE out, HANDLE err) {
     BOOL fConnected, outClosed = FALSE, errClosed = FALSE;
 
     /* the named pipes are nonblocking, so loop until an connection could
-     * have been established with the secondary process (or an error occured) */
+     * have been established with the secondary process (or an error occurred) */
     do {
         /* ConnectNamedPipe does rather wait until a connection was established
            However, the inbound pipes are non-blocking, so ConnectNamedPipe immediately
@@ -7254,7 +7258,7 @@ BOOL readAndWriteNamedPipes(HANDLE in, HANDLE out, HANDLE err) {
                                is full (what we don't want) */
                             FlushFileBuffers(in);
                         } else {
-                            /* A timeout occured! probably a print without a newline. */
+                            /* A timeout occurred! probably a print without a newline. */
                             _tprintf(TEXT("%s\n"), outbuf);
                         }
                     } else {

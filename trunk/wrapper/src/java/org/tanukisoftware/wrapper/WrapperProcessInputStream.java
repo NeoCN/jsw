@@ -19,7 +19,7 @@ import java.io.IOException;
  * The InputStream Class of a WrapperProcess, representing all the data the 
  * ChildProcess writes to the Wrapper.
  *
- * @author Christian Mueller <christian.mueller@tanukisoftware.co.jp>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  * @since Wrapper 3.4.0
  */
 public class WrapperProcessInputStream
@@ -85,7 +85,7 @@ public class WrapperProcessInputStream
     }
 
     /**
-     *
+     * @return TRUE if ready, otherwise FALSE.
      */
     public boolean ready()
     {

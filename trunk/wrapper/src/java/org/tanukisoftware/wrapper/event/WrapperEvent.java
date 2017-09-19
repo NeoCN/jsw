@@ -24,7 +24,7 @@ import org.tanukisoftware.wrapper.WrapperManager;
  *  never be referenced outside the scope of the WrapperListener.processEvent
  *  method.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public abstract class WrapperEvent
     extends EventObject

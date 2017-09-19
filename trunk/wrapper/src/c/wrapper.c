@@ -399,7 +399,7 @@ int loadEnvironment() {
     LPTCH lpvEnv;
     LPTSTR lpszVariable;
 #else
-    /* The compiler won't let us reverence environ directly in the for loop on OSX because it is actually a function. */
+    /* The compiler won't let us reference environ directly in the for loop on OSX because it is actually a function. */
     char **environment = environ;
     int i;
 #endif
@@ -1082,7 +1082,7 @@ int wrapperLoadConfigurationProperties(int preload) {
         return wrapperPreLoadConfigurationProperties(&logLevelOnOverwriteProperties, &exitOnOverwriteProperties);
     }
 #ifndef WIN32
-    /** If in the first call here and the wrapper will deamonize, then we don't need
+    /** If in the first call here and the wrapper will daemonize, then we don't need
      * to proceed any further anymore as the properties will be loaded properly at
      * the second time...
      */
@@ -3316,8 +3316,8 @@ void wrapperUsage(TCHAR *appName) {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("where <command> can be one of:"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -c  --console run as a Console application"));
 #ifdef WIN32
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -su --setup   SetUp the wrapper"));
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -td --teardown TearDown the wrapper"));
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -su --setup   SetUp the Wrapper"));
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -td --teardown TearDown the Wrapper"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -t  --start   starT an NT service"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -a  --pause   pAuse a running NT service"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -e  --resume  rEsume a paused NT service"));
@@ -3333,7 +3333,7 @@ void wrapperUsage(TCHAR *appName) {
     /* Omit '-s' option from help as it is only used by the service manager. */
     /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -s  --service used by service manager")); */
 #endif
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -v  --version print the wrapper's version information."));
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -v  --version print the Wrapper's version information."));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -?  --help    print this help message"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -- <args>     mark the end of Wrapper arguments.  All arguments after the\n                '--' will be passed through unmodified to the java application."));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT(""));
@@ -3580,7 +3580,7 @@ void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int acti
                     break;
 
                 case ACTION_SUCCESS:
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s  Application has signalled success, consider this application started successful..."), triggerMsg);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s  Application has signaled success, consider this application started successful..."), triggerMsg);
                     wrapperData->failedInvocationCount = 0;
                     break;
 
@@ -7516,20 +7516,20 @@ void wrapperJVMProcessExited(TICKS nowTicks, int exitCode) {
     if (exitCode == 0) {
         /* The JVM exit code was 0, so leave any current exit code as is. */
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-            TEXT("JVM process exited with a code of %d, leaving the wrapper exit code set to %d."),
+            TEXT("JVM process exited with a code of %d, leaving the Wrapper exit code set to %d."),
             exitCode, wrapperData->exitCode);
 
     } else if (wrapperData->exitCode == 0) {
-        /* Update the wrapper exitCode. */
+        /* Update the Wrapper exitCode. */
         wrapperData->exitCode = exitCode;
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-            TEXT("JVM process exited with a code of %d, setting the wrapper exit code to %d."),
+            TEXT("JVM process exited with a code of %d, setting the Wrapper exit code to %d."),
             exitCode, wrapperData->exitCode);
 
     } else {
-        /* The wrapper exit code was already non-zero, so leave it as is. */
+        /* The Wrapper exit code was already non-zero, so leave it as is. */
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-            TEXT("JVM process exited with a code of %d, however the wrapper exit code was already %d."),
+            TEXT("JVM process exited with a code of %d, however the Wrapper exit code was already %d."),
             exitCode, wrapperData->exitCode);
     }
 
@@ -7880,7 +7880,7 @@ int wrapperBuildNTServiceInfo() {
 #else
         if (getBooleanProperty(properties, TEXT("wrapper.ntservice.preshutdown"), FALSE)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                TEXT("Property %s is not supported on Windows itanium."), TEXT("wrapper.ntservice.preshutdown"));
+                TEXT("Property %s is not supported on Windows Itanium."), TEXT("wrapper.ntservice.preshutdown"));
             removeProperty(properties, TEXT("wrapper.ntservice.preshutdown"));
         }
 #endif

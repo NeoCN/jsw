@@ -18,7 +18,7 @@ package org.tanukisoftware.wrapper.event;
  * WARNING - Those events should be handled carefully as they may be originally 
  *  triggered by unauthenticated sources.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public abstract class WrapperRemoteControlEvent
     extends WrapperEvent

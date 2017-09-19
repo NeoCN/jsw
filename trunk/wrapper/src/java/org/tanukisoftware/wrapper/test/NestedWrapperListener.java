@@ -19,7 +19,7 @@ import org.tanukisoftware.wrapper.WrapperListener;
  *  class designed for Integration Method #3 is called using Integration
  *  Method #2.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class NestedWrapperListener
     implements WrapperListener

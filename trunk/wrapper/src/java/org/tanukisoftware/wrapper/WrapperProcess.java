@@ -19,7 +19,7 @@ import java.io.OutputStream;
  * A WrapperProcess is returned by a call to WrapperManager.exec and can
  *  be used to reference the new child process after it was launched.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  * @since Wrapper 3.4.0
  */
 public class WrapperProcess

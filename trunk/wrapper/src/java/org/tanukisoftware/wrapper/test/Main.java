@@ -77,7 +77,7 @@ import org.tanukisoftware.wrapper.event.WrapperEvent;
  *  see the <a href="http://wrapper.tanukisoftware.com/doc/english/integrate.html">integration</a>
  *  section of the documentation for more details.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class Main
     extends AbstractActionApp
@@ -207,7 +207,7 @@ public class Main
             buildCommand( panel, gridBag, c, getRes().getString( "Simulate Slow JVM" ), "appear_slow", slowPanel2 );
             
             buildCommand( panel, gridBag, c, getRes().getString( "Create Deadlock" ), "deadlock",
-                    getRes().getString( "Creates two new threads which intentionally go into a DeadLock situation.  (Standard, Professional)" ) );
+                    getRes().getString( "Creates two new threads which intentionally go into a deadlock situation.  (Standard, Professional)" ) );
             
             buildCommand( panel, gridBag, c, getRes().getString("Simulate Out Of Memory" ), "outofmemory",
                     getRes().getString( "Throws an OutOfMemoryError to demonstrate the Trigger feature." ) );
@@ -225,7 +225,7 @@ public class Main
                     getRes().getString( "Begins calling WrapperManager.getUser() and getInteractiveUser() to monitor the current and interactive users." ) );
             
             buildCommand( panel, gridBag, c, getRes().getString( "Poll Users with Groups" ), "groups",
-                    getRes().getString( "Same as above, but includes information about the user's groups." ) );
+                    getRes().getString( "Same as above, but includes information about the user''s groups." ) );
             
             buildCommand( panel, gridBag, c, getRes().getString( "Console" ), "console", getRes().getString( "Prompt for Actions in the console." ) );
             

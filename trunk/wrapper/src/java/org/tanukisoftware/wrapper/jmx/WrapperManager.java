@@ -12,7 +12,7 @@ package org.tanukisoftware.wrapper.jmx;
  */
 
 /**
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class WrapperManager
     implements WrapperManagerMBean

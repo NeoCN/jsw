@@ -32,7 +32,7 @@ package org.tanukisoftware.wrapper.test;
 import org.tanukisoftware.wrapper.WrapperManager;
 
 /**
- * @author Support <support@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class Passthrough {
     

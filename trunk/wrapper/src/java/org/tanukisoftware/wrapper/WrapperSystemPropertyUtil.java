@@ -15,7 +15,7 @@ package org.tanukisoftware.wrapper;
  * A collection of utility methods which make it easy to work with System
  *  Properties without littering code with error handling.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public final class WrapperSystemPropertyUtil
 {

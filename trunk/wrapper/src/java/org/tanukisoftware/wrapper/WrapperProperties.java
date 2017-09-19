@@ -23,7 +23,7 @@ import java.util.Set;
  * Provides a Properties object which can be locked to prevent modification
  *  by the user.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 class WrapperProperties
     extends Properties

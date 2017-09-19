@@ -53,7 +53,7 @@ package org.tanukisoftware.wrapper.event;
  *   <dd>The computer has woken up automatically to handle an event.</dd>
  * </dl>
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class WrapperServiceControlEvent
     extends WrapperServiceEvent

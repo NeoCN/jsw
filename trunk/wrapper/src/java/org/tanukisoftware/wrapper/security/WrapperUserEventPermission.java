@@ -39,7 +39,7 @@ import org.tanukisoftware.wrapper.WrapperManager;
  * </pre>
  * <p>
  * Possible eventTypes include the following:
- * <table border='1' cellpadding='2' cellspacing='0'>
+ * <table border='1' cellpadding='2' cellspacing='0' summary='Possible eventTypes'>
  * <tr>
  * <th>Permission Event Type Name</th>
  * <th>What the Permission Allows</th>
@@ -74,7 +74,7 @@ import org.tanukisoftware.wrapper.WrapperManager;
  * </tr>
  * </table>
  * 
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 
 
@@ -139,11 +139,11 @@ public final class WrapperUserEventPermission extends BasicPermission
      * Checks if this WrapperEventPermission object "implies" the
      *  specified permission.
      * <P>
-     * More specifically, this method returns true if:<p>
+     * More specifically, this method returns true if:
      * <ul>
-     *  <li><i>p2</i> is an instanceof FilePermission,<p>
+     *  <li><i>p2</i> is an instanceof FilePermission,
      *  <li><i>p2</i>'s eventTypes are a proper subset of this object's eventTypes,
-     *      and<p>
+     *      and
      *  <li><i>p2</i>'s service name is implied by this object's service name.
      *      For example, "MyApp*" implies "MyApp".
      * </ul>

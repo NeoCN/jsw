@@ -17,7 +17,7 @@ import java.lang.reflect.InvocationTargetException;
  * This is test is designed to simulate various deadlock cases using either
  * ReentrantLock instances or synchronized objects.
  * 
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class DeadLockBase
 {

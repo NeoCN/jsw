@@ -15,7 +15,7 @@ package org.tanukisoftware.wrapper.event;
  * WrapperServiceEvents are used to notify the listener of events related
  *  the service.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public abstract class WrapperServiceEvent
     extends WrapperEvent

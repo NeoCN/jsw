@@ -15,7 +15,7 @@ package org.tanukisoftware.wrapper.event;
  * WrapperLoggingEvents are used to notify the listener of events related
  *  to logging such as updates to the log file name.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public abstract class WrapperLoggingEvent
     extends WrapperEvent

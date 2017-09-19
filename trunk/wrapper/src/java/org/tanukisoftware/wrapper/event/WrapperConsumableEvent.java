@@ -15,7 +15,7 @@ package org.tanukisoftware.wrapper.event;
  * WrapperConsumableEvent is used to keep trace whether
  *  the event has been handled or not.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public abstract class WrapperConsumableEvent
     extends WrapperEvent

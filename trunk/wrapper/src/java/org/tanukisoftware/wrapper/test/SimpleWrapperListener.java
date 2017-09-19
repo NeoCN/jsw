@@ -18,7 +18,7 @@ import org.tanukisoftware.wrapper.WrapperListener;
  * This is a very simple test of how a main class using Integration Method #3
  *  works.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class SimpleWrapperListener
     implements WrapperListener
@@ -58,7 +58,7 @@ public class SimpleWrapperListener
     {
         System.out.println( Main.getRes().getString( "SimpleWrapperListener.Initializing..." ) );
         
-        System.out.println( Main.getRes().getString( "This test should simply 'start()' and 'stop()'." ) );
+        System.out.println( Main.getRes().getString( "This test should simply ''start()'' and ''stop()''." ) );
         
        // Start the application.  If the JVM was launched from the native
         //  Wrapper then the application will wait for the native Wrapper to

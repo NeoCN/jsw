@@ -18,7 +18,7 @@ import java.io.OutputStream;
  * The OutputStream Class of a WrapperProcess, representing all the data the 
  * ChildProcess read from the Wrapper.
  *
- * @author Christian Mueller <christian.mueller@tanukisoftware.co.jp>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  * @since Wrapper 3.4.0
  */
 public class WrapperProcessOutputStream

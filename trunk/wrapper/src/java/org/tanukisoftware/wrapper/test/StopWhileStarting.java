@@ -18,7 +18,7 @@ import org.tanukisoftware.wrapper.WrapperListener;
  * This test is to make sure the Wrapper works correctly when stop or restart is
  *  called before the start method has completed.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class StopWhileStarting implements WrapperListener {
     /**************************************************************************

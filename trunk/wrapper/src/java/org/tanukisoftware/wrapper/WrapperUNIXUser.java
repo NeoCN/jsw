@@ -16,7 +16,7 @@ package org.tanukisoftware.wrapper;
  *  running the Wrapper.  A WrapperUser is obtained by calling
  *  WrapperManager.getUser() or WrapperManager.getInteractiveUser().
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class WrapperUNIXUser
     extends WrapperUser

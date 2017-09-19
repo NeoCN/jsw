@@ -332,7 +332,7 @@ int setUserGroups(JNIEnv *env, jclass wrapperUserClass, jobject wrapperUser, HAN
                 for (i = 0; i < tokenGroups->GroupCount; i++) {
                     /* Get the text representation of the sid. */
                     if (ConvertSidToStringSid(tokenGroups->Groups[i].Sid, &sidText) == 0) {
-                        _tprintf(TEXT("WrapperJNI Error: Failed to Convert SId to String: %s\n"), getLastErrorText());
+                        _tprintf(TEXT("WrapperJNI Error: Failed to convert SId to String: %s\n"), getLastErrorText());
                         result = TRUE;
                     } else {
                         /* We now have an SID, use it to lookup the account. */
@@ -445,7 +445,7 @@ jobject createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean group
                 if (GetTokenInformation(hProcessToken, TokenUser, tokenUser, tokenUserSize, &tokenUserSize)) {
                     /* Get the text representation of the sid. */
                     if (ConvertSidToStringSid(tokenUser->User.Sid, &sidText) == 0) {
-                        _tprintf(TEXT("Failed to Convert SId to String: %s\n"), getLastErrorText());
+                        _tprintf(TEXT("Failed to convert SId to String: %s\n"), getLastErrorText());
                     } else {
                         /* We now have an SID, use it to lookup the account. */
                         userNameSize = 0;

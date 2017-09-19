@@ -262,7 +262,7 @@ class CustomizeDialog extends JDialog
                 fd.setDialogTitle( DemoApp.getRes().getString( "Select destination file of the customization" ) );
                 fd.setFileHidingEnabled( true );
 
-                fd.setApproveButtonText( DemoApp.getRes().getString( "Custimize Binary" ) );
+                fd.setApproveButtonText( DemoApp.getRes().getString( "Customize Binary" ) );
                 FileFilter filter = new ExtensionFilter( DemoApp.getRes().getString( "Executable File (*.exe)" ), new String[] { "exe" } );
                 fd.setFileFilter( filter );
 

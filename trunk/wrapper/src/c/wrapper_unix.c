@@ -1201,7 +1201,7 @@ int wrapperBuildJavaCommand() {
  * Calculate the total length of the environment assuming that they are separated by spaces.
  */
 size_t wrapperCalculateEnvironmentLength() {
-    /* The compiler won't let us reverence environ directly in the for loop on OSX because it is actually a function. */
+    /* The compiler won't let us reference environ directly in the for loop on OSX because it is actually a function. */
     char **environment = environ;
     size_t i;
     size_t len;

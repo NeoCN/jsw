@@ -32,7 +32,7 @@ package org.tanukisoftware.wrapper.test;
 /**
  *
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class DaemonThreads implements Runnable {
     private static boolean m_started = false;

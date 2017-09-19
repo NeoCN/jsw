@@ -37,7 +37,7 @@ import java.io.Writer;
 /**
  *
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class Memory implements Runnable
 {

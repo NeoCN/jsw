@@ -801,7 +801,7 @@ extern void wrapperCheckConsoleWindows();
 /**
  *   checks the digital Signature of the binary and reports the result.
  */
-extern BOOL verifyEmbeddedSignature();
+extern void verifyEmbeddedSignature();
 
 extern int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers);
 BOOL extern elevateThis(int argc, TCHAR **argv);

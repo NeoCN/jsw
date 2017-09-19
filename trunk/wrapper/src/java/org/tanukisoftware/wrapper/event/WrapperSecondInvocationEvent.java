@@ -21,7 +21,7 @@ package org.tanukisoftware.wrapper.event;
  * WARNING - This event should be handled carefully as it may be originally 
  *  triggered by unauthenticated sources.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  *
  * @since Wrapper 3.5.28
  */

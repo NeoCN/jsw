@@ -15,7 +15,7 @@ package org.tanukisoftware.wrapper.event;
  * WrapperEventListeners can be registered with the WrapperManager class
  *  to receive WrapperEvents.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public interface WrapperEventListener
 {

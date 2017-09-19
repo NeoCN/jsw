@@ -46,7 +46,7 @@ import org.tanukisoftware.wrapper.event.WrapperEvent;
 import org.tanukisoftware.wrapper.event.WrapperEventListener;
 
 /**
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public abstract class AbstractActionApp
     implements WrapperEventListener
@@ -324,7 +324,7 @@ public abstract class AbstractActionApp
         }
         else if ( action.equals( "deadlock_out" ) )
         {
-            System.out.println( Main.getRes().getString( "Deadlocking System.out and System.err ..." ) );
+            System.out.println( Main.getRes().getString( "Deadlocking System.out and System.err..." ) );
             m_out.setDeadlock( true );
             m_err.setDeadlock( true );
             
@@ -388,7 +388,7 @@ public abstract class AbstractActionApp
                             try
                             {
                                 do {
-                                    System.out.println( Main.getRes().getString( "Input an action ('help' for a list of actions):") );
+                                    System.out.println( Main.getRes().getString( "Input an action (''help'' for a list of actions):") );
                                     line = r.readLine();
                                     if ((line != null) && (!line.equals(""))) {
                                         System.out.println(Main.getRes().getString( "Read action: {0}", line ) );
@@ -747,7 +747,7 @@ public abstract class AbstractActionApp
         System.err.println( Main.getRes().getString( "   outofmemory              : Simulates an OutOfMemoryError being thrown" ) );
         System.err.println( Main.getRes().getString( "   ignore_events            : Makes this application ignore control events." ) );
         System.err.println( Main.getRes().getString( "   dump                     : Calls WrapperManager.requestThreadDump()" ) );
-        System.err.println( Main.getRes().getString( "   deadlock_out             : Deadlocks the JVM's System.out and err streams." ) );
+        System.err.println( Main.getRes().getString( "   deadlock_out             : Deadlocks the JVM''s System.out and err streams." ) );
         System.err.println( Main.getRes().getString( "   users                    : Start polling the current and interactive users." ) );
         System.err.println( Main.getRes().getString( "   groups                   : Start polling the current and interactive users with groups." ) );
         System.err.println( Main.getRes().getString( "   console                  : Prompt for actions in the console." ) );
