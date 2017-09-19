@@ -19,7 +19,7 @@ import java.io.PrintStream;
  *  to it will result in the calling threads deadlocking in the call.
  * Obviously, this class will not be useful to many as it is for tests.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class DeadlockPrintStream extends PrintStream {
     /** The Wrapped PrintStream. */

@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper;
 
 /*
- * Copyright (c) 1999, 2010 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2017 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -121,7 +121,7 @@ import org.tanukisoftware.wrapper.security.WrapperUserEventPermission;
  *  directory:
  *    javah -jni -classpath ./ org.tanukisoftware.wrapper.WrapperManager
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public final class WrapperManager
     implements Runnable
@@ -763,7 +763,7 @@ public final class WrapperManager
             if ( m_debug )
             {
                 // This message is logged when localization is not yet initialized.
-                m_outDebug.println( "Not using wrapper.  (key not specified)" );
+                m_outDebug.println( "Not using the Wrapper.  (key not specified)" );
             }
             
             // The wrapper will not be used, so other values will not be used.
@@ -774,7 +774,7 @@ public final class WrapperManager
         {
             if ( m_debug )
             {
-                m_outDebug.println( getRes().getString( "Using wrapper" ) );
+                m_outDebug.println( getRes().getString( "Using the Wrapper" ) );
             }
             
             if ( WrapperSystemPropertyUtil.getBooleanProperty( "wrapper.disable_console_input", false ) )
@@ -2055,7 +2055,7 @@ public final class WrapperManager
      *  clean up any child processes launched with this method automatically
      *  before shutting down or launching a new JVM.
      * <p>
-     * This method is the same as calling <code><pre>WrapperManager.exec(command, new WrapperProcessConfig());</pre></code>
+     * This method is the same as calling <pre>WrapperManager.exec(command, new WrapperProcessConfig());</pre>
      * <p>
      * The returned WrapperProcess object can be used to control the child
      *  process, supply input, or process output.
@@ -2103,8 +2103,8 @@ public final class WrapperManager
      * For example, on Solaris when the JVM is very large, doing a fork will
      *  duplicate the entire JVM's memory space and cause an out of memory
      *  error or JVM crash, to avoid such memory problems the child process
-     *  can be launched using posix spawn as follows:<p>
-     * <code><pre>WrapperManager.exec( command, new WrapperProcessConfig().setStartType( WrapperProcessConfig.POSIX_SPAWN ) );</pre></code>
+     *  can be launched using posix spawn as follows:
+     *  <pre>WrapperManager.exec( command, new WrapperProcessConfig().setStartType( WrapperProcessConfig.POSIX_SPAWN ) );</pre>
      * <p>
      * Please review the WrapperProcessConfig class for a full list of
      *  options.
@@ -2143,7 +2143,7 @@ public final class WrapperManager
     {  
         if ( ( command == null ) || ( command.length() == 0 ) )
         {
-            throw new IllegalArgumentException( getRes().getString( "No command specified." ) );
+            throw new IllegalArgumentException( getRes().getString( "No command specified" ) );
         }
 
         return exec( null, command, config );
@@ -2156,7 +2156,7 @@ public final class WrapperManager
      *  clean up any child processes launched with this method automatically
      *  before shutting down or launching a new JVM.
      * <p>
-     * This method is the same as calling <code><pre>WrapperManager.exec(cmdArray, new WrapperProcessConfig());</pre></code>
+     * This method is the same as calling <pre>WrapperManager.exec(cmdArray, new WrapperProcessConfig());</pre>
      * <p>
      * The returned WrapperProcess object can be used to control the child
      *  process, supply input, or process output.
@@ -2211,8 +2211,8 @@ public final class WrapperManager
      * For example, on Solaris when the JVM is very large, doing a fork will
      *  duplicate the entire JVM's memory space and cause an out of memory
      *  error or JVM crash, to avoid such memory problems the child process
-     *  can be launched using posix spawn as follows:<p>
-     * <code><pre>WrapperManager.exec( cmdArray, new WrapperProcessConfig().setStartType( WrapperProcessConfig.POSIX_SPAWN ) );</pre></code>
+     *  can be launched using posix spawn as follows:
+     *  <pre>WrapperManager.exec( cmdArray, new WrapperProcessConfig().setStartType( WrapperProcessConfig.POSIX_SPAWN ) );</pre>
      * <p>
      * Please review the WrapperProcessConfig class for a full list of
      *  options.
@@ -2506,6 +2506,8 @@ public final class WrapperManager
     /**
      * Fires a user event user_n specified in the conf file
      *
+     * @param eventNr The user-event number to fire. Must be in the range of 1-32767.
+     * 
      * @throws SecurityException If a SecurityManager is present and the
      *                           calling thread does not have the
      *                           WrapperPermission("fireUserEvent")
@@ -3187,8 +3189,8 @@ public final class WrapperManager
     /**
      * Called by a thread which has previously called requestShutdownLock().
      *
-     * @throws IllgalStateException If called without first calling requestShutdownLock() from
-     *                              the same thread.
+     * @throws IllegalStateException If called without first calling requestShutdownLock() from
+     *                               the same thread.
      */
     public static void releaseShutdownLock()
         throws IllegalStateException
@@ -3622,6 +3624,8 @@ public final class WrapperManager
      *  which stop the JVM may need to call this method to let the wrapper code
      *  know that the shutdown was intentional.
      *
+     * @param exitCode The exit code.
+     * 
      * @throws SecurityException If a SecurityManager is present and the
      *                           calling thread does not have the
      *                           WrapperPermission("signalStopped") permission.
@@ -3975,6 +3979,8 @@ public final class WrapperManager
      * @throws IllegalStateException If this method is called before the Wrapper
      *                               instructs this class to start the user
      *                               application.
+     * 
+     * @return The Wrapper log file.
      */
     public static File getWrapperLogFile()
     {
@@ -4562,7 +4568,7 @@ public final class WrapperManager
                 catch ( AccessControlException e )
                 {
                     // This can happen if the security policy is not setup correctly.
-                    m_outError.println( getRes().getString( "Unable to remove the Wrapper''s shudownhook: {0}", e ) );
+                    m_outError.println( getRes().getString( "Unable to remove the Wrapper''s shutdownhook: {0}", e ) );
                     m_hookRemoveFailed = true;
                 }
             }
@@ -4897,7 +4903,7 @@ public final class WrapperManager
     {
         if ( m_debug )
         {
-            m_outDebug.println( getRes().getString( "Open socket to wrapper...{0}",
+            m_outDebug.println( getRes().getString( "Open socket to Wrapper...{0}",
                     Thread.currentThread().getName() ) );
         }
 

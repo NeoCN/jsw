@@ -262,31 +262,24 @@
                 <available file="${vcvars.v8_32_5}"/>
             </and>
         </condition>
-        <condition property="vcvars.bat" value="${vcvars.v8_32_7}">
+        <condition property="vcvars.bat.arg.1" value="${vcvars.v8_32_5.arg.1}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_5}"/>
+        </condition>
+        <condition property="vcvars.bat.arg.2" value="${vcvars.v8_32_5.arg.2}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_5}"/>
+        </condition>
+        <condition property="vcvars.bat" value="${vcvars.v8_32_6}">
             <and>
                 <not><isset property="vcvars.bat"/></not>
                 <equals arg1="${bits}" arg2="32"/>
-                <available file="${vcvars.v8_32_7}"/>
+                <available file="${vcvars.v8_32_6}"/>
             </and>
         </condition>
-        <condition property="vcvars.bat.arg.1" value="${vcvars.v8_32_7.arg.1}">
-            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_7}"/>
+        <condition property="vcvars.bat.arg.1" value="${vcvars.v8_32_6.arg.1}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_6}"/>
         </condition>
-        <condition property="vcvars.bat.arg.2" value="${vcvars.v8_32_7.arg.2}">
-            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_7}"/>
-        </condition>
-        <condition property="vcvars.bat" value="${vcvars.v8_32_8}">
-            <and>
-                <not><isset property="vcvars.bat"/></not>
-                <equals arg1="${bits}" arg2="32"/>
-                <available file="${vcvars.v8_32_8}"/>
-            </and>
-        </condition>
-        <condition property="vcvars.bat.arg.1" value="${vcvars.v8_32_8.arg.1}">
-            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_8}"/>
-        </condition>
-        <condition property="vcvars.bat.arg.2" value="${vcvars.v8_32_8.arg.2}">
-            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_8}"/>
+        <condition property="vcvars.bat.arg.2" value="${vcvars.v8_32_6.arg.2}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_6}"/>
         </condition>
         <condition property="vcvars.bat" value="${vcvars.v8_x86_64_1}">
             <and>
@@ -328,30 +321,6 @@
         <condition property="vcvars.bat.arg.2" value="${vcvars.v8_x86_64_4.arg.2}">
             <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_x86_64_4}"/>
         </condition>
-         <condition property="vcvars.bat" value="${vcvars.v8_x86_64_5}">
-            <and>
-                <equals arg1="${bits}" arg2="64"/>
-                <equals arg1="${dist.arch}" arg2="x86"/>
-                <available file="${vcvars.v8_x86_64_5}"/>
-            </and>
-        </condition>
-        <condition property="vcvars.bat.arg.1" value="${vcvars.v8_x86_64_5.arg.1}">
-            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_x86_64_5}"/>
-        </condition>
-        <condition property="vcvars.bat" value="${vcvars.v8_x86_64_6}">
-            <and>
-                <equals arg1="${bits}" arg2="64"/>
-                <equals arg1="${dist.arch}" arg2="x86"/>
-                <available file="${vcvars.v8_x86_64_6}"/>
-            </and>
-        </condition>
-        <condition property="vcvars.bat" value="${vcvars.v8_x86_64_7}">
-            <and>
-                <equals arg1="${bits}" arg2="64"/>
-                <equals arg1="${dist.arch}" arg2="x86"/>
-                <available file="${vcvars.v8_x86_64_7}"/>
-            </and>
-        </condition>
         <condition property="vcvars.bat" value="${vcvars.v8_ia_64_1}">
             <and>
                 <equals arg1="${bits}" arg2="64"/>
@@ -378,13 +347,6 @@
                 <not><isset property="vcvars.bat"/></not>
                 <equals arg1="${bits}" arg2="32"/>
                 <available file="${vcvars.v8_32_4}"/>
-            </and>
-        </condition>
-        <condition property="vcvars.bat" value="${vcvars.v8_32_6}">
-            <and>
-                <not><isset property="vcvars.bat"/></not>
-                <equals arg1="${bits}" arg2="32"/>
-                <available file="${vcvars.v8_32_6}"/>
             </and>
         </condition>
         <property name="vcvars.bat.arg.1" value=""/>
@@ -1385,11 +1347,19 @@ wrapper.filter.action.999=NONE]]></replacevalue>
         <!-- Sign the binaries -->
         <exec executable="${signtool.dir}/signtool.exe"
               failonerror="true">
-            <arg line="sign /f &quot;${cert.dir}/codesigncert.p12&quot; /p ${wrapper.cert.password} /t http://timestamp.comodoca.com/authenticode &quot;${releasedir}/bin/${wrapper.bin.name}&quot;" />
+            <arg line="sign /f &quot;${cert.dir}/codesigncert.p12&quot; /p ${wrapper.cert.password} /t http://timestamp.comodoca.com/authenticode /v &quot;${releasedir}/bin/${wrapper.bin.name}&quot;" />
         </exec>
         <exec executable="${signtool.dir}/signtool.exe"
               failonerror="true">
-            <arg line="sign /f &quot;${cert.dir}/codesigncert.p12&quot; /p ${wrapper.cert.password} /t http://timestamp.comodoca.com/authenticode &quot;${releasedir}/lib/${wrapper.lib.name}&quot;" />
+            <arg line="sign /f &quot;${cert.dir}/codesigncert.p12&quot; /p ${wrapper.cert.password} /fd sha256 /tr http://timestamp.comodoca.com/?td=sha256 /td sha256 /as /v &quot;${releasedir}/bin/${wrapper.bin.name}&quot;" />
+        </exec>
+        <exec executable="${signtool.dir}/signtool.exe"
+              failonerror="true">
+            <arg line="sign /f &quot;${cert.dir}/codesigncert.p12&quot; /p ${wrapper.cert.password} /t http://timestamp.comodoca.com/authenticode /v &quot;${releasedir}/lib/${wrapper.lib.name}&quot;" />
+        </exec>
+        <exec executable="${signtool.dir}/signtool.exe"
+              failonerror="true">
+            <arg line="sign /f &quot;${cert.dir}/codesigncert.p12&quot; /p ${wrapper.cert.password} /fd sha256 /tr http://timestamp.comodoca.com/?td=sha256 /td sha256 /as /v &quot;${releasedir}/lib/${wrapper.lib.name}&quot;" />
         </exec>
     </target>
     

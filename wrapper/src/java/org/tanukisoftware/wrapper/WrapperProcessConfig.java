@@ -27,11 +27,11 @@ import org.tanukisoftware.wrapper.WrapperLicenseError;
  *  detailed explanation of how they work.
  * <p>
  * The setter methods are designed to be optionally be chained as follows:
- * <code><pre>
+ * <pre>
  * WrapperProcess proc = WrapperManager.exec( "command", new WrapperProcessConfig().setDetached( true ).setStartType( WrapperProcessConfig.POSIX_SPAWN ) );
- * </pre></code>
+ * </pre>
  *
- * @author Christian Mueller <christian.mueller@tanukisoftware.co.jp>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  * @since Wrapper 3.4.0
  */
 public final class WrapperProcessConfig
@@ -121,6 +121,10 @@ public final class WrapperProcessConfig
      * Sets the detached flag.  This makes it possible to control whether or
      *  not the Wrapper will terminate any child processes launched by a JVM
      *  when that JVM exits or crashes.
+     *  Note that when running the Wrapper as daemon with systemd, systemd
+     *  may kill all child processes (including detached ones) on shutdown.
+     *  To prevent this, please adjust the value of the SYSTEMD_KILLMODE
+     *  property in the Wrapper Shell script.
      *
      * @param detached If false the Wrapper will remember that the process was
      *                 launched and then make sure that it is terminated when
@@ -245,6 +249,9 @@ public final class WrapperProcessConfig
      *  environment being used.
      *  @throws WrapperLicenseError If the function is called other than in
      *                             the Professional Edition or from a Standalone JVM.
+     * 
+     * @return A Map containing the environment which will be used to launch
+     *         the child process.
      */
     public Map getEnvironment()
         throws WrapperLicenseError
@@ -323,7 +330,6 @@ public final class WrapperProcessConfig
      * @throws IllegalArgumentException If the value of the specified timeout is invalid.
      */
     public WrapperProcessConfig setSoftShutdownTimeout( int softShutdownTimeout )
-        throws IOException
     {
         if ( softShutdownTimeout < -1 ) {
             throw new IllegalArgumentException( WrapperManager.getRes().getString( "{0} is not a valid value for a timeout.", 
@@ -422,7 +428,9 @@ public final class WrapperProcessConfig
  *  On non-Windows platforms or when launched in Console mode,
  *  the setting will be ignored silently.
  *
- * @param isInteractive true to enable the feature. 
+ * @param isInteractive true to enable the feature.
+ * 
+ * @return An instance of WrapperProcessConfig.
  */
     public WrapperProcessConfig setCreateForActiveUser( boolean isInteractive )
     {
@@ -439,6 +447,7 @@ public final class WrapperProcessConfig
 
 /**
  *  Tells if the CreateForActiveUser feature was enabled.
+ * @return CreateForActiveUser.
  */
     public boolean isCreateForActiveUser()
     {

@@ -115,7 +115,7 @@ test.accessViolation
 test.accessViolationNative
 
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class WrapperPermission
     extends BasicPermission

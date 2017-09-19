@@ -18,7 +18,7 @@ import java.io.File;
  *  Wrapper is changed.  This can happen due to nightly log rotation for
  *  example.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class WrapperLogFileChangedEvent
     extends WrapperLoggingEvent
@@ -30,6 +30,7 @@ public class WrapperLogFileChangedEvent
      *-------------------------------------------------------------*/
     /**
      * Creates a new WrapperLogFileChangedEvent.
+     * @param logFile The log file.
      */
     public WrapperLogFileChangedEvent( File logFile )
     {

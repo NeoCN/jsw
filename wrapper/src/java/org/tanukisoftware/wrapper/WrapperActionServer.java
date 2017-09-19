@@ -73,7 +73,7 @@ import org.tanukisoftware.wrapper.WrapperManager;
  *  server.stop();
  * </pre>
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class WrapperActionServer
     implements Runnable
@@ -269,6 +269,7 @@ public class WrapperActionServer
     
     /**
      * Stops the runner thread, blocking until it has stopped.
+     * @throws Exception If the thread is unable to interrupt.
      */
     public void stop()
         throws Exception
@@ -331,6 +332,8 @@ public class WrapperActionServer
     /**
      * Unregisters an action with the given command.  If no action exists with
      *  the specified command, the method will quietly ignore the call.
+     * 
+     * @param command Command to be unregistered.
      */
     public void unregisterAction( byte command )
     {

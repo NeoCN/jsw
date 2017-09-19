@@ -16,7 +16,8 @@ rem %5 script argument
 echo Configuring the Visual Studio environment...
 echo call %2 %3 %4 %5
 call %2 %3 %4 %5
-
+echo Using SDK in %WindowsSdkDir%
+echo.
 echo Run the make file...
 echo nmake /f %1 /c all
 nmake /f %1 /c all

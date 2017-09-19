@@ -1,6 +1,29 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 3.5.34
+* Fix a memory access violation when the Wrapper uses localization files.
+* Many improvements in the Japanese and German translations.
+* Improve logging when establishing connection to an SMTP server and when
+  sending emails.
+* Improve messages when starting/stopping/restarting the Wrapper daemon with
+  the different service management tools available on Unix systems.
+* Fix errors when querying the status of a service on AIX without being root.
+* Dual sign the Wrapper binaries with SHA-1 and SHA-2 hash algorithms and
+  timestampings to allow stronger verification at the OS level while keeping
+  compatibility with older versions of Windows that don't support SHA-2.
+* Improve the detection of the location of several commands used by the shell
+  script when performing actions like detecting the service management tool.
+* Fix a case where the ID_BIN variable defined on the top of the script file
+  was being ignored.
+* Add parameter "--silent" to never show the log dialog when customizing 
+  wrapperw.exe.
+* Return an exit code of 1 whenever the customization of wrapper.exe failed. 
+  Previous versions were always returning 0.
+* Add a new property, SYSTEMD_KILLMODE, in the shell script to control how
+  systemd should kill the Wrapper child processes on shutdown. When using the
+  Professional edition, it may be useful to set this property to 'process'.
+  This will prevent systemd from killing detached child processes that should
+  normally be left running on shutdown.
 
 3.5.33
 * Fix a false positive when detecting Upstart on Linux.
@@ -284,7 +307,7 @@ Java Service Wrapper Revision History.
 
 3.5.28
 * Fix a memory leak on Red Hat Enterprise Linux, CentOS and Amazon Linux AMI.
-  It occured when activating log rolling in size mode. This memory leak came
+  It occurred when activating log rolling in size mode. This memory leak came
   from an issue in the GNU C Library (glibc) which was fixed on version 2.21.
   However, a workaround was added so that the Wrapper can run without issues
   on any version of glibc.
@@ -2139,7 +2162,7 @@ Java Service Wrapper Revision History.
   failing at certain times of the day for servers with timezones east of
   Japan.  Development license keys which have their update times obfuscated
   were not affected.  This was a problem introduced in 3.3.7.
-* Fixed a bug in the wrapper shell script which occured when running the script
+* Fixed a bug in the wrapper shell script which occurred when running the script
   on a Solaris within a non singlebyte locale. Bug #2910327
 * Fixed a potential bug in the wrapper script where requesting a Thread Dump,
   the shell is sending the wrapper console to the background and returning 
@@ -2153,7 +2176,7 @@ Java Service Wrapper Revision History.
   located on a Mapped Network Drive is used in the configuration file on
   Windows versions.
 * (Standard, Professional) Fix a bug in the wrapper binary customization,
-  which occured when the source binary file was set to read only. 
+  which occurred when the source binary file was set to read only. 
 * Fixed a null string problem in the error message if a classpath value 
   wasn't found.
 * (Professional) Added the option to include a logfile into the wrapper's 

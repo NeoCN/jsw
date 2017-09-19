@@ -35,7 +35,7 @@ package org.tanukisoftware.wrapper;
  *  WrapperManager on instantiation.  The WrapperManager will then control the
  *  the class as a service for its entire life-cycle.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public interface WrapperListener
 {
@@ -61,7 +61,7 @@ public interface WrapperListener
     
     /**
      * Called when the application is shutting down.  The Wrapper assumes that
-     *  this method will return fairly quickly.  If the shutdown code code
+     *  this method will return fairly quickly.  If the shutdown code 
      *  could potentially take a long time, then WrapperManager.signalStopping()
      *  should be called to extend the timeout period.  If for some reason,
      *  the stop method can not return, then it must call
@@ -143,7 +143,7 @@ public interface WrapperListener
      *   public void controlEvent( int event )
      *   {
      *       if ( ( event == WrapperManager.WRAPPER_CTRL_LOGOFF_EVENT )
-     *           && ( WrapperManager.isLaunchedAsService() || WrapperManager.isIgnoreUserLogoffs() ) )
+     *           &amp;&amp; ( WrapperManager.isLaunchedAsService() || WrapperManager.isIgnoreUserLogoffs() ) )
      *       {
      *           // Ignore
      *       }

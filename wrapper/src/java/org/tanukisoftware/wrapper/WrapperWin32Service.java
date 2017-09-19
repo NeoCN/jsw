@@ -15,7 +15,7 @@ package org.tanukisoftware.wrapper;
  * A WrapperWin32Service contains information about an individual service
  *  registered with the current system.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class WrapperWin32Service
 {

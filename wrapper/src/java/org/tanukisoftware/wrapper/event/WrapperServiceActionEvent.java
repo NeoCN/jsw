@@ -21,7 +21,7 @@ import org.tanukisoftware.wrapper.WrapperManager;
  * See the wrapper.pausable and wrapper.pausable.stop_jvm properties for more
  *  information.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  *
  * @since Wrapper 3.5.0
  */
@@ -41,7 +41,7 @@ public abstract class WrapperServiceActionEvent
     
     /**
      * Action result of a configured filter being fired.
-     *  See the wrapper.filter.action.<n> property.
+     *  See the wrapper.filter.action.&lt;n&gt; property.
      */
     public static final int SOURCE_CODE_FILTER                  = 1;
     
@@ -60,13 +60,13 @@ public abstract class WrapperServiceActionEvent
     
     /**
      * Action result of a matched exit code.
-     *  See the wrapper.on_exit.<n> property.
+     *  See the wrapper.on_exit.&lt;n&gt; property.
      */
     public static final int SOURCE_CODE_ON_EXIT                 = 4;
     
     /**
      * Action result of a signal.
-     *  See the wrapper.on_exit.<n> property.
+     *  See the wrapper.on_exit.&lt;n&gt; property.
      */
     public static final int SOURCE_CODE_SIGNAL                  = 5;
     
@@ -78,13 +78,13 @@ public abstract class WrapperServiceActionEvent
     
     /**
      * Action result of a configured timer being fired.
-     *  See the wrapper.timer.<n>.action property.
+     *  See the wrapper.timer.&lt;n&gt;.action property.
      */
     public static final int SOURCE_CODE_TIMER                   = 21;
     
     /**
      * Action result of an event command's block timeout expired.
-     *  See the wrapper.event.<event_name>.command.block.action property.
+     *  See the wrapper.event.&lt;event_name&gt;.command.block.action property.
      */
     public static final int SOURCE_CODE_COMMAND_BLOCK_TIMEOUT   = 22;
     

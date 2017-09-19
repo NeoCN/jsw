@@ -91,7 +91,7 @@ import java.lang.reflect.Modifier;
  *  state, this means that the Windows Service Manager and several of the
  *  Wrapper's error recovery mechanisms will not function correctly.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class WrapperStartStopApp
     implements WrapperListener, Runnable
@@ -355,6 +355,11 @@ public class WrapperStartStopApp
     /**
      * Helper method to make it easier for user classes extending this class to have their
      *  own methods of parsing the command line.
+     * 
+     * @param startMainMethod Name of the start method.
+     * @param stopMainMethod Name of the stop method.
+     * @param stopWait Should the stop process force the JVM to exit, or wait for all threads to die on their own.
+     * @param stopMainArgs Arguments for the stop method.
      */
     protected WrapperStartStopApp( Method startMainMethod,
                                    Method stopMainMethod,
@@ -489,7 +494,7 @@ public class WrapperStartStopApp
      * WrapperListener Methods
      *-------------------------------------------------------------*/
     /**
-     * The start method is called when the WrapperManager is signalled by the 
+     * The start method is called when the WrapperManager is signaled by the 
      *    native wrapper code that it can start its application.  This
      *    method call is expected to return, so a new thread should be launched
      *    if necessary.

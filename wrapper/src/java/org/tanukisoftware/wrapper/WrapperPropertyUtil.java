@@ -18,7 +18,7 @@ package org.tanukisoftware.wrapper;
  * System Properties can be accessed with the WrapperSystemPropertyUtil
  *  class.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public final class WrapperPropertyUtil
 {

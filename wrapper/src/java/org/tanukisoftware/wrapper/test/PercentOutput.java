@@ -33,7 +33,7 @@ package org.tanukisoftware.wrapper.test;
  * Tests Bug #531880 where % characters in the text output were causing
  *  the wrapper to crash.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class PercentOutput {
     /*---------------------------------------------------------------

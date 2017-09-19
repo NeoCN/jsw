@@ -39,13 +39,13 @@ package org.tanukisoftware.wrapper.event;
  *   <dd>The user logged off (Windows).</dd>
  *   <dt>WRAPPER_CTRL_SHUTDOWN_EVENT</dt>
  *   <dd>The system is being shutdown (Windows).</dd>
- *   <dt>WRAPPER_CTRL_TERM_EVENT</td>
+ *   <dt>WRAPPER_CTRL_TERM_EVENT</dt>
  *   <dd>The kill TERM signal was received (UNIX).</dd>
- *   <dt>WRAPPER_CTRL_HUP_EVENT</td>
+ *   <dt>WRAPPER_CTRL_HUP_EVENT</dt>
  *   <dd>The kill HUP signal was received (UNIX).</dd>
  * </dl>
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class WrapperControlEvent
     extends WrapperConsumableEvent

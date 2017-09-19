@@ -27,7 +27,7 @@ import org.tanukisoftware.wrapper.WrapperPropertyUtil;
  * Prior to 3.5.11, the Wrapper would sometimes exit before it noticed that
  *  the JVM had wanted to restart.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class TestUtils
 {

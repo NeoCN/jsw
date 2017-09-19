@@ -34,7 +34,7 @@ import org.tanukisoftware.wrapper.WrapperManager;
 /**
  * Test case which launched several threads and lets them run for 30 seconds.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class LongRunningBackgroundThreads
     implements Runnable

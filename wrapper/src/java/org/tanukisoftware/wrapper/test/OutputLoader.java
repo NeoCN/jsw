@@ -35,7 +35,7 @@ import java.io.IOException;
 /**
  *
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class OutputLoader {
     /*---------------------------------------------------------------

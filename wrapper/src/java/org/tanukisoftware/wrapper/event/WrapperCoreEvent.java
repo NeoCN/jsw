@@ -21,7 +21,7 @@ package org.tanukisoftware.wrapper.event;
  *  could be adversely affected.  If unsure, it is recommended that events
  *  of this type not be included.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public abstract class WrapperCoreEvent
     extends WrapperEvent

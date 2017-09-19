@@ -19,7 +19,7 @@ import java.util.List;
  *  running the Wrapper.  A WrapperUser is obtained by calling
  *  WrapperManager.getUser() or WrapperManager.getInteractiveUser().
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public abstract class WrapperUser
 {

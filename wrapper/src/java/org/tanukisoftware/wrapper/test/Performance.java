@@ -18,7 +18,7 @@ package org.tanukisoftware.wrapper.test;
  * NOTE - This class intentionally does not use resources for localization because it
  *        needs to be able to be run without the Wrapper components being loaded.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class Performance {
     /*---------------------------------------------------------------

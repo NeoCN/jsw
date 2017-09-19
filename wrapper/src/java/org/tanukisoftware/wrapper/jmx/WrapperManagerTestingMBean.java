@@ -17,7 +17,7 @@ package org.tanukisoftware.wrapper.jmx;
  *  has been broken out frtom the WrapperManagerMBean interface so system
  *  administrators can easily disable the testing functions.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public interface WrapperManagerTestingMBean
 {

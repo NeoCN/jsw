@@ -15,7 +15,7 @@ package org.tanukisoftware.wrapper.test;
  * This test is to make sure that property values set in the wrapper config file
  *  are handled and passed into the JVM as expected.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class SystemProperty
 {

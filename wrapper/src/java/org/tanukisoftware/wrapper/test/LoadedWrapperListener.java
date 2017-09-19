@@ -24,7 +24,7 @@ import org.tanukisoftware.wrapper.WrapperManager;
  * This test was created to test timeout problems under heavily loaded
  *  conditions.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class LoadedWrapperListener
     implements WrapperListener, Runnable

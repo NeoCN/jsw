@@ -34,7 +34,7 @@ import java.text.MessageFormat;
  *  the following property.  (Defaults to FALSE)
  *  -Dorg.tanukisoftware.wrapper.WrapperResources.validateResourceKeys=TRUE
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public final class WrapperResources
 {

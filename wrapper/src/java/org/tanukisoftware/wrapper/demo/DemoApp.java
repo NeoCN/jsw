@@ -41,7 +41,7 @@ import org.tanukisoftware.wrapper.WrapperSystemPropertyUtil;
  * <a href="http://wrapper.tanukisoftware.com/doc/english/integrate.html">
  * integration</a> section of the documentation for more details.
  * 
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class DemoApp implements WrapperListener
 {
@@ -591,13 +591,13 @@ public class DemoApp implements WrapperListener
             String input = "";
             if ( System.getProperty( "os.name" ).indexOf( "Windows" ) >= 0 )
             {
-                input = ( String )JOptionPane.showInputDialog( m_frame, getRes().getString( "Please enter the Command, you wish to execute:" ),
+                input = ( String )JOptionPane.showInputDialog( m_frame, getRes().getString( "Please enter the command you wish to execute:" ),
                           getRes().getString( "Child Process Execution" ), JOptionPane.QUESTION_MESSAGE, null, null,
                           ( Object )"notepad" );
             }
             else
             {
-                input = ( String )JOptionPane.showInputDialog( m_frame, getRes().getString( "Please enter the Command, you wish to execute:" ),
+                input = ( String )JOptionPane.showInputDialog( m_frame, getRes().getString( "Please enter the command you wish to execute:" ),
                           getRes().getString( "Child Process Execution" ), JOptionPane.QUESTION_MESSAGE, null, null,
                           ( Object )"xclock" );
             }
@@ -716,6 +716,7 @@ public class DemoApp implements WrapperListener
      * IMPORTANT: Please read the Javadocs for this class at the top of the page
      * before you start to use this class as a template for integrating your own
      * application. This will save you a lot of time.
+     * @param args Main arguments.
      */
     public static void main( String[] args )
     {

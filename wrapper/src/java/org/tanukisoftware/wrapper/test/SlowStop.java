@@ -18,7 +18,7 @@ import org.tanukisoftware.wrapper.WrapperListener;
  * This test is to make sure the Wrapper handles applications whose stop method
  *  take too much time to complete.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class SlowStop
     implements WrapperListener

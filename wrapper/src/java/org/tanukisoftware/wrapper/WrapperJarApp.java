@@ -70,7 +70,7 @@ import java.util.jar.Manifest;
  *  state, this means that the Windows Service Manager and several of the
  *  Wrapper's error recovery mechanisms will not function correctly.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class WrapperJarApp
     implements WrapperListener, Runnable
@@ -510,7 +510,7 @@ public class WrapperJarApp
      * WrapperListener Methods
      *-------------------------------------------------------------*/
     /**
-     * The start method is called when the WrapperManager is signalled by the 
+     * The start method is called when the WrapperManager is signaled by the 
      * native wrapper code that it can start its application.  This
      * method call is expected to return, so a new thread should be launched
      * if necessary.

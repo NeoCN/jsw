@@ -79,12 +79,12 @@ int wrapperGetUNCFilePath(const TCHAR *path, int advice) {
         result = GetDriveType(drive);
         if (result == DRIVE_REMOTE) {
             if (advice == 0) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("The following path in your Wrapper configuration file is to a mapped Network\n  Drive.  Using mapped network drives is not recommeded as they will fail to\n  be resolved correctly under certain circumstances.  Please consider using\n  UNC paths (\\\\<host>\\<share>\\path). Additional refrences will be ignored.\n  Path: %s"), path);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("The following path in your Wrapper configuration file is to a mapped Network\n  Drive.  Using mapped network drives is not recommended as they will fail to\n  be resolved correctly under certain circumstances.  Please consider using\n  UNC paths (\\\\<host>\\<share>\\path). Additional references will be ignored.\n  Path: %s"), path);
                 advice++;
             }
         } else if (result == DRIVE_NO_ROOT_DIR) {
             if (advice == 0) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("The following path in your Wrapper configuration file could not be resolved.\n  Please make sure the path exists.  If the path is a network share, it may be\n  that the current user is unable to resolve it.  Please consider using UNC\n  paths (\\\\<host>\\<share>\\path) or run the service as another user\n  (see wrapper.ntservice.account). Additional refrences will be ignored.\n  Path: %s"), path);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("The following path in your Wrapper configuration file could not be resolved.\n  Please make sure the path exists.  If the path is a network share, it may be\n  that the current user is unable to resolve it.  Please consider using UNC\n  paths (\\\\<host>\\<share>\\path) or run the service as another user\n  (see wrapper.ntservice.account). Additional references will be ignored.\n  Path: %s"), path);
                 advice++;
             }
         }

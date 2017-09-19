@@ -242,7 +242,7 @@ public class MailDialog extends JDialog
 
         jTextField2.setColumns( 30 );
         jTextField2.setText( WrapperManager.getProperties().getProperty( "wrapper.event.default.email.recipient" ) );
-        jTextField2.setToolTipText( DemoApp.getRes().getString( "Please separate mulitple recipients with a semicolon '';''" ) );
+        jTextField2.setToolTipText( DemoApp.getRes().getString( "Please separate multiple recipients with a semicolon '';''" ) );
 
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;

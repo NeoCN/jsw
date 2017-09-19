@@ -18,7 +18,7 @@ package org.tanukisoftware.wrapper.event;
  * See the wrapper.pausable and wrapper.pausable.stop_jvm properties for more
  *  information.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  *
  * @since Wrapper 3.5.0
  */

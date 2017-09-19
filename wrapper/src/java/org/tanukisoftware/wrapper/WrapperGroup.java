@@ -15,7 +15,7 @@ package org.tanukisoftware.wrapper;
  * A WrapperGroup contains information about a group which a user
  *  belongs to.  A WrapperGroup is obtained via a WrapperUser.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public abstract class WrapperGroup
 {

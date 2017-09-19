@@ -15,7 +15,7 @@ package org.tanukisoftware.wrapper;
  * WrapperServiceExceptions are thrown when the Wrapper is unable to obtain
  *  information on a requested service.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class WrapperServiceException
     extends Exception

@@ -1712,7 +1712,7 @@ void jStateStopping(TICKS nowTicks, int nextSleep) {
 
 /**
  * WRAPPER_JSTATE_STOPPED
- * The application in the JVM has signalled that it has stopped.  We are now
+ * The application in the JVM has signaled that it has stopped.  We are now
  *  waiting for the JVM process to exit.  A good application will do this on
  *  its own, but if it fails to exit in a timely manner then the JVM will be
  *  killed.

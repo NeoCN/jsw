@@ -39,7 +39,7 @@ import org.tanukisoftware.wrapper.WrapperManager;
 /**
  *
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class EnvironmentVariables {
 
@@ -120,7 +120,7 @@ public class EnvironmentVariables {
         
         if (p == null) {
             System.out.println(Main.getRes().getString( 
-                "Don't know how to read environment variables on this platform: {0}", os ) );
+                "Don''t know how to read environment variables on this platform: {0}", os ) );
             return;
         }
         

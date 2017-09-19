@@ -18,7 +18,7 @@ import org.tanukisoftware.wrapper.WrapperManager;
  *  ReentrantLocks, which will can be detected and restarted by the Standard
  *  Edition.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class DeadLockMixed
 {

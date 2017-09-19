@@ -16,7 +16,7 @@ import org.tanukisoftware.wrapper.test.JarMain;
 /**
  *
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class Jar2Main
 {

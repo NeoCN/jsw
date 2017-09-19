@@ -15,7 +15,7 @@ package org.tanukisoftware.wrapper;
  * WrapperJNIErrors are thrown when user code encounters problems accessing
  *  native Wrapper features.
  *
- * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @author Tanuki Software Development Team &lt;support@tanukisoftware.com&gt;
  */
 public class WrapperJNIError
     extends Error
