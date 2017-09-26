@@ -2,28 +2,37 @@ Java Service Wrapper Revision History.
 --------------------------------------
 3.5.34
 * Fix a memory access violation when the Wrapper uses localization files.
-* Many improvements in the Japanese and German translations.
+* Fix minor memory leaks (after validating the certificate and when launching
+  child processes).
 * Improve logging when establishing connection to an SMTP server and when
   sending emails.
-* Improve messages when starting/stopping/restarting the Wrapper daemon with
-  the different service management tools available on Unix systems.
-* Fix errors when querying the status of a service on AIX without being root.
 * Dual sign the Wrapper binaries with SHA-1 and SHA-2 hash algorithms and
-  timestampings to allow stronger verification at the OS level while keeping
+  timestamping to allow stronger verification at the OS level while keeping
   compatibility with older versions of Windows that don't support SHA-2.
-* Improve the detection of the location of several commands used by the shell
-  script when performing actions like detecting the service management tool.
-* Fix a case where the ID_BIN variable defined on the top of the script file
-  was being ignored.
 * Add parameter "--silent" to never show the log dialog when customizing 
   wrapperw.exe.
 * Return an exit code of 1 whenever the customization of wrapper.exe failed. 
   Previous versions were always returning 0.
+* Improve the detection of the location of several commands used by the shell
+  script when performing actions like detecting the service management tool.
+* Remove the ID_BIN variable defined on the top of the script file, as it was
+  ignored on most platforms. The location of the id command is now
+  automatically resolved.
+* Fix methods of the shell script to restart a daemon installed with launchd
+  or upstart. They behaved like 'condrestart', which means they exited with an
+  error code of 1 if the service was not running.
+* Fix the condrestart command of the shell script to use built-in restart
+  methods of upstart, systemd, launchd and src, instead of performing a stop
+  followed by a start.
+* Improve messages when starting/stopping/restarting the Wrapper daemon with
+  the different service management tools available on Unix systems.
+* Fix errors when querying the status of a service on AIX without being root.
 * Add a new property, SYSTEMD_KILLMODE, in the shell script to control how
   systemd should kill the Wrapper child processes on shutdown. When using the
   Professional edition, it may be useful to set this property to 'process'.
   This will prevent systemd from killing detached child processes that should
   normally be left running on shutdown.
+* Many improvements in the Japanese and German translations.
 
 3.5.33
 * Fix a false positive when detecting Upstart on Linux.

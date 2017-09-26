@@ -3333,7 +3333,7 @@ void wrapperUsage(TCHAR *appName) {
     /* Omit '-s' option from help as it is only used by the service manager. */
     /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -s  --service used by service manager")); */
 #endif
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -v  --version print the Wrapper's version information."));
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -v  --version print the Wrapper's Version information"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -?  --help    print this help message"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -- <args>     mark the end of Wrapper arguments.  All arguments after the\n                '--' will be passed through unmodified to the java application."));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT(""));

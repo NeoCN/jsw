@@ -645,25 +645,25 @@ public abstract class AbstractActionApp
             {
                 processConfig.setStartType( WrapperProcessConfig.FORK_EXEC );
                 type = "FORK_EXEC";
-                command.substring( 10 );
+                command = command.substring( 10 );
             }
             else if ( command.startsWith( "POSIX_SPAWN " ) )
             {
                 processConfig.setStartType( WrapperProcessConfig.POSIX_SPAWN );
                 type = "POSIX_SPAWN";
-                command.substring( 12 );
+                command = command.substring( 12 );
             }
             else if ( command.startsWith( "VFORK_EXEC " ) )
             {
                 processConfig.setStartType( WrapperProcessConfig.VFORK_EXEC );
                 type = "VFORK_EXEC";
-                command.substring( 11 );
+                command = command.substring( 11 );
             }
             else if ( command.startsWith( "DYNAMIC " ) )
             {
                 processConfig.setStartType( WrapperProcessConfig.DYNAMIC );
                 type = "DYNAMIC";
-                command.substring( 8 );
+                command = command.substring( 8 );
             }
             else
             {

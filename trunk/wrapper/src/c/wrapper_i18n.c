@@ -944,7 +944,7 @@ int _texecve(TCHAR* arg, TCHAR **cmd, TCHAR** env) {
             }
         }
         cCmd[sizeCmd] = '\0';
-        for (i = 0; env[i] != TEXT('\0'); i++) {
+        for (i = 0; env[i] != NULL; i++) {
             ;
         }
         sizeEnv = i;

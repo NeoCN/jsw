@@ -6630,7 +6630,7 @@ void enterLauncherMode() {
 void _tmain(int argc, TCHAR **argv) {
     int localeSet = FALSE;
     int result;
-#if defined(_DEBUG) || defined(WRAPPERW)
+#if defined(_DEBUG)
     int i;
 #endif
     BOOL DEPApiAvailable = FALSE;
