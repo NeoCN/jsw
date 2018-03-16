@@ -4,7 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 
 /*
- * Copyright (c) 1999, 2017 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2018 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
