@@ -54,6 +54,8 @@ extern int wrapperFileExists(const TCHAR * filename);
 extern int wrapperGetUNCFilePath(const TCHAR *path, int advice);
 #endif
 
+extern const TCHAR* getFileName(const TCHAR* path);
+
 #ifdef WRAPPER_FILE_DEBUG
 extern void wrapperFileTests();
 #endif
@@ -74,12 +76,10 @@ extern void wrapperFileTests();
  * @param enableIncludes If TRUE then includes will be supported.
  * @param preload TRUE if this is being called in the preload step meaning that all errors
  *                should be suppressed.
- * @param argCommand Argument passed to the binary.
  * @param originalWorkingDir Working directory of the binary at the moment it was launched.
  * @param warnedVarMap Map of undefined environment variables for which the user was warned.
  * @param logWarnings Flag that controls whether or not warnings will be logged.
  * @param logWarningLogLevel Log level at which any log warnings will be logged.
- * @param isDebugging Flag that controls whether or not debug output will be logged.
  *
  * @return CONFIG_FILE_READER_SUCCESS if the file was read successfully,
  *         CONFIG_FILE_READER_FAIL if there were any problems at all, or
@@ -91,12 +91,10 @@ extern int configFileReader(const TCHAR *filename,
                             void *callbackParam,
                             int enableIncludes,
                             int preload,
-                            const TCHAR *argCommand,
                             const TCHAR *originalWorkingDir,
                             PHashMap warnedVarMap,
                             int logWarnings,
-                            int logWarningLogLevel,
-                            int isDebugging);
+                            int logWarningLogLevel);
 
 #endif
 

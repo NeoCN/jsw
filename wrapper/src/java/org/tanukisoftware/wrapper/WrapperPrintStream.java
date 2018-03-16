@@ -12,6 +12,7 @@ package org.tanukisoftware.wrapper;
  */
 
 import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 
 /**
  * Not all methods are currently overridden as this is an internal class.
@@ -21,9 +22,32 @@ final class WrapperPrintStream
 {
     private String m_header;
     
+    /**
+     * Creates a new WrapperPrintStream wrapped around another PrintStream.
+     *
+     * @param out The PrintStream which will be wrapped by this new stream.
+     * @param header The header to append at the beginning of any printed messages.
+     */
     WrapperPrintStream( PrintStream parent, String header )
     {
         super( parent );
+        
+        m_header = header;
+    }
+    
+    /**
+     * Creates a new WrapperPrintStream wrapped around another PrintStream.
+     *
+     * @param out The PrintStream which will be wrapped by this new stream.
+     * @param autoFlush Whether the output buffer should be automatically flushed or not. The value will be passed to the parent stream.
+     * @param encoding The name of a supported character encoding. The value will be passed to the parent stream.
+     * @param header The header to append at the beginning of any printed messages.
+     *
+     * @throws UnsupportedEncodingException If the named encoding is not supported.
+     */
+    WrapperPrintStream( PrintStream parent, boolean autoFlush, String encoding, String header ) throws UnsupportedEncodingException
+    {
+        super( parent, autoFlush, encoding );
         
         m_header = header;
     }

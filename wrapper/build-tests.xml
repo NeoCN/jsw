@@ -79,8 +79,14 @@
     <target name="init-windows-8" if="is.Windows 8">
         <property name="is.Windows" value="true"/>
     </target>
+    <target name="init-windows-8-1" if="is.Windows 8.1">
+        <property name="is.Windows" value="true"/>
+    </target>
+    <target name="init-windows-10" if="is.Windows 10">
+        <property name="is.Windows" value="true"/>
+    </target>
     <target name="init-windows"
-        depends="init-windows-nt, init-windows-2000, init-windows-xp, init-windows-2003, init-windows-2008-r2, init-windows-vista, init-windows-7, init-windows-8"
+        depends="init-windows-nt, init-windows-2000, init-windows-xp, init-windows-2003, init-windows-2008-r2, init-windows-vista, init-windows-7, init-windows-8, init-windows-8-1, init-windows-10"
         if="is.Windows">
         <property name="is.shell.bat" value="true"/>
     </target>
@@ -1108,6 +1114,27 @@ wrapper.java.additional_file=../test/javaadditionalfile-07-envvars.param]]></rep
 -Dparam2="%WRAPPER_BIN_DIR%"
 -Dparam3=%WRAPPER_BITS%</echo>
 
+        <!-- Jvm Encodings Test -->
+        <delete file="${test.dir}/jvmencoding.conf"/>
+        <filter token="app.name"          value="jvmencoding"/>
+        <filter token="app.long.name"     value="JvmEncoding Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/jvmencoding.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/jvmencoding.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.JvmEncoding" />
+
+        <delete file="${test.dir}/jvmencoding2.conf"/>
+        <filter token="app.name"          value="jvmencoding2"/>
+        <filter token="app.long.name"     value="JvmEncoding2 Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/jvmencoding2.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/jvmencoding2.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.JvmEncoding2" />
+
         <!-- DefaultStripquotes Test -->
         <delete file="${test.dir}/defaultstripquotes-01-none.conf"/>
         <filter token="app.name"          value="defaultstripquotes-01-none"/>
@@ -1941,6 +1968,29 @@ set ENV_VAR_4=d]]></replacevalue>
                  token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
                  value='set _WRAPPER_CONF_DEFAULT=../test/javaadditionalfile-07-envvars.conf' />
 
+        <!-- Jvm Encodings Test -->
+        <delete file="${test.dir}/TestJvmEncoding.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestJvmEncoding.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestJvmEncoding.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestJvmEncoding.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/jvmencoding.conf' />
+
+        <delete file="${test.dir}/TestJvmEncoding2.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestJvmEncoding2.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestJvmEncoding2.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestJvmEncoding2.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/jvmencoding2.conf' />
+
         <!-- DefaultStripquotes Test -->
         <delete file="${test.dir}/TestDefaultStripquotes-01-none.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
@@ -1984,6 +2034,233 @@ set ENV_VAR_4=d]]></replacevalue>
 ..\bin\wrapper.exe -c ..\test\passthrough.conf wrapper.java.additional.1=-Dorg.tanukisoftware.wrapper.WrapperStartStopApp.passthroughMode=BOTH -- "**** This line should appear when the application STARTS and STOPS"
 ..\bin\wrapper.exe -c ..\test\passthrough.conf wrapper.java.additional.1=-Dorg.tanukisoftware.wrapper.WrapperStartStopApp.passthroughMode=IGNORE -- "**** This line should not appear at all."
 ..\bin\wrapper.exe -c ..\test\passthrough.conf -- "**** This line should not appear at all."</echo>
+
+        <!-- Open Various Size Windows Test -->
+        
+        <!-- Create JFrame1 -->
+        <delete file="${test.dir}/OpenVariousSizeWindows1.conf"/>
+        <filter token="app.name"          value="openvarioussizewindows1"/>
+        <filter token="app.long.name"     value="OpenVariousSizeWindows1 Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/openvarioussizewindows1.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/openvarioussizewindows1.conf">
+            <replacetoken>wrapper.app.parameter.1=&lt;YourMainClass&gt;</replacetoken>
+            <replacevalue><![CDATA[wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.OpenVariousSizeWindows
+wrapper.app.parameter.2=0
+wrapper.app.parameter.3=0]]></replacevalue>
+        </replace>
+
+        <delete file="${test.dir}/OpenVariousSizeWindows1.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/OpenVariousSizeWindows1.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/OpenVariousSizeWindows1.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapperw' />
+        <replace file="${test.dir}/OpenVariousSizeWindows1.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/openvarioussizewindows1.conf' />
+
+        <!-- Create JFrame1 -->
+        <delete file="${test.dir}/OpenVariousSizeWindows2.conf"/>
+        <filter token="app.name"          value="openvarioussizewindows2"/>
+        <filter token="app.long.name"     value="OpenVariousSizeWindows2 Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/openvarioussizewindows2.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/openvarioussizewindows2.conf">
+            <replacetoken>wrapper.app.parameter.1=&lt;YourMainClass&gt;</replacetoken>
+            <replacevalue><![CDATA[wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.OpenVariousSizeWindows
+wrapper.app.parameter.2=1
+wrapper.app.parameter.3=1]]></replacevalue>
+        </replace>
+
+        <delete file="${test.dir}/OpenVariousSizeWindows2.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/OpenVariousSizeWindows2.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/OpenVariousSizeWindows2.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapperw' />
+        <replace file="${test.dir}/OpenVariousSizeWindows2.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/openvarioussizewindows2.conf' />
+
+        <!-- Create JFrame1 -->
+        <delete file="${test.dir}/OpenVariousSizeWindows3.conf"/>
+        <filter token="app.name"          value="openvarioussizewindows3"/>
+        <filter token="app.long.name"     value="OpenVariousSizeWindows3 Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/openvarioussizewindows3.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/openvarioussizewindows3.conf">
+            <replacetoken>wrapper.app.parameter.1=&lt;YourMainClass&gt;</replacetoken>
+            <replacevalue><![CDATA[wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.OpenVariousSizeWindows
+wrapper.app.parameter.2=2
+wrapper.app.parameter.3=2]]></replacevalue>
+        </replace>
+
+        <delete file="${test.dir}/OpenVariousSizeWindows3.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/OpenVariousSizeWindows3.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/OpenVariousSizeWindows3.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapperw' />
+        <replace file="${test.dir}/OpenVariousSizeWindows3.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/openvarioussizewindows3.conf' />
+
+        <!-- Create 7 JDialogs -->
+        <delete file="${test.dir}/OpenVariousSizeWindows4.conf"/>
+        <filter token="app.name"          value="openvarioussizewindows4"/>
+        <filter token="app.long.name"     value="OpenVariousSizeWindows4 Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/openvarioussizewindows4.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/openvarioussizewindows4.conf">
+            <replacetoken>wrapper.app.parameter.1=&lt;YourMainClass&gt;</replacetoken>
+            <replacevalue><![CDATA[wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.OpenVariousSizeWindows
+wrapper.app.parameter.2=3
+wrapper.app.parameter.3=9]]></replacevalue>
+        </replace>
+
+        <delete file="${test.dir}/OpenVariousSizeWindows4.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/OpenVariousSizeWindows4.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/OpenVariousSizeWindows4.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapperw' />
+        <replace file="${test.dir}/OpenVariousSizeWindows4.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/openvarioussizewindows4.conf' />
+
+        <!-- Create 7 JDialogs -->
+        <delete file="${test.dir}/OpenVariousSizeWindows5.conf"/>
+        <filter token="app.name"          value="openvarioussizewindows5"/>
+        <filter token="app.long.name"     value="OpenVariousSizeWindows5 Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/openvarioussizewindows5.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/openvarioussizewindows5.conf">
+            <replacetoken>wrapper.app.parameter.1=&lt;YourMainClass&gt;</replacetoken>
+            <replacevalue><![CDATA[wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.OpenVariousSizeWindows
+wrapper.app.parameter.2=10
+wrapper.app.parameter.3=16]]></replacevalue>
+        </replace>
+
+        <delete file="${test.dir}/OpenVariousSizeWindows5.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/OpenVariousSizeWindows5.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/OpenVariousSizeWindows5.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapperw' />
+        <replace file="${test.dir}/OpenVariousSizeWindows5.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/openvarioussizewindows5.conf' />
+
+        <!-- Create 7 JDialogs -->
+        <delete file="${test.dir}/OpenVariousSizeWindows6.conf"/>
+        <filter token="app.name"          value="openvarioussizewindows6"/>
+        <filter token="app.long.name"     value="OpenVariousSizeWindows6 Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/openvarioussizewindows6.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/openvarioussizewindows6.conf">
+            <replacetoken>wrapper.app.parameter.1=&lt;YourMainClass&gt;</replacetoken>
+            <replacevalue><![CDATA[wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.OpenVariousSizeWindows
+wrapper.app.parameter.2=17
+wrapper.app.parameter.3=23]]></replacevalue>
+        </replace>
+
+        <delete file="${test.dir}/OpenVariousSizeWindows6.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/OpenVariousSizeWindows6.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/OpenVariousSizeWindows6.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapperw' />
+        <replace file="${test.dir}/OpenVariousSizeWindows6.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/openvarioussizewindows6.conf' />
+
+        <!-- Create 7 JDialogs -->
+        <delete file="${test.dir}/OpenVariousSizeWindows7.conf"/>
+        <filter token="app.name"          value="openvarioussizewindows7"/>
+        <filter token="app.long.name"     value="OpenVariousSizeWindows7 Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/openvarioussizewindows7.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/openvarioussizewindows7.conf">
+            <replacetoken>wrapper.app.parameter.1=&lt;YourMainClass&gt;</replacetoken>
+            <replacevalue><![CDATA[wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.OpenVariousSizeWindows
+wrapper.app.parameter.2=24
+wrapper.app.parameter.3=30]]></replacevalue>
+        </replace>
+
+        <delete file="${test.dir}/OpenVariousSizeWindows7.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/OpenVariousSizeWindows7.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/OpenVariousSizeWindows7.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapperw' />
+        <replace file="${test.dir}/OpenVariousSizeWindows7.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/openvarioussizewindows7.conf' />
+
+        <!-- Create 7 JDialogs -->
+        <delete file="${test.dir}/OpenVariousSizeWindows8.conf"/>
+        <filter token="app.name"          value="openvarioussizewindows8"/>
+        <filter token="app.long.name"     value="OpenVariousSizeWindows8 Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/openvarioussizewindows8.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/openvarioussizewindows8.conf">
+            <replacetoken>wrapper.app.parameter.1=&lt;YourMainClass&gt;</replacetoken>
+            <replacevalue><![CDATA[wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.OpenVariousSizeWindows
+wrapper.app.parameter.2=31
+wrapper.app.parameter.3=37]]></replacevalue>
+        </replace>
+
+        <delete file="${test.dir}/OpenVariousSizeWindows8.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/OpenVariousSizeWindows8.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/OpenVariousSizeWindows8.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapperw' />
+        <replace file="${test.dir}/OpenVariousSizeWindows8.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/openvarioussizewindows8.conf' />
+
+        <!-- Create 7 JDialogs -->
+        <delete file="${test.dir}/OpenVariousSizeWindows9.conf"/>
+        <filter token="app.name"          value="openvarioussizewindows9"/>
+        <filter token="app.long.name"     value="OpenVariousSizeWindows9 Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/openvarioussizewindows9.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/openvarioussizewindows9.conf">
+            <replacetoken>wrapper.app.parameter.1=&lt;YourMainClass&gt;</replacetoken>
+            <replacevalue><![CDATA[wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.OpenVariousSizeWindows
+wrapper.app.parameter.2=38
+wrapper.app.parameter.3=44]]></replacevalue>
+        </replace>
+
+        <delete file="${test.dir}/OpenVariousSizeWindows9.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/OpenVariousSizeWindows9.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/OpenVariousSizeWindows9.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapperw' />
+        <replace file="${test.dir}/OpenVariousSizeWindows9.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/openvarioussizewindows9.conf' />
     </target>
     
     <!-- =================================================================== -->
@@ -2506,6 +2783,21 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/javaadditionalfile-07-envvars"
               filtering="on"/>
         <chmod file="${test.dir}/javaadditionalfile-07-envvars" perm="+x"/>
+
+        <!-- Jvm Encodings Test -->
+        <filter token="app.name"          value="jvmencoding"/>
+        <filter token="app.long.name"     value="JvmEncoding Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/jvmencoding"
+              filtering="on"/>
+        <chmod file="${test.dir}/jvmencoding" perm="+x"/>
+
+        <filter token="app.name"          value="jvmencoding2"/>
+        <filter token="app.long.name"     value="JvmEncoding2 Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/jvmencoding2"
+              filtering="on"/>
+        <chmod file="${test.dir}/jvmencoding2" perm="+x"/>
 
         <!-- DefaultStripquotes Test -->
         <filter token="app.name"          value="defaultstripquotes-01-none"/>

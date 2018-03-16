@@ -111,7 +111,7 @@ public class DemoAppMainFrame extends JFrame implements ActionListener, WindowLi
         jMenu1.add( jMenuItem2 );
 
         JMenuItem jMenuItem3 = new JMenuItem();
-        jMenuItem3.setAccelerator( javax.swing.KeyStroke.getKeyStroke( java.awt.event.KeyEvent.VK_F4, java.awt.event.InputEvent.ALT_MASK ) );
+        jMenuItem3.setAccelerator( javax.swing.KeyStroke.getKeyStroke( java.awt.event.KeyEvent.VK_F4, java.awt.event.InputEvent.ALT_DOWN_MASK ) );
         jMenuItem3.setText( DemoApp.getRes().getString( "Close" ) );
         jMenuItem3.addActionListener( new ActionListener()
         {

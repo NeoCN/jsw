@@ -326,6 +326,35 @@ void hashMapPutKMBVW(PHashMap hashMap, const char *key, const TCHAR *value) {
 }
 
 /**
+ * Puts an integer value into the HashMap.
+ *  Note: Avoid putting 0 in the hashtable as hashMapGetKWVI() also returns 0 if the key was not found.
+ *
+ * @param hashMap HashMap to store the value into.
+ * @param key The key to reference the value.
+ * @param value The value to store.
+ */
+void hashMapPutKWVI(PHashMap hashMap, const TCHAR *key, int value) {
+    size_t keySize = sizeof(TCHAR) * (_tcslen(key) + 1);
+    size_t valueSize = sizeof(int);
+
+    hashMapPutKVVV(hashMap, key, keySize, &value, valueSize);
+}
+
+/**
+ * Puts a value into the HashMap.  The key and value will both be cloned.
+ *
+ * @param hashMap HashMap to store the value into.
+ * @param key The key to reference the value.
+ * @param value The value to store.
+ */
+void hashMapPutKIVW(PHashMap hashMap, int key, const TCHAR *value) {
+    size_t keySize = sizeof(int);
+    size_t valueSize = sizeof(TCHAR) * (_tcslen(value) + 1);
+
+    hashMapPutKVVV(hashMap, &key, keySize, value, valueSize);
+}
+
+/**
  * Gets a value from the HashMap.
  *
  * @param hashMap HashMap from which to lookup the value.
@@ -399,6 +428,40 @@ const TCHAR *hashMapGetKMBVW(PHashMap hashMap, const char *key) {
     size_t keySize = sizeof(char) * (strlen(key) + 1);
     
     return (const TCHAR *)hashMapGetKVVV(hashMap, key, keySize, NULL);
+}
+
+/**
+ * Gets an integer value from the HashMap.
+ *
+ * @param hashMap HashMap from which to lookup the value.
+ * @param key Key of the value being looked up.
+ *
+ * @return the integer value or 0 if the key was not found.
+ */
+int hashMapGetKWVI(PHashMap hashMap, const TCHAR *key) {
+    const void *value;
+    size_t keySize = sizeof(TCHAR) * (_tcslen(key) + 1);
+    
+    value = hashMapGetKVVV(hashMap, key, keySize, NULL);
+    if (!value) {
+        return 0;
+    }
+    
+    return *((int*)(value));
+}
+
+/**
+ * Gets an integer value from the HashMap.
+ *
+ * @param hashMap HashMap from which to lookup the value.
+ * @param key Key of the value being looked up.
+ *
+ * @return the integer value or 0 if the key was not found.
+ */
+const TCHAR *hashMapGetKIVW(PHashMap hashMap, int key) {
+    size_t keySize = sizeof(int);
+    
+    return (const TCHAR *)hashMapGetKVVV(hashMap, &key, keySize, NULL);
 }
 
 #ifdef _DEBUG_HASHMAP

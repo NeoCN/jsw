@@ -178,6 +178,9 @@ Property* createInnerProperty() {
     property->next = NULL;
     property->previous = NULL;
     property->value = NULL;
+    property->filePath = NULL;
+    property->lineNumber = 0;
+    property->definitions = 1;
     property->isGenerated = FALSE;
 
     return property;
@@ -193,6 +196,9 @@ void disposeInnerProperty(Property *property) {
     }
     if (property->value) {
         free(property->value);
+    }
+    if (property->filePath) {
+        free(property->filePath);
     }
     free(property);
 }
@@ -539,18 +545,17 @@ static int loadPropertiesCallback(void *callbackParam, const TCHAR *fileName, in
  * @param properties Properties structure to load into.
  * @param filename File to load the properties from.
  * @param preload TRUE if this is a preload call that should have supressed error output.
- * @param argCommand Argument passed to the binary.
  * @param originalWorkingDir Working directory of the binary at the moment it was launched.
- * @param isDebugging Flag that controls whether or not debug output will be logged.
+ * @param fileRequired TRUE if the file specified by filename is required, FALSE if a missing
+ *                     file will silently fail.
  *
  * @return TRUE if there were any problems, FALSE if successful.
  */
 int loadProperties(Properties *properties,
                    const TCHAR* filename,
                    int preload,
-                   const TCHAR *argCommand,
                    const TCHAR *originalWorkingDir,
-                   int isDebugging) {
+                   int fileRequired) {
     /* Store the time that the property file began to be loaded. */
     #ifdef WIN32
     struct _timeb timebNow;
@@ -570,8 +575,8 @@ int loadProperties(Properties *properties,
 #endif
     nowTM = localtime(&now);
     memcpy(&loadPropertiesTM, nowTM, sizeof(struct tm));
-
-    loadResult = configFileReader(filename, FALSE, loadPropertiesCallback, properties, TRUE, preload, argCommand, originalWorkingDir, properties->warnedVarMap, properties->logWarnings, properties->logWarningLogLevel, isDebugging);
+    
+    loadResult = configFileReader(filename, fileRequired, loadPropertiesCallback, properties, TRUE, preload, originalWorkingDir, properties->warnedVarMap, properties->logWarnings, properties->logWarningLogLevel);
 
     /* Any failure is a failure in the root. */
     switch (loadResult) {
@@ -619,6 +624,7 @@ Properties* createProperties(int debug, int logLevelOnOverwrite, int exitOnOverw
     properties->first = NULL;
     properties->last = NULL;
     properties->warnedVarMap = newHashMap(8);
+    properties->dumpFormat = NULL;
     if (!properties->warnedVarMap) {
         disposeProperties(properties);
         return NULL;
@@ -645,6 +651,10 @@ void disposeProperties(Properties *properties) {
     
             /* set the current property to the next. */
             property = tempProperty;
+        }
+        
+        if (properties->dumpFormat) {
+            free(properties->dumpFormat);
         }
         
         if (properties->warnedVarMap) {
@@ -678,7 +688,13 @@ void disposeEnvironment() {
 
 }
 
-void removeProperty(Properties *properties, const TCHAR *propertyName) {
+/**
+ * Remove a single Property from a Properties.  All associated memory is
+ *  freed up.
+ *
+ * @return TRUE if the property was found, FALSE otherwise.
+ */
+int removeProperty(Properties *properties, const TCHAR *propertyName) {
     Property *property;
     Property *next;
     Property *previous;
@@ -707,7 +723,9 @@ void removeProperty(Properties *properties, const TCHAR *propertyName) {
 
         /* Now that property is disconnected, if can be disposed. */
         disposeInnerProperty(property);
+        return TRUE;
     }
+    return FALSE;
 }
 
 /**
@@ -959,7 +977,7 @@ void setEscapedProperties(const TCHAR **propertyNames) {
 
 /**
  * Returns true if the specified property matches one of the property names
- *  previosly set in a call to setEscapableProperties()
+ *  previously set in a call to setEscapedProperties()
  *
  * @param propertyName Property name to test.
  *
@@ -1133,6 +1151,81 @@ TCHAR *expandEscapedCharacters(const TCHAR* buffer) {
     return outBuffer;
 }
 
+/**
+ * Return TRUE if the value of the property should be displayed as '<hidden>' when printed in the logs.
+ *
+ * @property property to check.
+ *
+ * @return TRUE if the value should be hidden.
+ */
+int isSecretValue(Property *property) {
+    TCHAR* propName;
+    int result = TRUE;
+    
+    propName = toLower(property->name);
+    if (propName) {
+        result = (_tcsstr(propName, TEXT(".password")) == (propName + ((int)_tcslen(propName) - 9)));
+        free(propName);
+    }
+    
+    return result;
+}
+
+/**
+ * Allocate a string which is used to display the value of a property in the logs.
+ *
+ * @value  property value.
+ * @hidden whether the value should be hidden or not.
+ *
+ * @return the allocated value. Should be freed by the caller.
+ */
+TCHAR* getDisplayValue(TCHAR *value, int hidden) {
+    int i, j;
+    TCHAR* buffer;
+    size_t len;
+    
+    /* We need to malloc the buffer! Before, the buffer was received as an argument, but its big
+     *  size caused the stack to overflow on certain platforms (I experienced this on HPUX-IA).
+     *  I could have used static variables to force creating the buffers on the heap, but they
+     *  would remain in memory all the time the Wrapper is running. */
+    if (hidden) {
+        buffer = malloc(sizeof(TCHAR) * 9);
+        if (!buffer) {
+            outOfMemory(TEXT("GDV"), 1);
+            return NULL;
+        }
+        _tcsncpy(buffer, TEXT("<hidden>"), 9);
+    } else {
+        /* Count all newlines if any. */
+        for(i = 0, j = 0; i < (int)_tcslen(value); i++) {
+            if ((value)[i] == TEXT('\n')) {
+                j++;
+            }
+        }
+        
+        len = _tcslen(value) + j + 1;
+        buffer = malloc(sizeof(TCHAR) * len);
+        if (!buffer) {
+            outOfMemory(TEXT("GDV"), 2);
+            return NULL;
+        }
+        
+        if (j > 0) {
+            /* Replace all newlines with '\n'. */
+            for(i = 0, j = 0; i < (int)_tcslen(value) + 1; i++) {
+                if ((value)[i] == TEXT('\n')) {
+                    buffer[j++] = TEXT('\\');
+                    buffer[j++] = TEXT('n');
+                } else {
+                    buffer[j++] = value[i];
+                }
+            }
+        } else {
+            _tcsncpy(buffer, value, len);
+        }
+    }
+    return buffer;
+}
 
 /**
  * Adds a single property to the properties structure.
@@ -1145,7 +1238,7 @@ TCHAR *expandEscapedCharacters(const TCHAR* buffer) {
  * @param finalValue TRUE if the property should be set as static.
  * @param quotable TRUE if the property could contain quotes.
  * @param escapable TRUE if the propertyValue can be escaped if its propertyName
- *                  is in the list set with setEscapableProperties().
+ *                  is in the list set with setEscapedProperties().
  * @param internal TRUE if the property is a Wrapper internal property.
  *
  * @return The newly created Property, or NULL if there was a reported error.
@@ -1158,6 +1251,11 @@ Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum
     TCHAR *propertyValueTrim;
     TCHAR *propertyExpandedValue;
     int logLevelOnOverwrite;
+    int hidden;
+    TCHAR *dispValue1;
+    TCHAR *dispValue2;
+    int overwriteWarnId;
+    int isShownAsInternal;
 
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("addProperty(properties, %s, '%s', '%s', %d, %d, %d, %d)"),
@@ -1213,38 +1311,84 @@ Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum
         if (property->internal || property->finalValue) {
             setValue = FALSE;
         }
+        property->definitions++;
         
         /* On preload we set properties->debugProperties to false as we don't want to log anything nor to stop the Wrapper at this stage. */  
         if (properties->debugProperties) {
             /* Preload was already done so the logging system is ready. */
             logLevelOnOverwrite = GetLogLevelOnOverwrite(properties);
-            /* From version 3.5.27, the Wrapper will also log messages if the command line contains duplicated properties or attempts to set an internal environment variable. */
-            if (finalValue) {
-                if (property->internal) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, logLevelOnOverwrite,
-                        TEXT("The \"%s\" property is defined by the Wrapper internally and can not be overwritten.\n  Ignoring redefinition on the Wrapper command line.\n  Fixed Value %s=%s\n  Ignored Value %s=%s"),
-                        propertyNameTrim, propertyNameTrim, property->value, propertyNameTrim, propertyValueTrim);
-                } else if (property->finalValue) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, logLevelOnOverwrite,
-                        TEXT("The \"%s\" property was already defined on the Wrapper command line and can not be overwritten.\n  Ignoring redefinition on the Wrapper command line.\n  Fixed Value %s=%s\n  Ignored Value %s=%s"),
-                        propertyNameTrim, propertyNameTrim, property->value, propertyNameTrim, propertyValueTrim);
-                }
-            } else {
-                if (property->internal) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, logLevelOnOverwrite,
-                        TEXT("The \"%s\" property is defined by the Wrapper internally and can not be overwritten.\n  Ignoring redefinition on line #%d of configuration file: %s\n  Fixed Value %s=%s\n  Ignored Value %s=%s"),
-                        propertyNameTrim, lineNum, (filename ? filename : TEXT("<NULL>")), propertyNameTrim, property->value, propertyNameTrim, propertyValueTrim);
-                } else if (property->finalValue) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, logLevelOnOverwrite,
-                        TEXT("The \"%s\" property was defined on the Wrapper command line and can not be overwritten.\n  Ignoring redefinition on line #%d of configuration file: %s\n  Fixed Value %s=%s\n  Ignored Value %s=%s"),
-                        propertyNameTrim, lineNum, (filename ? filename : TEXT("<NULL>")), propertyNameTrim, property->value, propertyNameTrim, propertyValueTrim);
+            
+            if ((getLowLogLevel() <= logLevelOnOverwrite) && (logLevelOnOverwrite != LEVEL_NONE)) {
+                overwriteWarnId = 0;
+                isShownAsInternal = property->internal;
+                /* From version 3.5.27, the Wrapper will also log messages if the command line contains duplicated properties or attempts to set an internal environment variable. */
+                if (finalValue) {
+                    if (isShownAsInternal) {
+                        overwriteWarnId = 1;
+                    } else if (property->finalValue) {
+                        overwriteWarnId = 2;
+                    }
                 } else {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, logLevelOnOverwrite,
-                        TEXT("The \"%s\" property was redefined on line #%d of configuration file: %s\n  Old Value %s=%s\n  New Value %s=%s"),
-                        propertyNameTrim, lineNum, (filename ? filename : TEXT("<NULL>")), propertyNameTrim, property->value, propertyNameTrim, propertyValueTrim);
+                    if (isShownAsInternal) {
+                        overwriteWarnId = 4;
+                    } else if (property->finalValue) {
+                        overwriteWarnId = 5;
+                    } else {
+                        overwriteWarnId = 6;
+                    }
+                }
+                
+                if (overwriteWarnId > 0) {
+                    hidden = isSecretValue(property);
+                    dispValue1 = getDisplayValue(property->value, hidden);
+                    if (!dispValue1) {
+                        free(propertyNameTrim);
+                        free(propertyValueTrim);
+                        return NULL;
+                    }
+                    dispValue2 = getDisplayValue(propertyValueTrim, hidden);
+                    if (!dispValue2) {
+                        free(dispValue1);
+                        free(propertyNameTrim);
+                        free(propertyValueTrim);
+                        return NULL;
+                    }
+                    
+                    switch (overwriteWarnId) {
+                    case 1:
+                        log_printf(WRAPPER_SOURCE_WRAPPER, logLevelOnOverwrite,
+                            TEXT("The \"%s\" property is defined by the Wrapper internally and can not be overwritten.\n  Ignoring redefinition on the Wrapper command line.\n  Fixed Value %s=%s\n  Ignored Value %s=%s"),
+                            propertyNameTrim, propertyNameTrim, dispValue1, propertyNameTrim, dispValue2);
+                        break;
+
+                    case 2:
+                        log_printf(WRAPPER_SOURCE_WRAPPER, logLevelOnOverwrite,
+                            TEXT("The \"%s\" property was already defined on the Wrapper command line and can not be overwritten.\n  Ignoring redefinition on the Wrapper command line.\n  Fixed Value %s=%s\n  Ignored Value %s=%s"),
+                            propertyNameTrim, propertyNameTrim, dispValue1, propertyNameTrim, dispValue2);
+                        break;
+
+                    case 4:
+                        log_printf(WRAPPER_SOURCE_WRAPPER, logLevelOnOverwrite,
+                            TEXT("The \"%s\" property is defined by the Wrapper internally and can not be overwritten.\n  Ignoring redefinition on line #%d of configuration file: %s\n  Fixed Value %s=%s\n  Ignored Value %s=%s"),
+                            propertyNameTrim, lineNum, (filename ? filename : TEXT("<NULL>")), propertyNameTrim, dispValue1, propertyNameTrim, dispValue2);
+                        break;
+
+                    case 5:
+                        log_printf(WRAPPER_SOURCE_WRAPPER, logLevelOnOverwrite,
+                            TEXT("The \"%s\" property was defined on the Wrapper command line and can not be overwritten.\n  Ignoring redefinition on line #%d of configuration file: %s\n  Fixed Value %s=%s\n  Ignored Value %s=%s"),
+                            propertyNameTrim, lineNum, (filename ? filename : TEXT("<NULL>")), propertyNameTrim, dispValue1, propertyNameTrim, dispValue2);
+                        break;
+
+                    case 6:
+                        log_printf(WRAPPER_SOURCE_WRAPPER, logLevelOnOverwrite,
+                            TEXT("The \"%s\" property was redefined on line #%d of configuration file: %s\n  Old Value %s=%s\n  New Value %s=%s"),
+                            propertyNameTrim, lineNum, (filename ? filename : TEXT("<NULL>")), propertyNameTrim, dispValue1, propertyNameTrim, dispValue2);
+                        break;
+                    }
+                    free(dispValue1);
+                    free(dispValue2);
                 }
             }
-            
             if (properties->exitOnOverwrite) {
                 properties->overwrittenPropertyCausedExit = TRUE;
             }
@@ -1292,6 +1436,19 @@ Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum
 
         /* Prepare the property by expanding any environment variables that are defined. */
         prepareProperty(properties, property, FALSE);
+        
+        /* Store the file name if any. */
+        if (property->filePath != NULL) {
+            free(property->filePath);
+            property->filePath = NULL;
+        }
+        if (filename) {
+            property->filePath = malloc(sizeof(TCHAR) * (_tcslen(filename) + 1));
+            _tcsncpy(property->filePath, filename, _tcslen(filename) + 1);
+        }
+        
+        /* Store the line number. */
+        property->lineNumber = lineNum;
 
         /* See if this is a special property */
         if ((_tcslen(property->name) > 12) && (_tcsstr(property->name, TEXT("set.default.")) == property->name)) {
@@ -1866,51 +2023,346 @@ int isQuotableProperty(Properties *properties, const TCHAR *propertyName) {
  * @property property to check.
  *
  * @return 0 if the property should not be dumped.
- *         1 if the property's value should be hidden.
- *         2 if the property can be logged normally.
+ *         1 if the property can be logged normally.
  */
 int propertyDumpFilter(Property *property) {
-    TCHAR* propName;
-    
     if (property->isGenerated || property->internal) {
         return 0;
     }
-    
-    propName = toLower(property->name);
-    if (!propName) {
-        return 0;
-    }
-    
+/*
     if (_tcsstr(propName, TEXT(".license."))) {
         free(propName);
         return 0;
     }
+*/
+    return 1;
+}
 
-    if (_tcsstr(propName, TEXT(".password")) == (propName + ((int)_tcslen(propName) - 9))) {
-        free(propName);
-        return 1;
+const TCHAR* getPropertySourceName(Property *property) {
+    if (property->finalValue) {
+        return TEXT("COMMAND ");
+    } else if (property->isGenerated) {
+        return TEXT("WRAPPER ");
+    } else {
+        return TEXT("FILE    ");
+    }
+}
+
+TCHAR getPropertySourceShortName(Property *property) {
+    if (property->finalValue) {
+        return TEXT('C');
+    } else if (property->isGenerated) {
+        return TEXT('W');
+    } else {
+        return TEXT('F');
+    }
+}
+
+/* Returns the number of columns with variable sizes and the required size. */
+int getColumnsAndReqVarSizeForPropertyDump(TCHAR* value, TCHAR* format, size_t *reqSize) {
+    int numColumns;
+    int i;
+
+    for(i = 0, numColumns = 0; i < (int)_tcslen(format); i++ ) {
+        switch(format[i]) {
+        case TEXT('V'):
+        case TEXT('v'):
+            *reqSize += _tcslen(value) + 3;
+            numColumns++;
+            break;
+        }
+    }
+    return numColumns;
+}
+
+/* Returns the number of columns with constant sizes, and retrieve the sizes that should be calculated taking into account all properties. */
+int getColumnsAndReqConstSizesForPropertyDump(Properties *properties, TCHAR* format, size_t *reqSize, size_t *reqPropNameSize, size_t *reqConfPathSize, size_t *reqConfNameSize) {
+    Property *property;
+    int dumpFilter;
+    int addPropNameSize = FALSE;
+    int addConfPathSize = FALSE;
+    int addConfNameSize = FALSE;
+    int numColumns;
+    int i;
+
+    *reqSize = 0;
+    *reqPropNameSize = 0;
+    *reqConfPathSize = 0;
+    *reqConfNameSize = 0;
+    for(i = 0, numColumns = 0; i < (int)_tcslen(format); i++ ) {
+        switch(format[i]) {
+        case TEXT('S'):
+        case TEXT('s'):
+            *reqSize += 1 + 3;
+            numColumns++;
+            break;
+
+        case TEXT('Z'):
+        case TEXT('z'):
+            *reqSize += 8 + 3; /* FILE|EMBEDDED|COMMAND|WRAPPER */
+            numColumns++;
+            break;
+
+        case TEXT('F'):
+        case TEXT('f'):
+            *reqSize += 1 + 3;
+            numColumns++;
+            break;
+
+        case TEXT('P'):
+        case TEXT('p'):
+            addConfPathSize = TRUE;
+            numColumns++;
+            break;
+
+        case TEXT('C'):
+        case TEXT('c'):
+            addConfNameSize = TRUE;
+            numColumns++;
+            break;
+
+        case TEXT('L'):
+        case TEXT('l'):
+            *reqSize += 4 + 3;
+            numColumns++;
+            break;
+
+        case TEXT('I'):
+        case TEXT('i'):
+            *reqSize += 1 + 3;
+            numColumns++;
+            break;
+
+        case TEXT('N'):
+        case TEXT('n'):
+            addPropNameSize = TRUE;
+            numColumns++;
+            break;
+        }
+    }
+    if (addPropNameSize || addConfPathSize || addConfNameSize) {
+        property = properties->first;
+        while (property != NULL) {
+            dumpFilter = propertyDumpFilter(property);
+            if (dumpFilter > 0) {
+                if (addPropNameSize) {
+                    *reqPropNameSize = __max(_tcslen(property->name), *reqPropNameSize);
+                }
+                /* We assume that the conf file name and path are written with characters that display on a single char width.
+                 *  We would need a smarter function to calculate the length of strings containing full width Japanese characters. */
+                if (addConfPathSize && property->filePath) {
+                    *reqConfPathSize = __max(_tcslen(property->filePath), *reqConfPathSize);
+                }
+                if (addConfNameSize && property->filePath) {
+                    *reqConfNameSize = __max(_tcslen(getFileName(property->filePath)), *reqConfNameSize);
+                }
+            }
+            property = property->next;
+        }
+        if (addPropNameSize) {
+            *reqSize += *reqPropNameSize + 3;
+        }
+        if (addConfPathSize) {
+            *reqSize += *reqConfPathSize + 3;
+        }
+        if (addConfNameSize) {
+            *reqSize += *reqConfNameSize + 3;
+        }
+    }
+    return numColumns;
+}
+
+TCHAR* buildPropertyDumpBuffer(Property *property, TCHAR* format, int numConstColumns, size_t reqConstTotSize, size_t reqPropNameSize, size_t reqConfPathSize, size_t reqConfNameSize) {
+    int       i;
+    size_t    reqSize;
+    int       numColumns;
+    TCHAR     *pos;
+    int       currentColumn;
+    int       handledFormat;
+    int       temp = 0;
+    int       len = 0;
+    TCHAR*    printBuffer;
+    TCHAR*    propValue;
+#if defined(UNICODE) && !defined(WIN32)
+    const TCHAR* leftAlignStrFormat = TEXT("%-*S");
+#else
+    const TCHAR* leftAlignStrFormat = TEXT("%-*s");
+#endif
+
+    propValue = getDisplayValue(property->value, isSecretValue(property));
+    if (!propValue) {
+        return NULL;
     }
     
-    free(propName);
-    return 2;
+    /* The required size for the columns with a constant width, as well as their number, are calculated once and for all properties. */
+    reqSize = reqConstTotSize;
+    numColumns = numConstColumns;
+    
+    /* Then add the variable columns. */
+    numColumns += getColumnsAndReqVarSizeForPropertyDump(propValue, format, &reqSize);
+    
+    if (reqSize == 0) {
+        free(propValue);
+        /* Invalid format - this should not happen because we checked that the format was correct before calling this function. */
+        return NULL;
+    }
+
+    /* Always add room for the null. */
+    reqSize += 1;
+    
+    printBuffer = malloc(sizeof(TCHAR) * reqSize);
+    if (!printBuffer) {
+        outOfMemory(TEXT("BPDB"), 1);
+        free(propValue);
+        return NULL;
+    }
+    pos = printBuffer;
+
+    /* Indent with two characters to display like when dumping environment variables. */
+    temp = _sntprintf(pos, 3, TEXT("  "));
+    pos += temp;
+    len += temp;
+    reqSize += len;
+
+    for(i = 0, currentColumn = 0; i < (int)_tcslen(format); i++) {
+        handledFormat = TRUE;
+
+        switch(format[i]) {
+        case TEXT('S'):
+        case TEXT('s'):
+            temp = _sntprintf(pos, reqSize - len, TEXT("%c"), getPropertySourceShortName(property));
+            currentColumn++;
+            break;
+
+        case TEXT('Z'):
+        case TEXT('z'):
+            temp = _sntprintf(pos, reqSize - len, TEXT("%s"), getPropertySourceName(property));
+            currentColumn++;
+            break;
+
+        case TEXT('F'):
+        case TEXT('f'):
+            temp = _sntprintf(pos, reqSize - len, TEXT("%c"), (property->finalValue ? TEXT('F') : TEXT(' ')));
+            currentColumn++;
+            break;
+
+        case TEXT('P'):
+        case TEXT('p'):
+            temp = _sntprintf(pos, reqSize - len, leftAlignStrFormat, reqConfPathSize, property->filePath ? property->filePath : TEXT(""));
+            currentColumn++;
+            break;
+
+        case TEXT('C'):
+        case TEXT('c'):
+            temp = _sntprintf(pos, reqSize - len, leftAlignStrFormat, reqConfNameSize, property->filePath ? getFileName(property->filePath) : TEXT(""));
+            currentColumn++;
+            break;
+
+        case TEXT('L'):
+        case TEXT('l'):
+            if (getPropertySourceShortName(property) != TEXT('F')) {
+                temp = _sntprintf(pos, reqSize - len, TEXT("    "));
+            } else if (property->lineNumber > 9999) {
+                temp = _sntprintf(pos, reqSize - len, TEXT("****"));
+            } else {
+                temp = _sntprintf(pos, reqSize - len, TEXT("%4d"), property->lineNumber);
+            }
+            currentColumn++;
+            break;
+
+        case TEXT('I'):
+        case TEXT('i'):
+            if (property->definitions > 9) {
+                temp = _sntprintf(pos, reqSize - len, TEXT("*"));
+            } else if (property->definitions > 1) {
+                /* Only show the number of definitions if it's more than 1, to make those cases appear clearly. */
+                temp = _sntprintf(pos, reqSize - len, TEXT("%d"), property->definitions);
+            } else {
+                /* In the future we may want to show a '-' if the property is not defined anywhere (0 definitions). For now it is just not listed. */
+                temp = _sntprintf(pos, reqSize - len, TEXT(" "));
+            }
+            currentColumn++;
+            break;
+
+        case TEXT('N'):
+        case TEXT('n'):
+            temp = _sntprintf(pos, reqSize - len, leftAlignStrFormat, reqPropNameSize, property->name);
+            currentColumn++;
+            break;
+
+        case TEXT('V'):
+        case TEXT('v'):
+            temp = _sntprintf(pos, reqSize - len, TEXT("%s"), propValue);
+            currentColumn++;
+            break;
+
+        default:
+            handledFormat = FALSE;
+        }
+        
+        if (handledFormat) {
+            pos += temp;
+            len += temp;
+            
+            /* Add separator chars */
+            if (currentColumn != numColumns) {
+                temp = _sntprintf(pos, reqSize - len, TEXT(" | "));
+                pos += temp;
+                len += temp;
+            }
+        }
+    }
+    free(propValue);
+
+    /* Return the print buffer to the caller. */
+    return printBuffer;
 }
 
 void dumpProperties(Properties *properties) {
     Property *property;
     int dumpFilter;
+    int numConstColumns;
+    size_t reqConstTotSize;
+    size_t reqPropNameSize;
+    size_t reqConfPathSize;
+    size_t reqConfNameSize;
+    TCHAR* printBuffer;
     
     if ((getLowLogLevel() <= properties->dumpLogLevel) && (properties->dumpLogLevel != LEVEL_NONE)) {
         property = properties->first;
+        
+        /* The required size for the columns with a constant width, as well as their number, are calculated once and for all properties. */
+        numConstColumns = getColumnsAndReqConstSizesForPropertyDump(properties, properties->dumpFormat, &reqConstTotSize, &reqPropNameSize, &reqConfPathSize, &reqConfNameSize);
+        
+        if ((numConstColumns == 0) && (getColumnsAndReqVarSizeForPropertyDump(TEXT(""), properties->dumpFormat, &reqConstTotSize) == 0)) {
+            /* No columns or invalid format - use the default format instead. */
+            log_printf(WRAPPER_SOURCE_WRAPPER, properties->logWarningLogLevel,
+                TEXT("Encountered an invalid format for configuration property %s=%s.  Resolving to '%s'."),
+                TEXT("wrapper.properties.dump.format"),
+                properties->dumpFormat,
+                PROPERTIES_DUMP_FORMAT_DEFAULT);
+            setPropertiesDumpFormat(properties, PROPERTIES_DUMP_FORMAT_DEFAULT);
+            
+            /* Recalculate the size for the columns with a constant width and their number. */
+            numConstColumns = getColumnsAndReqConstSizesForPropertyDump(properties, properties->dumpFormat, &reqConstTotSize, &reqPropNameSize, &reqConfPathSize, &reqConfNameSize);
+        }
+        
         log_printf(WRAPPER_SOURCE_WRAPPER, properties->dumpLogLevel, TEXT(""));
-        log_printf(WRAPPER_SOURCE_WRAPPER, properties->dumpLogLevel, TEXT("Wrapper configuration properties (Name=Value) BEGIN:"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, properties->dumpLogLevel, TEXT("Wrapper configuration properties BEGIN:"));
         
         while (property != NULL) {
             dumpFilter = propertyDumpFilter(property);
             if (dumpFilter > 0) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, properties->dumpLogLevel, TEXT("  %s=%s"), property->name, dumpFilter == 1 ? TEXT("<hidden>") : property->value);
+                printBuffer = buildPropertyDumpBuffer(property, properties->dumpFormat, numConstColumns, reqConstTotSize, reqPropNameSize, reqConfPathSize, reqConfNameSize);
+                if (printBuffer) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, properties->dumpLogLevel, printBuffer);
+                    free(printBuffer);
+                }
             }
             property = property->next;
         }
+        log_printf(WRAPPER_SOURCE_WRAPPER, properties->dumpLogLevel, TEXT("Wrapper configuration properties END:"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, properties->dumpLogLevel, TEXT(""));
     }
 }
 
@@ -1919,6 +2371,17 @@ void dumpProperties(Properties *properties) {
  */
 void setPropertiesDumpLogLevel(Properties *properties, int logLevel) {
     properties->dumpLogLevel = logLevel;
+}
+
+/**
+ * Format used when dumping properties.
+ */
+void setPropertiesDumpFormat(Properties *properties, const TCHAR* format) {
+    if (properties->dumpFormat) {
+        free(properties->dumpFormat);
+    }
+    properties->dumpFormat = malloc(sizeof(TCHAR) * (_tcslen(format) + 1));
+    _tcsncpy(properties->dumpFormat, format, (_tcslen(format) + 1));
 }
 
 /**

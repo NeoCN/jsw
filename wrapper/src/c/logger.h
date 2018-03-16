@@ -73,8 +73,10 @@
 
 /* * * Log source constants * * */
 
-#define WRAPPER_SOURCE_WRAPPER -1
-#define WRAPPER_SOURCE_PROTOCOL -2
+#define WRAPPER_SOURCE_WRAPPER      -1
+#define WRAPPER_SOURCE_PROTOCOL     -2
+#define WRAPPER_SOURCE_JVM          -3
+#define WRAPPER_SOURCE_JVM_VERSION  -4
 
 /* * * Log thread constants * * */
 /* These are indexes in an array so they must be sequential, start
@@ -301,6 +303,7 @@ extern void resetDuration();
 extern int getLowLogLevel();
 
 /* * General log functions * */
+extern int isLogInitialized();
 extern int initLogging(void (*logFileChanged)(const TCHAR *logFile));
 extern int disposeLogging();
 extern void setUptime(int uptime, int flipped);

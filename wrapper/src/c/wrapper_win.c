@@ -65,6 +65,7 @@
 #include "property.h"
 #include "logger.h"
 #include "wrapper_file.h"
+#include "wrapper_encoding.h"
 
 /* The largest possible command line length on Windows. */
 #define MAX_COMMAND_LINE_LEN 32766
@@ -429,6 +430,72 @@ void wrapperExit(int exitCode) {
     }
 }
 
+#ifndef WRAPPERW
+int canRunInteractive() {
+    static int firstCall = TRUE;
+    static int result = FALSE;
+    HKEY hKey;
+    DWORD data;
+    DWORD cbData = sizeof(DWORD);
+    DWORD error;
+    
+    /* It is ok to store the result in a static variable, because a service needs to be restarted for NoInteractiveServices to take effect. */
+    if (firstCall) {
+        firstCall = FALSE;
+        if (isElevated()) {
+            if (!isVista()) {
+                /* Windows XP and lower support interactive services. */
+                result = TRUE;
+            } else {
+                /* Starting from Windows Vista, interactive services are not allowed except if the registry was edited. */
+                if ((error = RegOpenKeyEx(HKEY_LOCAL_MACHINE, TEXT("SYSTEM\\CurrentControlSet\\Control\\Windows"), 0, KEY_READ, (PHKEY) &hKey)) == ERROR_SUCCESS) {
+                    if ((error = RegQueryValueEx(hKey, TEXT("NoInteractiveServices"), NULL, NULL, (LPBYTE) &data, &cbData)) == ERROR_SUCCESS) {
+                        if (data == 0) {
+                            result = TRUE;
+                        }
+                    } else {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Failed to read the value of 'NoInteractiveServices' in the registry (0x%x)."), error);
+                    }
+                    RegCloseKey(hKey);
+                } else {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Failed to open the registry key to check if services can be run interactively (0x%x)."), error);
+                }
+            }
+        }
+    }
+    return result;
+}
+#endif
+
+/**
+ * Returns TRUE if the Wrapper process is associated with a console or if one
+ *  will be allocated a later stage. This function should be called after the
+ *  configuration file has been read.
+ */
+int wrapperProcessHasVisibleConsole() {
+    if (wrapperData->isConsole) {
+        return TRUE;
+    }
+    
+    /* Not a console application. */
+    if (wrapperData->configured) {
+        /* wrapperData->ntShowWrapperConsole=TRUE => wrapperData->ntAllocConsole=TRUE
+         *  (list up all cases with wrapperData->generateConsole, wrapperData->ntAllocConsole, wrapperData->ntShowWrapperConsole to verify it) */
+        return (wrapperData->ntShowWrapperConsole
+#ifndef WRAPPERW
+             && wrapperData->ntServiceInteractive && canRunInteractive()
+#endif
+            );
+    } else {
+        /* This will work if the configuration is not loaded yet, but the conf file needs to be read at least. */
+        return (getBooleanProperty(properties, TEXT("wrapper.ntservice.console"), FALSE)
+#ifndef WRAPPERW
+             && getBooleanProperty(properties, TEXT("wrapper.ntservice.interactive"), FALSE) && canRunInteractive()
+#endif
+            );
+    }
+}
+
 
 /**
  * Writes the specified Id or PID to disk.
@@ -578,7 +645,7 @@ void wrapperRequestDumpJVMState() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
             TEXT("Sending BREAK event to process group %ld."), wrapperData->javaPID);
         if (GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, wrapperData->javaPID) == 0) {
-            if (wrapperData->generateConsole) {
+            if (wrapperData->generateConsole || wrapperData->ntAllocConsole) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                     TEXT("Unable to send BREAK event to JVM process to generate a thread dump.  Err(%ld : %s)"),
                     GetLastError(), getLastErrorText());
@@ -588,6 +655,57 @@ void wrapperRequestDumpJVMState() {
             }
         }
     }
+}
+
+/**
+ * Build the command line used to get the Java version.
+ *
+ * @return TRUE if there were any problems.
+ */
+int wrapperBuildJavaVersionCommand() {
+    size_t commandLen;
+    TCHAR **strings;
+    
+    /* If this is not the first time through, then dispose the old command */
+    if (wrapperData->jvmVersionCommand) {
+#ifdef _DEBUG
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Clearing up old java version command line"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Old Command Line \"%s\""), wrapperData->jvmCommand);
+#endif
+        free(wrapperData->jvmVersionCommand);
+        wrapperData->jvmVersionCommand = NULL;
+    }
+
+    strings = malloc(sizeof(TCHAR*));
+    if (!strings) {
+        outOfMemory(TEXT("WBJVC1"), 1);
+        return TRUE;
+    }
+
+    if (wrapperBuildJavaCommandArrayJavaCommand(strings, TRUE, FALSE, 0) < 0) {
+        wrapperFreeStringArray(strings, 1);
+        return TRUE;
+    }
+    
+    /* Build a single string from the array that will be used to request the Java version.
+     *  The first element of the command array will always be the java binary. */
+    /* Calculate the length */
+    commandLen = _tcslen(strings[0]);
+    commandLen += 1; /* Space */
+    commandLen += _tcslen(TEXT("-version"));
+    commandLen++; /* '\0' */
+    /* Build the actual command */
+    wrapperData->jvmVersionCommand = malloc(sizeof(TCHAR) * commandLen);
+    if (!wrapperData->jvmVersionCommand) {
+        outOfMemory(TEXT("WBJC"), 2);
+        wrapperFreeStringArray(strings, 1);
+        return TRUE;
+    }
+    _sntprintf(wrapperData->jvmVersionCommand, commandLen, TEXT("%s -version"), strings[0]);
+
+    wrapperFreeStringArray(strings, 1);
+
+    return FALSE;
 }
 
 /**
@@ -626,6 +744,7 @@ int wrapperBuildJavaCommand() {
     length = 0;
     if (wrapperBuildJavaCommandArray(&strings, &length, TRUE, wrapperData->classpath)) {
         /* Failed. */
+        wrapperFreeStringArray(strings, length);
         return TRUE;
     }
 
@@ -635,21 +754,6 @@ int wrapperBuildJavaCommand() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%d : %s"), i, strings[i]);
     }
 #endif
-    
-    /* Build a single string from the array that will be used to request the Java version.
-     *  The first element of the command array will always be the java binary. */
-    /* Calculate the length */
-    commandLen = _tcslen(strings[0]);
-    commandLen += 1; /* Space */
-    commandLen += _tcslen(TEXT("-version"));
-    commandLen++; /* '\0' */
-    /* Build the actual command */
-    wrapperData->jvmVersionCommand = malloc(sizeof(TCHAR) * commandLen);
-    if (!wrapperData->jvmVersionCommand) {
-        outOfMemory(TEXT("WBJC"), 1);
-        return TRUE;
-    }
-    _sntprintf(wrapperData->jvmVersionCommand, commandLen, TEXT("%s -version"), strings[0]);
 
     /* Build a single string from the array */
     /* Calculate the length */
@@ -666,6 +770,7 @@ int wrapperBuildJavaCommand() {
     wrapperData->jvmCommand = malloc(sizeof(TCHAR) * commandLen2);
     if (!wrapperData->jvmCommand) {
         outOfMemory(TEXT("WBJC"), 2);
+        wrapperFreeStringArray(strings, length);
         return TRUE;
     }
     commandLen = 0;
@@ -681,7 +786,7 @@ int wrapperBuildJavaCommand() {
     wrapperData->jvmCommand = wrapperPostProcessCommandElement(wrapperData->jvmCommand);
     
     /* Free up the temporary command array */
-    wrapperFreeJavaCommandArray(strings, length);
+    wrapperFreeStringArray(strings, length);
 
     return FALSE;
 }
@@ -807,7 +912,7 @@ int wrapperAllocHiddenConsole() {
         }
         /* Rem: If the key could not be restored properly, an exception could (unlikely!) happen:
          *  Next time AllocConsole() is called with the exact same application parameters, 
-         *  if the registry key remains and if wrapperData->ntHideWrapperConsole is set to FALSE, then the console will appear out of the screen.
+         *  if the registry key remains and if wrapperData->ntShowWrapperConsole is set to TRUE, then the console will appear out of the screen.
          *   => As a precaution we could try again to remove the registry key at that time (not implemented yet). */
 
         if (nAttempts == nMaxRestoreAttempts) {
@@ -830,24 +935,23 @@ int hideConsoleWindow(HWND consoleHandle, const TCHAR *name) {
     RECT normalPositionRect;
     WINDOWPLACEMENT consolePlacement;
 
-    memset(&consolePlacement, 0, sizeof(WINDOWPLACEMENT));
-    consolePlacement.length = sizeof(WINDOWPLACEMENT);
-    
-    /* on Windows 10 the console will reappear at the position 'rcNormalPosition' when calling SetWindowPlacement(). To avoid another brief flicker, lets set this position out of the screen. */
-    if(SystemParametersInfo(SPI_GETWORKAREA, 0, &workarea, 0)) {
-        normalPositionRect.left = workarea.right;
-        normalPositionRect.top = workarea.bottom;
-        normalPositionRect.right = workarea.right;
-        normalPositionRect.bottom = workarea.bottom;
-    } else {
-        normalPositionRect.left = 99999;
-        normalPositionRect.top = 99999;
-        normalPositionRect.right = 99999;
-        normalPositionRect.bottom = 99999;
-    }
-    consolePlacement.rcNormalPosition = normalPositionRect;
-
     if (IsWindowVisible(consoleHandle)) {
+        memset(&consolePlacement, 0, sizeof(WINDOWPLACEMENT));
+        consolePlacement.length = sizeof(WINDOWPLACEMENT);
+        
+        /* on Windows 10 the console will reappear at the position 'rcNormalPosition' when calling SetWindowPlacement(). To avoid another brief flicker, lets set this position out of the screen. */
+        if(SystemParametersInfo(SPI_GETWORKAREA, 0, &workarea, 0)) {
+            normalPositionRect.left = workarea.right;
+            normalPositionRect.top = workarea.bottom;
+            normalPositionRect.right = workarea.right;
+            normalPositionRect.bottom = workarea.bottom;
+        } else {
+            normalPositionRect.left = 99999;
+            normalPositionRect.top = 99999;
+            normalPositionRect.right = 99999;
+            normalPositionRect.bottom = 99999;
+        }
+        consolePlacement.rcNormalPosition = normalPositionRect;
 #ifdef _DEBUG
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s console window is visible, attempt to hide."), name);
 #endif
@@ -877,25 +981,98 @@ int hideConsoleWindow(HWND consoleHandle, const TCHAR *name) {
     }
 }
 
+/* Define the number of recent Java windows to store. Keep this value reasonably low to avoid
+ *  affecting performance. If the application opens more windows than this number, the code
+ *  below may consider the foreground window as new and show/hide the console again. a brief
+ *  flicker may be observed but the Wrapper will continue to run normally. */
+#define JAVA_WINDOWS_BUFFER_SIZE 16
+
+/**
+ * This function fixes a bug where the hidden console reappears in the taskbar whenever
+ *  the Java application creates a new full screen window with the focus set on it.
+ *  This would only occur if there was no other icon belonging to the application in
+ *  the taskbar (so potentially on any new windows if previous ones were dialogs).
+ *  This function performs some check on the foreground window and re-hides the console
+ *  if the conditions of the bug are met.
+ */
+void fixConsoleTaskBar() {
+    static HWND prevHwd;
+    static int  prevHwdIsJavaWin = FALSE;
+    static int  prevHwdIsFixed = FALSE;
+    static HWND prevJavaHwds[JAVA_WINDOWS_BUFFER_SIZE];
+    static int  prevJavaHwdsIndex;
+    HWND hwd;
+    RECT hwdRect;
+    RECT workAreaRect;
+    DWORD pid;
+    int i;
+
+    hwd = GetForegroundWindow();
+    if (hwd) {
+        if (hwd != prevHwd) {
+            /* The focus has changed. Is this a new Java window? */
+            prevHwd = hwd;
+            prevHwdIsFixed = FALSE;
+            for (i = 0; i < JAVA_WINDOWS_BUFFER_SIZE; i++) {
+                if (prevJavaHwds[i] == hwd) {
+                    /* This is a Java window but it already caused the bug before and we fixed it.
+                     *  As far as I could test, a window that caused the bug once will not cause
+                     *  it again, even when it is hidden and showed or resized to full screen. */
+                    prevHwdIsJavaWin = TRUE;
+                    return;
+                }
+            }
+            GetWindowThreadProcessId(hwd, &pid);
+            if (!wrapperCheckPPid(pid, wrapperData->javaPID)) {
+                /* The window belongs to the Java application. */
+                prevHwdIsJavaWin = FALSE;
+                return;
+            }
+        } else if (!prevHwdIsJavaWin || prevHwdIsFixed) {
+            /* The window has not changed and we know it will not cause a bug. */
+            return;
+        }   /* Else: the focus did not change and the window belongs to the java application.
+             *  It may cause the bug if it was resized since we last check it, so continue. */
+        
+        /* This is a Java window. Is it full screen? */
+        prevHwdIsJavaWin = TRUE;
+        if (!GetWindowRect(hwd, &hwdRect) || !SystemParametersInfo(SPI_GETWORKAREA, 0, &workAreaRect, 0) ||
+            (((hwdRect.right - hwdRect.left) >= (workAreaRect.right - workAreaRect.left)) &&
+             ((hwdRect.bottom - hwdRect.top) >= (workAreaRect.bottom - workAreaRect.top)))) {
+            /* This window is larger than the work area or we failed to retrieve its size or the size
+             *  of the work area. This may have caused the hidden console to reappear in the taskbar.
+             *  Show and hide it again to fix this issue. A brief flicker may be observed as it may
+             *  have appeared anytime since the last iteration of the main loop. Remember the window
+             *  to not process it again. (also remember it if we fail to retrieve its size or the size
+             *  of the work area as this would most likely happen again on the next check) */
+            prevJavaHwds[prevJavaHwdsIndex] = hwd;
+            prevJavaHwdsIndex = (prevJavaHwdsIndex + 1) % JAVA_WINDOWS_BUFFER_SIZE;
+            ShowWindow(wrapperData->wrapperConsoleHWND, SW_SHOW);
+            ShowWindow(wrapperData->wrapperConsoleHWND, SW_HIDE);
+            prevHwdIsFixed = TRUE;
+        }
+    }
+}
+
 /**
  * Look for and hide the wrapper or JVM console windows if they should be hidden.
  * Some users have reported that if the user logs on to windows quickly after booting up,
- *  the console window will be redisplayed even though it was hidden once.  The forceCheck
- *  will continue to attempt to check and hide the window if this does happen for up to a
- *  predetermined period of time.
+ *  the console window will be redisplayed even though it was hidden once.  This function
+ *  is called on each iteration of the main loop to ensure the consoles are always hidden.
+ *  Users have reported that the console can be redisplayed when a user logs back in or
+ *  switches users, or when the Java application opens full screen windows.
  */
 void wrapperCheckConsoleWindows() {
-    int forceCheck = TRUE;
-
     /* See if the Wrapper console needs to be hidden. */
-    if (wrapperData->wrapperConsoleHide && (wrapperData->wrapperConsoleHWND != NULL) && (wrapperData->wrapperConsoleVisible || forceCheck)) {
+    if (wrapperData->wrapperConsoleHide && (wrapperData->wrapperConsoleHWND != NULL)) {
         if (hideConsoleWindow(wrapperData->wrapperConsoleHWND, TEXT("Wrapper"))) {
+            fixConsoleTaskBar();
             wrapperData->wrapperConsoleVisible = FALSE;
         }
     }
 
     /* See if the Java console needs to be hidden. */
-    if ((wrapperData->jvmConsoleHandle != NULL) && (wrapperData->jvmConsoleVisible || forceCheck)) {
+    if (wrapperData->jvmConsoleHandle != NULL) {
         if (hideConsoleWindow(wrapperData->jvmConsoleHandle, TEXT("JVM"))) {
             wrapperData->jvmConsoleVisible = FALSE;
         }
@@ -1436,13 +1613,39 @@ int wrapperInitializeRun() {
     /* The Wrapper will not have its own console when running as a service.  We need
      *  to create one here. */
     if ((!wrapperData->isConsole) && (wrapperData->ntAllocConsole)) {
-        canDisplayConsole = wrapperData->ntServiceInteractive;
+        canDisplayConsole = wrapperData->ntServiceInteractive && canRunInteractive();
         if (wrapperData->isDebugging) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Allocating a console for the service."));
         }
 
-        if (canDisplayConsole && wrapperData->ntHideWrapperConsole) {
+        /* Set a flag to keep track of whether the console should be hidden. */
+        wrapperData->wrapperConsoleHide = canDisplayConsole && !wrapperData->ntShowWrapperConsole;
+        
+        if (wrapperData->wrapperConsoleHide) {
+            /* Create the console out of the screen. We'll still need to hide its window so that the icon disappear from the taskbar. */
             allocConsoleSucceed = wrapperAllocHiddenConsole();
+
+            if (allocConsoleSucceed) {
+                /* Generate a unique time for the console so we can look for it below. */
+                _sntprintf(titleBuffer, 80, TEXT("Wrapper Console Id %d-%d (Do not close)"), wrapperData->wrapperPID, rand());
+#ifdef _DEBUG
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Wrapper console title: %s"), titleBuffer);
+#endif
+                SetConsoleTitle(titleBuffer);
+
+                if (wrapperData->wrapperConsoleHWND = findConsoleWindow(titleBuffer)) {
+                    wrapperData->wrapperConsoleVisible = TRUE;
+                    if (wrapperData->isDebugging) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Found console window."));
+                    }
+
+                    /* Attempt to hide the console window here once so it goes away as quickly as possible.
+                     *  This may not succeed yet however.  If the system is still coming up. */
+                    wrapperCheckConsoleWindows();
+                } else {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Failed to locate the console window so it can be hidden."));
+                }
+            }
         } else {
             allocConsoleSucceed = AllocConsole();
         }
@@ -1486,32 +1689,6 @@ int wrapperInitializeRun() {
         pfile = _tfdopen( _open_osfhandle((long)hStdErr, _O_TEXT), TEXT("w") );
         *stderr = *pfile;
         setvbuf( stderr, NULL, _IONBF, 0 );
-
-        if (wrapperData->ntHideWrapperConsole) {
-            /* A console needed to be allocated for the process but it should be hidden. */
-
-            /* Generate a unique time for the console so we can look for it below. */
-            _sntprintf(titleBuffer, 80, TEXT("Wrapper Console Id %d-%d (Do not close)"), wrapperData->wrapperPID, rand());
-#ifdef _DEBUG
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Wrapper console title: %s"), titleBuffer);
-#endif
-
-            SetConsoleTitle(titleBuffer);
-
-            wrapperData->wrapperConsoleHide = TRUE;
-            if (wrapperData->wrapperConsoleHWND = findConsoleWindow(titleBuffer)) {
-                wrapperData->wrapperConsoleVisible = TRUE;
-                if (wrapperData->isDebugging) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Found console window."));
-                }
-
-                /* Attempt to hide the console window here once so it goes away as quickly as possible.
-                 *  This may not succeed yet however.  If the system is still coming up. */
-                wrapperCheckConsoleWindows();
-            } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Failed to locate the console window so it can be hidden."));
-            }
-        }
         
         /* If we get here then we created a new console for the Wrapper.  If direct console was enabled then we need
          *  to reenable it here as any previous attempted log entries will have reset the direct mode. */
@@ -1520,7 +1697,7 @@ int wrapperInitializeRun() {
 
     /* Attempt to set the console title if it exists and is accessable. */
     if (wrapperData->consoleTitle) {
-        if (wrapperData->isConsole || (wrapperData->ntServiceInteractive && !wrapperData->ntHideWrapperConsole)) {
+        if (wrapperProcessHasVisibleConsole()) {
             /* The console should be visible. */
             if (!SetConsoleTitle(wrapperData->consoleTitle)) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
@@ -1858,152 +2035,29 @@ int wrapperGetProcessStatus(TICKS nowTicks, int sigChild) {
 }
 
 /**
- * Create a child process to print the Java version running the command:
- *    /path/to/java -version
- *  After printing the java version, the process is terminated.
- * 
- * In case the JVM is slow to start, it will time out after
- * the number of seconds set in "wrapper.java.version.timeout".
- * 
- * Note: before the timeout is reached, the user can ctrl+c to stop the Wrapper.
- */
-void launchChildProcessPrintJavaVersion(DWORD processflags, STARTUPINFO startup_info, PROCESS_INFORMATION process_info) {
-    int blockTimeout;
-    DWORD result;
-    
-    if (CreateProcess(NULL,
-                          wrapperData->jvmVersionCommand, /* the command line to start */
-                          NULL,          /* process security attributes */
-                          NULL,          /* primary thread security attributes */
-                          TRUE,          /* handles are inherited */
-                          processflags,  /* we specify new process group */
-                          NULL,          /* use parent's environment */
-                          NULL,          /* use the Wrapper's current working directory */
-                          &startup_info, /* STARTUPINFO pointer */
-                          &process_info  /* PROCESS_INFORMATION pointer */
-                         ) != 0) {
-
-                         
-            /* If the user set the value to 0, then we will wait indefinitely. */
-            blockTimeout = getIntProperty(properties, TEXT("wrapper.java.version.timeout"), DEFAULT_JAVA_VERSION_TIMEOUT) * 1000;
-            
-            if (blockTimeout <= 0) {
-                blockTimeout = INFINITE;
-            }
-            
-            result = WaitForSingleObject(process_info.hProcess, blockTimeout);
-            
-            if (result == WAIT_TIMEOUT) {
-                /* Timed out. */
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Child process: Java version: timed out"));
-                TerminateProcess(process_info.hProcess, 1);
-            } else if (result == WAIT_OBJECT_0) {
-                /* Process completed. */
-#ifdef _DEBUG
-                _tprintf(TEXT("Child process: Java version: successful\n"));
-#endif
-            } else {
-                /* Wait failed. */
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Child process: Java version: wait failed"));
-                TerminateProcess(process_info.hProcess, 1);
-            }
-        
-            CloseHandle(process_info.hProcess);
-            CloseHandle(process_info.hThread);
-        }
-}
-
-/**
- * Launches a JVM process and store it internally
+ * Launch a JVM and collect the process information.
  *
- * @return TRUE if there were any problems.  When this happens the Wrapper will not try to restart.
+ * @return TRUE if there were any problems, FALSE otherwise.
  */
-int wrapperExecute() {
-    SECURITY_ATTRIBUTES process_attributes;
+int wrapperLaunchJvm(TCHAR* command, PROCESS_INFORMATION *pprocess_info, int errorLevel) {
     STARTUPINFO startup_info;
-    PROCESS_INFORMATION process_info;
     int ret;
+    TCHAR titleBuffer[80];
+    int hideConsole;
+    int old_umask;
+    
     /* Do not show another console for the new process */
     /*int processflags=CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS; */
+
+    /* Show a console for the new process */
+    /*int processflags=CREATE_NEW_PROCESS_GROUP | CREATE_NEW_CONSOLE; */
 
     /* Create a new process group as part of this console so that signals can */
     /*  be sent to the JVM. */
     DWORD processflags = CREATE_NEW_PROCESS_GROUP;
 
-    /* Do not show another console for the new process, but show its output in the current console. */
-    /*int processflags=CREATE_NEW_PROCESS_GROUP; */
-
-    /* Show a console for the new process */
-    /*int processflags=CREATE_NEW_PROCESS_GROUP | CREATE_NEW_CONSOLE; */
-
-    size_t len;
-    TCHAR *environment = NULL;
-    TCHAR *binparam = NULL;
-    int char_block_size = 8196;
-    int string_size = 0;
-    int temp_int = 0;
-    TCHAR szPath[_MAX_PATH];
-    DWORD usedLen;
-    TCHAR *c;
-    TCHAR titleBuffer[80];
-    int hideConsole;
-    int old_umask;
-    FILE *pid_fp = NULL;    
-
-    /* Reset the exit code when we launch a new JVM. */
-    wrapperData->exitCode = 0;
-
     /* Add the priority class of the new process to the processflags */
-    processflags = processflags | wrapperData->ntServicePriorityClass;
-
-    /* Update the CLASSPATH in the environment if requested so the JVM can access it. */ 
-    if (wrapperData->environmentClasspath) {
-        if (setEnv(TEXT("CLASSPATH"), wrapperData->classpath, ENV_SOURCE_APPLICATION)) {
-            /* This can happen if the classpath is too long on Windows. */
-            wrapperData->javaProcess = NULL;
-            return TRUE;
-        }
-    }
-    
-    /* Make sure the classpath is not too long. */
-    len = _tcslen(wrapperData->jvmCommand);
-    if (len > MAX_COMMAND_LINE_LEN) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("The generated Java command line has a length of %d, which is longer than the Windows maximum of %d characters."), len, MAX_COMMAND_LINE_LEN);
-        if (!wrapperData->environmentClasspath) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  You may be able to shorten your command line by setting wrapper.java.classpath.use_environment."));
-        }
-        wrapperData->javaProcess = NULL;
-        return TRUE;
-    }
-
-    /* Log the Java commands. */
-    
-    /* If the JVM version printout is requested then log its command line first. */
-    if (wrapperData->printJVMVersion) {
-        if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Java Command Line (Query Java Version):"));
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  Command: %s"), wrapperData->jvmVersionCommand);
-        }
-    }
-    
-    /* Log the application java command line */
-    if (wrapperData->commandLogLevel != LEVEL_NONE) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel, TEXT("Java Command Line:"));
-        log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel, TEXT("  Command: %s"), wrapperData->jvmCommand);
-
-        if (wrapperData->environmentClasspath) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel,
-                TEXT("  Classpath in Environment : %s"), wrapperData->classpath);
-        }
-    }
-
-    /* Setup environment. Use parent's for now */
-    environment = NULL;
-
-    /* Initialize a SECURITY_ATTRIBUTES for the process attributes of the new process. */
-    process_attributes.nLength = sizeof(SECURITY_ATTRIBUTES);
-    process_attributes.lpSecurityDescriptor = NULL;
-    process_attributes.bInheritHandle = TRUE;
+    processflags |= wrapperData->ntServicePriorityClass;
 
     /* Generate a unique time for the console so we can look for it below. */
     _sntprintf(titleBuffer, 80, TEXT("Wrapper Controlled JVM Console Id %d-%d (Do not close)"), wrapperData->wrapperPID, rand());
@@ -2071,34 +2125,10 @@ int wrapperExecute() {
     startup_info.hStdError = wrapperChildStdoutWr;
 
     /* Initialize a PROCESS_INFORMATION structure to use for the new process */
-    process_info.hProcess = NULL;
-    process_info.hThread = NULL;
-    process_info.dwProcessId = 0;
-    process_info.dwThreadId = 0;
-
-    /* Need the directory that this program exists in.  Not the current directory. */
-    /*    Note, the current directory when run as an NT service is the windows system directory. */
-    /* Get the full path and filename of this program */
-    /* Important : For win XP getLastError() is unchanged if the buffer is too small, so if we don't reset the last error first, we may actually test an old pending error. */
-    SetLastError(ERROR_SUCCESS);
-    usedLen = GetModuleFileName(NULL, szPath, _MAX_PATH);
-    if (usedLen == 0) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to launch %s -%s"),
-                     wrapperData->serviceDisplayName, getLastErrorText());
-        wrapperData->javaProcess = NULL;
-        return TRUE;
-    } else if ((usedLen == _MAX_PATH) || (getLastError() == ERROR_INSUFFICIENT_BUFFER)) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to launch %s -%s"),
-                     wrapperData->serviceDisplayName, TEXT("Path to Wrapper binary too long."));
-        wrapperData->javaProcess = NULL;
-        return TRUE;
-    }
-    c = _tcsrchr(szPath, TEXT('\\'));
-    if (c == NULL) {
-        szPath[0] = TEXT('\0');
-    } else {
-        c[1] = TEXT('\0'); /* terminate after the slash */
-    }
+    pprocess_info->hProcess = NULL;
+    pprocess_info->hThread = NULL;
+    pprocess_info->dwProcessId = 0;
+    pprocess_info->dwThreadId = 0;
 
     /* Make sure the log file is closed before the Java process is created.  Failure to do
      *  so will give the Java process a copy of the open file.  This means that this process
@@ -2107,30 +2137,21 @@ int wrapperExecute() {
      *  threads do not reopen the log file as the new process is being created. */
     setLogfileAutoClose(TRUE);
     closeLogfile();
-        
-    /* Reset the log duration so we get new counts from the time the JVM is launched. */
-    resetDuration();
 
-    /* Set the umask of the JVM */
+    /* Set the umask of the JVM (it doesn't seem to work on Windows) */
     old_umask = _umask(wrapperData->javaUmask);
-
-    /* If set, this will launch a second JVM before the actual one to quickly print out the JVM version information.
-     *  This will appear to come from the same JVM instance in the logs. */
-    if (wrapperData->printJVMVersion) {
-        launchChildProcessPrintJavaVersion(processflags, startup_info, process_info);
-    }
     
     /* Create the new process */
     ret=CreateProcess(NULL,
-                      wrapperData->jvmCommand, /* the command line to start */
+                      command,        /* the command line to start */
                       NULL,           /* process security attributes */
                       NULL,           /* primary thread security attributes */
                       TRUE,           /* handles are inherited */
                       processflags,   /* we specify new process group */
-                      environment,    /* use parent's environment */
+                      NULL,           /* use parent's environment */
                       NULL,           /* use the Wrapper's current working directory */
                       &startup_info,  /* STARTUPINFO pointer */
-                      &process_info); /* PROCESS_INFORMATION pointer */
+                      pprocess_info); /* PROCESS_INFORMATION pointer */
 
     /* Restore the umask. */
     _umask(old_umask);
@@ -2143,13 +2164,13 @@ int wrapperExecute() {
         int err=GetLastError();
         /* Make sure the process was launched correctly. */
         if (err!=NO_ERROR) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+            log_printf(WRAPPER_SOURCE_WRAPPER, errorLevel,
                 TEXT("Unable to execute Java command.  %s"), getLastErrorText());
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("    %s"), wrapperData->jvmCommand);
+            log_printf(WRAPPER_SOURCE_WRAPPER, errorLevel, TEXT("    %s"), wrapperData->jvmCommand);
             wrapperData->javaProcess = NULL;
 
-            if ((err == ERROR_FILE_NOT_FOUND) || (err == ERROR_PATH_NOT_FOUND)) {
-                if (wrapperData->isAdviserEnabled) {
+            if (wrapperData->isAdviserEnabled && (errorLevel == LEVEL_FATAL)) {
+                if ((err == ERROR_FILE_NOT_FOUND) || (err == ERROR_PATH_NOT_FOUND)) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("") );
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
                         TEXT("--------------------------------------------------------------------") );
@@ -2164,9 +2185,7 @@ int wrapperExecute() {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
                         TEXT("--------------------------------------------------------------------") );
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("") );
-                }
-            } else if (err == ERROR_ACCESS_DENIED) {
-                if (wrapperData->isAdviserEnabled) {
+                } else if (err == ERROR_ACCESS_DENIED) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("") );
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
                         TEXT("--------------------------------------------------------------------") );
@@ -2185,14 +2204,16 @@ int wrapperExecute() {
             }
             
             /* This is always a permanent problem. */
+            CloseHandle(pprocess_info->hProcess);
+            CloseHandle(pprocess_info->hThread);
             return TRUE;
         }
     }
 
     /* Now check if we have a process handle again for the Swedish WinNT bug */
-    if (process_info.hProcess == NULL) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("can not execute \"%s\""), wrapperData->jvmCommand);
-        wrapperData->javaProcess = NULL;
+    if (pprocess_info->hProcess == NULL) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, errorLevel, TEXT("can not execute \"%s\""), wrapperData->jvmCommand);
+        CloseHandle(pprocess_info->hThread);
         return TRUE;
     }
 
@@ -2202,15 +2223,146 @@ int wrapperExecute() {
         if (wrapperData->wrapperConsoleHWND) {
             /* The wrapper's console needs to be hidden. */
             wrapperData->wrapperConsoleHide = TRUE;
-            wrapperCheckConsoleWindows();
         } else {
             /* We need to locate the console that was created by the JVM on launch
              *  and hide it. */
             wrapperData->jvmConsoleHandle = findConsoleWindow(titleBuffer);
             wrapperData->jvmConsoleVisible = TRUE; /* This will be cleared if the check call successfully hides it. */
-            wrapperCheckConsoleWindows();
+        }
+        wrapperCheckConsoleWindows();
+    }
+
+    return FALSE;
+}
+
+/**
+ * Create a child process to print the Java version running the command:
+ *    /path/to/java -version
+ *  After printing the java version, the process is terminated.
+ * 
+ * In case the JVM is slow to start, it will time out after
+ * the number of seconds set in "wrapper.java.version.timeout".
+ * 
+ * Note: before the timeout is reached, the user can ctrl+c to stop the Wrapper.
+ */
+int wrapperLaunchJavaVersion() {
+    PROCESS_INFORMATION process_info;
+    int blockTimeout;
+    DWORD result;
+    
+    if (wrapperData->isDebugging) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Java Command Line (Query Java Version):"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  Command: %s"), wrapperData->jvmVersionCommand);
+    }
+    
+    /* Force using the encoding of the current locale to read the output of the Java version
+     * (we know this this JVM is launched without system properties specifying a different encoding). */
+    resetJvmOutputEncoding(FALSE);
+    
+    if (wrapperLaunchJvm(wrapperData->jvmVersionCommand, &process_info, LEVEL_ERROR)) {
+        return TRUE;
+    }
+
+    /* If the user set the value to 0, then we will wait indefinitely. */
+    blockTimeout = getIntProperty(properties, TEXT("wrapper.java.version.timeout"), DEFAULT_JAVA_VERSION_TIMEOUT) * 1000;
+    
+    if (blockTimeout <= 0) {
+        blockTimeout = INFINITE;
+    }
+    
+    result = WaitForSingleObject(process_info.hProcess, blockTimeout);
+    
+    if (result == WAIT_TIMEOUT) {
+        /* Timed out. */
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Child process: Java version: timed out"));
+        TerminateProcess(process_info.hProcess, 1);
+    } else if (result == WAIT_OBJECT_0) {
+        /* Process completed. */
+#ifdef _DEBUG
+        _tprintf(TEXT("Child process: Java version: successful\n"));
+#endif
+    } else {
+        /* Wait failed. */
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Child process: Java version: wait failed"));
+        TerminateProcess(process_info.hProcess, 1);
+    }
+
+    CloseHandle(process_info.hProcess);
+    CloseHandle(process_info.hThread);
+
+    wrapperReadJavaVersionOutput();
+
+    return FALSE;
+}
+
+/**
+ * Start the Java application and store internaly the JVM process.
+ *
+ * @return TRUE if there were any problems.  When this happens the Wrapper will not try to restart.
+ */
+int wrapperLaunchJavaApp() {
+    PROCESS_INFORMATION process_info;
+    size_t len;
+    
+    /* Update the CLASSPATH in the environment if requested so the JVM can access it. */ 
+    if (wrapperData->environmentClasspath) {
+        if (setEnv(TEXT("CLASSPATH"), wrapperData->classpath, ENV_SOURCE_APPLICATION)) {
+            /* This can happen if the classpath is too long on Windows. */
+            wrapperData->javaProcess = NULL;
+            wrapperData->exitCode = wrapperData->errorExitCode;
+            return TRUE;
         }
     }
+    
+    /* Make sure the classpath is not too long. */
+    len = _tcslen(wrapperData->jvmCommand);
+    if (len > MAX_COMMAND_LINE_LEN) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("The generated Java command line has a length of %d, which is longer than the Windows maximum of %d characters."), len, MAX_COMMAND_LINE_LEN);
+        if (!wrapperData->environmentClasspath) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  You may be able to shorten your command line by setting wrapper.java.classpath.use_environment."));
+        }
+        wrapperData->javaProcess = NULL;
+        wrapperData->exitCode = wrapperData->errorExitCode;
+        return TRUE;
+    }
+    
+    /* Log the application java command line */
+    if (wrapperData->commandLogLevel != LEVEL_NONE) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel, TEXT("Java Command Line:"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel, TEXT("  Command: %s"), wrapperData->jvmCommand);
+
+        if (wrapperData->environmentClasspath) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel,
+                TEXT("  Classpath in Environment : %s"), wrapperData->classpath);
+        }
+    }
+    
+    if (resolveJvmEncoding(wrapperData->javaVersion->major, wrapperData->jvmMaker)) {
+        /* Failed to get the encoding of the JVM output.
+         *  Stop here because won't be able to display output correctly. */
+        wrapperData->exitCode = wrapperData->errorExitCode;
+        return TRUE;
+    }
+    
+    if (wrapperData->runWithoutJVM) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            TEXT("Not launching a JVM because %s was set to TRUE."), TEXT("wrapper.test.no_jvm"));
+        wrapperData->exitCode = 0;
+        return TRUE;
+    }
+
+    /* Reset the log duration so we get new counts from the time the JVM is launched. */
+    resetDuration();
+    
+    /* Now launch the JVM process. */
+    if (wrapperLaunchJvm(wrapperData->jvmCommand, &process_info, LEVEL_FATAL)) {
+        wrapperData->javaProcess = NULL;
+        wrapperData->exitCode = wrapperData->errorExitCode;
+        return TRUE;
+    }
+    
+    /* Reset the exit code when we launch a new JVM. */
+    wrapperData->exitCode = 0;
 
     if (wrapperData->isDebugging) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("JVM started (PID=%d)"), process_info.dwProcessId);
@@ -3339,7 +3491,6 @@ BOOL isVista() {
 #pragma warning(pop)
     return FALSE;
 }
-
 
 /**
  * RETURNS TRUE if the current Windows OS is Windows XP or later...
@@ -4501,7 +4652,7 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const TCHAR *regPath, int app
 /**
  * Loads the environment stored in the registry.
  *
- * (Only called for versions of Windows older than XP or 2003.)
+ * (Only called for versions of Windows older than Vista or Server 2008.)
  *
  * Return TRUE if there were any problems.
  */
@@ -5697,7 +5848,7 @@ int setWorkingDir() {
         SetLastError(ERROR_SUCCESS);
         usedLen = GetModuleFileName(NULL, szPath, size);
         if (usedLen == 0) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to get the path-%s"), getLastErrorText());
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to get the path - %s"), getLastErrorText());
             return 1;
         } else if ((usedLen == size) || (getLastError() == ERROR_INSUFFICIENT_BUFFER)) {
             /* Too small. */
@@ -6629,6 +6780,7 @@ void enterLauncherMode() {
 #ifndef CUNIT
 void _tmain(int argc, TCHAR **argv) {
     int localeSet = FALSE;
+    int defaultLocaleFailed = FALSE;
     int result;
 #if defined(_DEBUG)
     int i;
@@ -6669,9 +6821,11 @@ void _tmain(int argc, TCHAR **argv) {
     }
     
     if (!localeSet) {
-        /* Set the default locale here so any startup error messages will have a chance of working.
+        /* No need to log anything. Set the default locale so any startup error messages will have a chance of working.
          *  We will go back and try to set the actual locale again later once it is configured. */
-        _tsetlocale(LC_ALL, TEXT(""));
+        if (!_tsetlocale(LC_ALL, TEXT(""))) {
+            defaultLocaleFailed = TRUE;
+        }
     }
 
     if (buildSystemPath()) {
@@ -6750,6 +6904,9 @@ void _tmain(int argc, TCHAR **argv) {
             enterLauncherMode();
         }
         
+        if (defaultLocaleFailed) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Unable to set the locale."));
+        }
         wrapperLoadHostName();
 
         /* At this point, we have a command, confFile, and possibly additional arguments. */
@@ -6773,16 +6930,16 @@ void _tmain(int argc, TCHAR **argv) {
             appExit(0);
             return; /* For clarity. */
         }
-        /* All 4 valid commands use the configuration file.  It is loaded here to
-         *  reduce duplicate code.  But before loading the parameters, in the case
-         *  of an NT service. the environment variables must first be loaded from
-         *  the registry.
-         * This is not necessary for versions of Windows XP and above. */
-        if ((!strcmpIgnoreCase(wrapperData->argCommand, TEXT("s")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-service"))) && (isVista() == FALSE)) {
-            if (wrapperLoadEnvFromRegistry())
-            {
-                appExit(1);
-                return; /* For clarity. */
+        if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("s")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-service"))) {
+            /* We are running as a Service, set a flag to remember it while loading the configuration. */
+            wrapperData->isConsole = FALSE;
+            if (!isVista()) {
+                /* When running as a service on versions of Windows older than Vista,
+                 *  the environment variables must first be loaded from the registry. */
+                if (wrapperLoadEnvFromRegistry()) {
+                    appExit(1);
+                    return; /* For clarity. */
+                }
             }
         }
 
@@ -6801,7 +6958,8 @@ void _tmain(int argc, TCHAR **argv) {
                  *  it did not exist.  Show the usage. */
                 wrapperUsage(argv[0]);
             }
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  The Wrapper will stop."));
+            /* There might have been some queued messages logged on configuration load. Queue the following message to make it appear last. */
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  The Wrapper will stop."));
             appExit(wrapperData->errorExitCode);
             return; /* For clarity. */
         }
@@ -7087,8 +7245,6 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("s")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-service"))) {
             /* Run as a service */
-            wrapperData->isConsole = FALSE;
-            
             wrapperCheckForMappedDrives();
             /* Load any dynamic functions. */
             loadDLLProcs();
@@ -7549,6 +7705,14 @@ int elevateThis(int argc, TCHAR **argv) {
     TCHAR szPath[_MAX_PATH];
     TCHAR *parameter;
     TCHAR* strNamedPipeName;
+
+    /* Sets the translation mode of standard streams to unicode (the messages coming from the secondary instance should always be wide char).
+     *  This allow system messages to be printed correctly even if the Wrapper is using a different language (this would only work if the
+     *  terminal can print all these characters - for example a terminal with a UTF-8 code page, or powerhsell). */
+    fflush(NULL);
+    _setmode(_fileno(stdin), _O_WTEXT);
+    _setmode(_fileno(stdout), _O_WTEXT);
+    _setmode(_fileno(stderr), _O_WTEXT);
 
     /* get the file name of the binary, we can't trust argv[0] as the working
      * directory might have been changed.

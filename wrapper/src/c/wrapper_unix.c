@@ -38,7 +38,6 @@
 #ifdef LINUX
  #include <features.h>
 #endif
-#include <limits.h>
 #include <wchar.h>
 #include <netdb.h>
 #include <stdio.h>
@@ -62,6 +61,7 @@
 #include "property.h"
 #include "logger.h"
 #include "wrapper_file.h"
+#include "wrapper_encoding.h"
 
 #include <sys/resource.h>
 #include <sys/time.h>
@@ -1044,6 +1044,9 @@ int wrapperSleep(int ms) {
     usleep(ms * 1000); /* microseconds */
 #else
     struct timespec ts;
+ #ifdef HPUX
+    int failed = FALSE;
+ #endif
 
     if (ms >= 1000) {
         ts.tv_sec = (ms * 1000000) / 1000000000;
@@ -1056,6 +1059,23 @@ int wrapperSleep(int ms) {
     if (wrapperData->isSleepOutputEnabled) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Sleep: nanosleep %dms"), ms);
     }
+ #ifdef HPUX
+    /* On HPUX, there is an issue when two threads call nanosleep() at the same time.
+     *  This happens for example when the timer thread calls wrapperSleep() while the main
+     *  thread is waiting for the output of 'java -version'.
+     *  According to the documentation, nanosleep() should be thread-safe, but the
+     *  documentation also states that errno should be set when the function fails, which
+     *  is not the case here (errno=0)! The implementation of nanosleep() may not be
+     *  correct on this platform (not sure if it was fixed on later versions of the OS).
+     *  To fix this issue, we can't really use a mutex because the timer thread would
+     *  constantly block the main thread. Instead, we will try calling again nanosleep
+     *  but we'll do it to only one time to avoid infinite loop. We could use the second
+     *  argument of nanosleep() and make a second call with only the remaining time...
+     *  However I don't think this is necessary because we are calling nanosleep only 2
+     *  times, and the function probably fails right in the beginning. */
+   tryagain:
+ #endif
+    errno = 0;
     if (nanosleep(&ts, NULL)) {
         if (errno == EINTR) {
             if (wrapperData->isSleepOutputEnabled) {
@@ -1071,6 +1091,14 @@ int wrapperSleep(int ms) {
             }
             return TRUE;
         } else {
+ #ifdef HPUX
+            if ((errno == 0) && !failed) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                    TEXT("nanosleep(%dms) failed. %s. Trying again."), ms, getLastErrorText());
+                failed = TRUE;
+                goto tryagain;
+            }
+ #endif
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 TEXT("nanosleep(%dms) failed. %s"), ms, getLastErrorText());
         }
@@ -1096,13 +1124,13 @@ void wrapperDetachJava() {
 
 
 /**
- * Build the java command line.
+ * Build the command line used to get the Java version.
  *
  * @return TRUE if there were any problems.
  */
-int wrapperBuildJavaCommand() {
+int wrapperBuildJavaVersionCommand() {
     TCHAR **strings;
-    int length, i;
+    int i;
 
     /* If this is not the first time through, then dispose the old command array */
     if (wrapperData->jvmVersionCommand) {
@@ -1116,6 +1144,60 @@ int wrapperBuildJavaCommand() {
         free(wrapperData->jvmVersionCommand);
         wrapperData->jvmVersionCommand = NULL;
     }
+    
+    strings = malloc(sizeof(TCHAR*));
+    if (!strings) {
+        outOfMemory(TEXT("WBJVC1"), 1);
+        return TRUE;
+    }
+    
+    if (wrapperBuildJavaCommandArrayJavaCommand(strings, FALSE, FALSE, 0) < 0) {
+        wrapperFreeStringArray(strings, 1);
+        return TRUE;
+    }
+
+    /* Allocate memory to hold array of version command strings.  The array is itself NULL terminated */
+    wrapperData->jvmVersionCommand = malloc(sizeof(TCHAR *) * (2 + 1));
+    if (!wrapperData->jvmVersionCommand) {
+        outOfMemory(TEXT("WBJVC"), 2);
+        wrapperFreeStringArray(strings, 1);
+        return TRUE;
+    }
+    memset(wrapperData->jvmVersionCommand, 0, sizeof(TCHAR *) * (2 + 1));
+    /* Java Command */
+    wrapperData->jvmVersionCommand[0] = malloc(sizeof(TCHAR) * (_tcslen(strings[0]) + 1));
+    if (!wrapperData->jvmVersionCommand[0]) {
+        outOfMemory(TEXT("WBJVC"), 3);
+        wrapperFreeStringArray(strings, 1);
+        return TRUE;
+    }
+    _tcsncpy(wrapperData->jvmVersionCommand[0], strings[0], _tcslen(strings[0]) + 1);
+    /* -version */
+    wrapperData->jvmVersionCommand[1] = malloc(sizeof(TCHAR) * (8 + 1));
+    if (!wrapperData->jvmVersionCommand[1]) {
+        outOfMemory(TEXT("WBJVC"), 4);
+        wrapperFreeStringArray(strings, 1);
+        return TRUE;
+    }
+    _tcsncpy(wrapperData->jvmVersionCommand[1], TEXT("-version"), 8 + 1);
+    /* NULL */
+    wrapperData->jvmVersionCommand[2] = NULL;
+    
+    wrapperFreeStringArray(strings, 1);
+    
+    return FALSE;
+}
+
+/**
+ * Build the java command line.
+ *
+ * @return TRUE if there were any problems.
+ */
+int wrapperBuildJavaCommand() {
+    TCHAR **strings;
+    int length, i;
+
+    /* If this is not the first time through, then dispose the old command array */
     if (wrapperData->jvmCommand) {
         i = 0;
         while(wrapperData->jvmCommand[i] != NULL) {
@@ -1141,37 +1223,15 @@ int wrapperBuildJavaCommand() {
     strings = NULL;
     length = 0;
     if (wrapperBuildJavaCommandArray(&strings, &length, FALSE, wrapperData->classpath)) {
+        wrapperFreeStringArray(strings, length);
         return TRUE;
     }
-
-    /* Allocate memory to hold array of version command strings.  The array is itself NULL terminated */
-    wrapperData->jvmVersionCommand = malloc(sizeof(TCHAR *) * (2 + 1));
-    if (!wrapperData->jvmVersionCommand) {
-        outOfMemory(TEXT("WBJC"), 1);
-        return TRUE;
-    }
-    memset(wrapperData->jvmVersionCommand, 0, sizeof(TCHAR *) * (2 + 1));
-    /* Java Command */
-    wrapperData->jvmVersionCommand[0] = malloc(sizeof(TCHAR) * (_tcslen(strings[0]) + 1));
-    if (!wrapperData->jvmVersionCommand[0]) {
-        outOfMemory(TEXT("WBJC"), 2);
-        return TRUE;
-    }
-    _tcsncpy(wrapperData->jvmVersionCommand[0], strings[0], _tcslen(strings[0]) + 1);
-    /* -version */
-    wrapperData->jvmVersionCommand[1] = malloc(sizeof(TCHAR) * (8 + 1));
-    if (!wrapperData->jvmVersionCommand[1]) {
-        outOfMemory(TEXT("WBJC"), 3);
-        return TRUE;
-    }
-    _tcsncpy(wrapperData->jvmVersionCommand[1], TEXT("-version"), 8 + 1);
-    /* NULL */
-    wrapperData->jvmVersionCommand[2] = NULL;
     
     /* Allocate memory to hold array of command strings.  The array is itself NULL terminated */
     wrapperData->jvmCommand = malloc(sizeof(TCHAR *) * (length + 1));
     if (!wrapperData->jvmCommand) {
         outOfMemory(TEXT("WBJC"), 1);
+        wrapperFreeStringArray(strings, length);
         return TRUE;
     }
     memset(wrapperData->jvmCommand, 0, sizeof(TCHAR *) * (length + 1));
@@ -1181,6 +1241,7 @@ int wrapperBuildJavaCommand() {
             wrapperData->jvmCommand[i] = malloc(sizeof(TCHAR) * (_tcslen(strings[i]) + 1));
             if (!wrapperData->jvmCommand[i]) {
                 outOfMemory(TEXT("WBJC"), 2);
+                wrapperFreeStringArray(strings, length);
                 return TRUE;
             }
             _tcsncpy(wrapperData->jvmCommand[i], strings[i], _tcslen(strings[i]) + 1);
@@ -1192,7 +1253,7 @@ int wrapperBuildJavaCommand() {
     }
 
     /* Free up the temporary command array */
-    wrapperFreeJavaCommandArray(strings, length);
+    wrapperFreeStringArray(strings, length);
 
     return FALSE;
 }
@@ -1227,82 +1288,11 @@ size_t wrapperCalculateEnvironmentLength() {
 }
 
 /**
- * Create a child process to print the Java version running the command:
- *    /path/to/java -version
- *  After printing the java version, the process is terminated.
- * 
- * In case the JVM is slow to start, it will time out after
- * the number of seconds set in "wrapper.java.version.timeout".
- * 
- * Note: before the timeout is reached, the user can ctrl+c to stop the Wrapper.
- */
-void launchChildProcessPrintJavaVersion() {
-    int blockTimeout;      /* max time (in ms) to wait for the child process to terminate */
-    int result;            /* result of waitpid */
-    int status;            /* status of child process */
-    pid_t procJavaVersion; /* pid of the child process */
-    
-    /* Create the child process! */
-    procJavaVersion = fork();
-                
-    if (procJavaVersion >= 0) {
-        /* fork successful */
-        
-        if (procJavaVersion == 0) {
-            /* in the child process */
-            TCHAR *javaVersionArgv[3];
-            javaVersionArgv[0] = wrapperData->jvmCommand[0];
-            javaVersionArgv[1] = TEXT("-version");
-            javaVersionArgv[2] = 0;
-            _texecvp(wrapperData->jvmCommand[0], javaVersionArgv);
-        } else {
-            /* in the parent process */
-            /* Note: on CentOS, in case we don't call waitpid(), then the child process becomes a zombie */
-            /* Note2: use _tprintf to log messages instead of log_printf. With log_printf, the columns are printed twice */
-            
-            /* If the user set the value to 0, then we will wait indefinitely. */
-            blockTimeout = getIntProperty(properties, TEXT("wrapper.java.version.timeout"), DEFAULT_JAVA_VERSION_TIMEOUT) * 1000;
-            
-            if (blockTimeout > 0) {
-                while (((result = waitpid(procJavaVersion, &status, WNOHANG)) == 0) && (blockTimeout > 0)) {
-#ifdef _DEBUG
-                    _tprintf(TEXT("Child process: Java version: waiting... result=%d waitpidStatLoc=%d blockTimeout=%d\n"), result, status, blockTimeout);
-#endif
-                    wrapperSleep(100);
-                    blockTimeout -= 100;
-                }
-            } else {
-                /* Wait indefinately. */
-                result = waitpid(procJavaVersion, &status, 0);
-            }
-            
-            if (result == 0) {
-                /* Timed out. */
-                _tprintf(TEXT("Child process: Java version: timed out\n"));
-                kill(procJavaVersion, SIGKILL);
-            } else if (result > 0) {
-                /* Process completed. */
-#ifdef _DEBUG
-                _tprintf(TEXT("Child process: Java version: successful\n"));
-#endif
-            } else {
-                /* Wait failed. */
-                _tprintf(TEXT("Child process: Java version: wait failed\n"));
-                kill(procJavaVersion, SIGKILL);
-            }
-        }
-    } else {
-        /* Fork failed. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to spawn process to output Java version: %s"), getLastErrorText());
-    }
-}
-
-/**
- * Launches a JVM process and stores it internally.
+ * Launch a JVM and collect the pid.
  *
- * @return TRUE if there were any problems.  When this happens the Wrapper will not try to restart.
+ * @return TRUE if there were any problems, FALSE otherwise.
  */
-int wrapperExecute() {
+int wrapperLaunchJvm(TCHAR** command, pid_t *ppid, int errorLevel) {
     int i;
     pid_t proc;
     int execErrno;
@@ -1315,21 +1305,223 @@ int wrapperExecute() {
                    TEXT("Could not init pipe: %s"), getLastErrorText());
         return TRUE;
     }
+
+    /* Again make sure the log file is closed before forking. */
+    setLogfileAutoClose(TRUE);
+    closeLogfile();
     
-    /* Log the Java commands. */
-    
-    /* If the JVM version printout is requested then log its command line first. */
-    if (wrapperData->printJVMVersion) {
-        if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Java Command Line (Query Java Version):"));
-            for (i = 0; wrapperData->jvmVersionCommand[i] != NULL; i++) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                    TEXT("  Command[%d] : %s"), i, wrapperData->jvmVersionCommand[i]);
+    /* Fork off the child. */
+    proc = fork();
+
+    if (proc == -1) {
+        /* Fork failed. */
+
+        /* Restore the auto close flag. */
+        setLogfileAutoClose(wrapperData->logfileCloseTimeout == 0);
+
+        log_printf(WRAPPER_SOURCE_WRAPPER, errorLevel,
+                   TEXT("Could not spawn JVM process: %s"), getLastErrorText());
+
+        /* The pipedes array is global so do not close the pipes. */
+        return TRUE;
+    } else if (proc == 0) {
+        /* We are the child side. */
+        /* Set the umask of the JVM */
+        umask(wrapperData->javaUmask);
+
+        /* The logging code causes some log corruption if logging is called from the
+         *  child of a fork.  Not sure exactly why but most likely because the forked
+         *  child receives a copy of the mutex and thus synchronization is not working.
+         * It is ok to log errors in here, but avoid output otherwise.
+         * TODO: Figure out a way to fix this.  Maybe using shared memory? */
+
+        /* Send output to the pipe by duplicating the pipe fd and setting the copy as the stdout fd. */
+        if (dup2(pipedes[PIPE_WRITE_END], STDOUT_FILENO) < 0) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                TEXT("%sUnable to set JVM's stdout: %s"), LOG_FORK_MARKER, getLastErrorText());
+            /* This process needs to end. */
+            exit(wrapperData->errorExitCode);
+            return TRUE; /* Will not get here. */
+        }
+
+        /* Send errors to the pipe by duplicating the pipe fd and setting the copy as the stderr fd. */
+        if (dup2(pipedes[PIPE_WRITE_END], STDERR_FILENO) < 0) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                TEXT("%sUnable to set JVM's stderr: %s"), LOG_FORK_MARKER, getLastErrorText());
+            /* This process needs to end. */
+            exit(wrapperData->errorExitCode);
+            return TRUE; /* Will not get here. */
+        }
+        
+        /* Close both ends of the pipe as we have already duplicated the Write end for our purposes. */
+        close(pipedes[PIPE_READ_END]);
+        pipedes[PIPE_READ_END] = -1;
+        close(pipedes[PIPE_WRITE_END]);
+        pipedes[PIPE_WRITE_END] = -1;
+        
+        /* Child process: execute the JVM. */
+        _texecvp(command[0], command);
+        execErrno = errno;
+
+        /* We reached this point...meaning we were unable to start. */
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            TEXT("%sUnable to start JVM: %s (%d)"), LOG_FORK_MARKER, getLastErrorText(), execErrno);
+        if (execErrno == E2BIG) {
+            /* Command line too long. */
+            /* Calculate the total length of the command line. */
+            lenCmd = 0;
+            for (i = 0; command[i] != NULL; i++) {
+                lenCmd += _tcslen(command[i]) + 1;
             }
+            lenEnv = wrapperCalculateEnvironmentLength();
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("%s  The generated command line plus the environment was larger than the maximum allowed."), LOG_FORK_MARKER);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("%s  The current length is %d bytes of which %d is the command line, and %d is the environment."), LOG_FORK_MARKER, lenCmd + lenEnv + 1, lenCmd, lenEnv); 
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("%s  It is not possible to calculate an exact maximum length as it depends on a number of factors for each system."), LOG_FORK_MARKER);
+
+            /* TODO: Figure out a way to inform the Wrapper not to restart and try again as repeatedly doing this is meaningless. */
+        }
+
+        if (wrapperData->isAdviserEnabled && (errorLevel == LEVEL_FATAL)) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("%s"), LOG_FORK_MARKER );
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                TEXT("%s------------------------------------------------------------------------"), LOG_FORK_MARKER );
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                TEXT("%sAdvice:"), LOG_FORK_MARKER );
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                TEXT("%sUsually when the Wrapper fails to start the JVM process, it is because"), LOG_FORK_MARKER );
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                TEXT("%sof a problem with the value of the configured Java command.  Currently:"), LOG_FORK_MARKER );
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                TEXT("%swrapper.java.command=%s"), LOG_FORK_MARKER, getStringProperty(properties, TEXT("wrapper.java.command"), TEXT("java")));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                TEXT("%sPlease make sure that the PATH or any other referenced environment"), LOG_FORK_MARKER );
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                TEXT("%svariables are correctly defined for the current environment."), LOG_FORK_MARKER );
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                TEXT("%s------------------------------------------------------------------------"), LOG_FORK_MARKER );
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("%s"), LOG_FORK_MARKER );
+        }
+
+        /* This process needs to end. */
+        exit(wrapperData->errorExitCode);
+        return TRUE; /* Will not get here. */
+    } else {
+        /* We are the parent side and need to assume that at this point the JVM is up. */
+        *ppid = proc;
+        
+        /* Close the write end as it is not used. */
+        close(pipedes[PIPE_WRITE_END]);
+        pipedes[PIPE_WRITE_END] = -1;
+
+        /* Restore the auto close flag. */
+        setLogfileAutoClose(wrapperData->logfileCloseTimeout == 0);			
+
+        /* The pipedes array is global so do not close the pipes. */
+
+        /* Mark our side of the pipe so that it won't block
+         * and will close on exec, so new children won't see it. */
+        if (fcntl(pipedes[PIPE_READ_END], F_SETFL, O_NONBLOCK) < 0) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                TEXT("Failed to set JVM output handle to non blocking mode: %s (%d)"),
+                getLastErrorText(), errno);
+        }
+        if (fcntl(pipedes[PIPE_READ_END], F_SETFD, FD_CLOEXEC) < 0) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                TEXT("Failed to set JVM output handle to close on JVM exit: %s (%d)"),
+                getLastErrorText(), errno);
+        }
+        return FALSE;
+    }
+}
+
+/**
+ * Create a child process to print the Java version running the command:
+ *    /path/to/java -version
+ *  After printing the java version, the process is terminated.
+ * 
+ * In case the JVM is slow to start, it will time out after
+ * the number of seconds set in "wrapper.java.version.timeout".
+ * 
+ * Note: before the timeout is reached, the user can ctrl+c to stop the Wrapper.
+ */
+int wrapperLaunchJavaVersion() {
+    int i;
+    int blockTimeout;      /* max time (in ms) to wait for the child process to terminate */
+    int result;            /* result of waitpid */
+    int status;            /* status of child process */
+    pid_t pid;             /* pid of the child process */
+
+    /* If the JVM version printout is requested then log its command line first. */
+    if (wrapperData->isDebugging) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Java Command Line (Query Java Version):"));
+        for (i = 0; wrapperData->jvmVersionCommand[i] != NULL; i++) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                TEXT("  Command[%d] : %s"), i, wrapperData->jvmVersionCommand[i]);
         }
     }
     
-    /* Log ghe application java command line */
+    /* Force using the encoding of the current locale to read the output of the Java version
+     * (we know this this JVM is launched without system properties specifying a different encoding). */
+    resetJvmOutputEncoding(FALSE);
+    
+    if (wrapperLaunchJvm(wrapperData->jvmVersionCommand, &pid, LEVEL_ERROR)) {
+        return TRUE;
+    }
+    
+    /* Note: on CentOS, in case we don't call waitpid(), then the child process becomes a zombie */
+    /* Note2: use _tprintf to log messages instead of log_printf. With log_printf, the columns are printed twice */
+
+    /* If the user set the value to 0, then we will wait indefinitely. */
+    blockTimeout = getIntProperty(properties, TEXT("wrapper.java.version.timeout"), DEFAULT_JAVA_VERSION_TIMEOUT) * 1000;
+    
+    if (blockTimeout > 0) {
+        while (((result = waitpid(pid, &status, WNOHANG)) == 0) && (blockTimeout > 0)) {
+#ifdef _DEBUG
+            _tprintf(TEXT("Child process: Java version: waiting... result=%d waitpidStatLoc=%d blockTimeout=%d\n"), result, status, blockTimeout);
+#endif
+            wrapperSleep(100);
+            blockTimeout -= 100;
+        }
+    } else {
+        /* Wait indefinately. */
+        result = waitpid(pid, &status, 0);
+    }
+            
+    if (result == 0) {
+        /* Timed out. */
+        _tprintf(TEXT("Child process: Java version: timed out\n"));
+        kill(pid, SIGKILL);
+    } else if (result > 0) {
+        /* Process completed. */
+#ifdef _DEBUG
+        _tprintf(TEXT("Child process: Java version: successful\n"));
+#endif
+    } else {
+        /* Wait failed. */
+        _tprintf(TEXT("Child process: Java version: wait failed\n"));
+        kill(pid, SIGKILL);
+    }
+
+    wrapperReadJavaVersionOutput();
+
+    return FALSE;
+}
+
+/**
+ * Launches a JVM process and stores it internally.
+ *
+ * @return TRUE if there were any problems.  When this happens the Wrapper will not try to restart.
+ */
+int wrapperLaunchJavaApp() {
+    int i;
+    pid_t pid;
+
+    /* Update the CLASSPATH in the environment if requested so the JVM can access it. */ 
+    if (wrapperData->environmentClasspath) {
+        setEnv(TEXT("CLASSPATH"), wrapperData->classpath, ENV_SOURCE_APPLICATION);
+    }
+    
+    /* Log the application java command line */
     if (wrapperData->commandLogLevel != LEVEL_NONE) {
         log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel, TEXT("Java Command Line:"));
         for (i = 0; wrapperData->jvmCommand[i] != NULL; i++) {
@@ -1342,178 +1534,56 @@ int wrapperExecute() {
                 TEXT("  Classpath in Environment : %s"), wrapperData->classpath);
         }
     }
-
-    /* Update the CLASSPATH in the environment if requested so the JVM can access it. */ 
-    if (wrapperData->environmentClasspath) {
-        setEnv(TEXT("CLASSPATH"), wrapperData->classpath, ENV_SOURCE_APPLICATION);
+    
+    if (resolveJvmEncoding(wrapperData->javaVersion->major, wrapperData->jvmMaker)) {
+        /* Failed to get the encoding of the JVM output.
+         *  Stop here because won't be able to display output correctly. */
+        wrapperData->exitCode = wrapperData->errorExitCode;
+        return TRUE;
+    }
+    
+    if (wrapperData->runWithoutJVM) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            TEXT("Not launching a JVM because %s was set to TRUE."), TEXT("wrapper.test.no_jvm"));
+        wrapperData->exitCode = 0;
+        return TRUE;
     }
 
-    /* Make sure the log file is closed before the Java process is created.  Failure to do
-     *  so will give the Java process a copy of the open file.  This means that this process
-     *  will not be able to rename the file even after closing it because it will still be
-     *  open in the Java process.  Also set the auto close flag to make sure that other
-     *  threads do not reopen the log file as the new process is being created. */
-    setLogfileAutoClose(TRUE);
-    closeLogfile();
-        
     /* Reset the log duration so we get new counts from the time the JVM is launched. */
     resetDuration();
     
-    /* Fork off the child. */
-    proc = fork();
-
-    if (proc == -1) {
-        /* Fork failed. */
-
-        /* Restore the auto close flag. */
-        setLogfileAutoClose(wrapperData->logfileCloseTimeout == 0);
-
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                   TEXT("Could not spawn JVM process: %s"), getLastErrorText());
-
-        /* The pipedes array is global so do not close the pipes. */
+    /* Now launch the JVM process. */
+    if (wrapperLaunchJvm(wrapperData->jvmCommand, &pid, LEVEL_FATAL)) {
+        wrapperData->exitCode = wrapperData->errorExitCode;
         return TRUE;
-    } else {
-        /* Reset the exit code when we launch a new JVM. */
-        wrapperData->exitCode = 0;
+    }
+    
+    /* Reset the exit code when we launch a new JVM. */
+    wrapperData->exitCode = 0;
+    
+    /* Reset the stopped flag. */
+    wrapperData->jvmStopped = FALSE;
+    
+    /* We keep a reference to the process id. */
+    wrapperData->javaPID = pid;
 
-        /* Reset the stopped flag. */
-        wrapperData->jvmStopped = FALSE;
-
-        if (proc == 0) {
-            /* We are the child side. */
-
-            /* Set the umask of the JVM */
-            umask(wrapperData->javaUmask);
-
-            /* The logging code causes some log corruption if logging is called from the
-             *  child of a fork.  Not sure exactly why but most likely because the forked
-             *  child receives a copy of the mutex and thus synchronization is not working.
-             * It is ok to log errors in here, but avoid output otherwise.
-             * TODO: Figure out a way to fix this.  Maybe using shared memory? */
-
-            /* Send output to the pipe by dupicating the pipe fd and setting the copy as the stdout fd. */
-            if (dup2(pipedes[PIPE_WRITE_END], STDOUT_FILENO) < 0) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                    TEXT("%sUnable to set JVM's stdout: %s"), LOG_FORK_MARKER, getLastErrorText());
-                /* This process needs to end. */
-                exit(wrapperData->errorExitCode);
-                return TRUE; /* Will not get here. */
-            }
-
-            /* Send errors to the pipe by duplicating the pipe fd and setting the copy as the stderr fd. */
-            if (dup2(pipedes[PIPE_WRITE_END], STDERR_FILENO) < 0) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                    TEXT("%sUnable to set JVM's stderr: %s"), LOG_FORK_MARKER, getLastErrorText());
-                /* This process needs to end. */
-                exit(wrapperData->errorExitCode);
-                return TRUE; /* Will not get here. */
-            }
-            
-            /* Close both ends of the pipe as we have already duplicated the Write end for our purposes. */
-            close(pipedes[PIPE_READ_END]);
-            pipedes[PIPE_READ_END] = -1;
-            close(pipedes[PIPE_WRITE_END]);
-            pipedes[PIPE_WRITE_END] = -1;
-
-            /* forking at this point, the child process has set all pipes already, so no
-               further assignments needed */
-            if (wrapperData->printJVMVersion) {
-                launchChildProcessPrintJavaVersion();
-            }
-            
-            /* The pipedes array is global so do not close the pipes. */
-            /* Child process: execute the JVM. */
-            _texecvp(wrapperData->jvmCommand[0], wrapperData->jvmCommand);
-            execErrno = errno;
-
-            /* We reached this point...meaning we were unable to start. */
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                TEXT("%sUnable to start JVM: %s (%d)"), LOG_FORK_MARKER, getLastErrorText(), execErrno);
-            if (execErrno == E2BIG) {
-                /* Command line too long. */
-                /* Calculate the total length of the command line. */
-                lenCmd = 0;
-                for (i = 0; wrapperData->jvmCommand[i] != NULL; i++) {
-                    lenCmd += _tcslen(wrapperData->jvmCommand[i]) + 1;
-                }
-                lenEnv = wrapperCalculateEnvironmentLength();
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("%s  The generated command line plus the environment was larger than the maximum allowed."), LOG_FORK_MARKER);
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("%s  The current length is %d bytes of which %d is the command line, and %d is the environment."), LOG_FORK_MARKER, lenCmd + lenEnv + 1, lenCmd, lenEnv); 
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("%s  It is not possible to calculate an exact maximum length as it depends on a number of factors for each system."), LOG_FORK_MARKER);
-
-                /* TODO: Figure out a way to inform the Wrapper not to restart and try again as repeatedly doing this is meaningless. */
-            }
-
-
-            if (wrapperData->isAdviserEnabled) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("%s"), LOG_FORK_MARKER );
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                    TEXT("%s------------------------------------------------------------------------"), LOG_FORK_MARKER );
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                    TEXT("%sAdvice:"), LOG_FORK_MARKER );
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                    TEXT("%sUsually when the Wrapper fails to start the JVM process, it is because"), LOG_FORK_MARKER );
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                    TEXT("%sof a problem with the value of the configured Java command.  Currently:"), LOG_FORK_MARKER );
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                    TEXT("%swrapper.java.command=%s"), LOG_FORK_MARKER, getStringProperty(properties, TEXT("wrapper.java.command"), TEXT("java")));
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                    TEXT("%sPlease make sure that the PATH or any other referenced environment"), LOG_FORK_MARKER );
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                    TEXT("%svariables are correctly defined for the current environment."), LOG_FORK_MARKER );
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                    TEXT("%s------------------------------------------------------------------------"), LOG_FORK_MARKER );
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("%s"), LOG_FORK_MARKER );
-            }
-
-            /* This process needs to end. */
-            exit(wrapperData->errorExitCode);
-            return TRUE; /* Will not get here. */
-        } else {
-            /* We are the parent side and need to assume that at this point the JVM is up. */
-            wrapperData->javaPID = proc;
-            
-            /* Close the write end as it is not used. */
-            close(pipedes[PIPE_WRITE_END]);
-            pipedes[PIPE_WRITE_END] = -1;
-
-            /* Restore the auto close flag. */
-            setLogfileAutoClose(wrapperData->logfileCloseTimeout == 0);			
-
-            /* The pipedes array is global so do not close the pipes. */
-
-            /* Mark our side of the pipe so that it won't block
-             * and will close on exec, so new children won't see it. */
-            if (fcntl(pipedes[PIPE_READ_END], F_SETFL, O_NONBLOCK) < 0) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                    TEXT("Failed to set JVM output handle to non blocking mode: %s (%d)"),
-                    getLastErrorText(), errno);
-            }
-            if (fcntl(pipedes[PIPE_READ_END], F_SETFD, FD_CLOEXEC) < 0) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                    TEXT("Failed to set JVM output handle to close on JVM exit: %s (%d)"),
-                    getLastErrorText(), errno);
-            }
-
-            /* If a java pid filename is specified then write the pid of the java process. */
-            if (wrapperData->javaPidFilename) {
-                if (writePidFile(wrapperData->javaPidFilename, wrapperData->javaPID, wrapperData->javaPidFileUmask, FALSE)) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                        TEXT("Unable to write the Java PID file: %s"), wrapperData->javaPidFilename);
-                }
-            }
-
-            /* If a java id filename is specified then write the Id of the java process. */
-            if (wrapperData->javaIdFilename) {
-                if (writePidFile(wrapperData->javaIdFilename, wrapperData->jvmRestarts, wrapperData->javaIdFileUmask, FALSE)) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                        TEXT("Unable to write the Java Id file: %s"), wrapperData->javaIdFilename);
-                }
-            }
-            return FALSE;
+    /* If a java pid filename is specified then write the pid of the java process. */
+    if (wrapperData->javaPidFilename) {
+        if (writePidFile(wrapperData->javaPidFilename, wrapperData->javaPID, wrapperData->javaPidFileUmask, FALSE)) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                TEXT("Unable to write the Java PID file: %s"), wrapperData->javaPidFilename);
         }
     }
+
+    /* If a java id filename is specified then write the Id of the java process. */
+    if (wrapperData->javaIdFilename) {
+        if (writePidFile(wrapperData->javaIdFilename, wrapperData->jvmRestarts, wrapperData->javaIdFileUmask, FALSE)) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                TEXT("Unable to write the Java Id file: %s"), wrapperData->javaIdFilename);
+        }
+    }
+
+    return FALSE;
 }
 
 /**
@@ -1857,7 +1927,7 @@ int setWorkingDir(TCHAR *app) {
 
     /* Get the full path and filename of this program */
     if ((szPath = findPathOf(app, TEXT("Wrapper binary"))) == NULL) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to get the path for '%s'-%s"),
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to get the path for '%s' - %s"),
             app, getLastErrorText());
         return 1;
     }
@@ -2053,7 +2123,8 @@ int main(int argc, char **argv) {
              *  it did not exist.  Show the usage. */
             wrapperUsage(argv[0]);
         }
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  The Wrapper will stop."));
+        /* There might have been some queued messages logged on configuration load. Queue the following message to make it appear last. */
+        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  The Wrapper will stop."));
         appExit(wrapperData->errorExitCode, argc, argv);
         return 1; /* For compiler. */
     }
@@ -2094,7 +2165,8 @@ int main(int argc, char **argv) {
             if (wrapperData->workingDir && wrapperData->originalWorkingDir) {
                 if (wrapperSetWorkingDir(wrapperData->originalWorkingDir, TRUE)) {
                     /* Failed to restore the working dir.  Shutdown the Wrapper */
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  The Wrapper will stop."));
+                    /* There might have been some queued messages logged on configuration load. Queue the following message to make it appear last. */
+                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  The Wrapper will stop."));
                     appExit(wrapperData->errorExitCode, argc, argv);
                     return 1; /* For compiler. */
                 }

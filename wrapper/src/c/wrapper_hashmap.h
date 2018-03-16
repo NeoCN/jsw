@@ -88,6 +88,25 @@ extern void hashMapPutKWVW(PHashMap hashMap, const TCHAR *key, const TCHAR *valu
 extern void hashMapPutKMBVW(PHashMap hashMap, const char *key, const TCHAR *value);
 
 /**
+ * Puts an integer value into the HashMap.
+ *  Note: Avoid putting 0 in the hashtable as hashMapGetKWVI() also returns 0 if the key was not found. 
+ *
+ * @param hashMap HashMap to store the value into.
+ * @param key The key to reference the value.
+ * @param value The value to store.
+ */
+extern void hashMapPutKWVI(PHashMap hashMap, const TCHAR *key, int value);
+
+/**
+ * Puts a value into the HashMap.  The key and value will both be cloned.
+ *
+ * @param hashMap HashMap to store the value into.
+ * @param key The key to reference the value.
+ * @param value The value to store.
+ */
+extern void hashMapPutKIVW(PHashMap hashMap, int key, const TCHAR *value);
+
+/**
  * Gets a value from the HashMap.
  *
  * @param hashMap HashMap from which to lookup the value.
@@ -118,6 +137,26 @@ extern const TCHAR *hashMapGetKWVW(PHashMap hashMap, const TCHAR *key);
  * @return a reference to the value.  It should not be modified or freed.
  */
 extern const TCHAR *hashMapGetKMBVW(PHashMap hashMap, const char *key);
+
+/**
+ * Gets an integer value from the HashMap.
+ *
+ * @param hashMap HashMap from which to lookup the value.
+ * @param key Key of the value being looked up.
+ *
+ * @return the integer value or 0 if the key was not found.
+ */
+extern int hashMapGetKWVI(PHashMap hashMap, const TCHAR *key);
+
+/**
+ * Gets an integer value from the HashMap.
+ *
+ * @param hashMap HashMap from which to lookup the value.
+ * @param key Key of the value being looked up.
+ *
+ * @return the integer value or 0 if the key was not found.
+ */
+extern const TCHAR *hashMapGetKIVW(PHashMap hashMap, int key);
 
  #ifdef _DEBUG_HASHMAP
 /**

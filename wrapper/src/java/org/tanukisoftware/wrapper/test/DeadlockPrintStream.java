@@ -12,6 +12,7 @@ package org.tanukisoftware.wrapper.test;
  */
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.io.PrintStream;
 
 /**
@@ -39,6 +40,22 @@ public class DeadlockPrintStream extends PrintStream {
     public DeadlockPrintStream( PrintStream out )
     {
         super( out );
+        
+        m_out = out;
+    }
+
+    /**
+     * Creates a new DeadlockPrintStream wrapped around another PrintStream.
+     *
+     * @param out The PrintStream which will be wrapped by this new stream.
+     * @param autoFlush Whether the output buffer should be automatically flushed or not. ill be passed to the parent stream.
+     * @param encoding The name of a supported character encoding. Will be passed to the parent stream.
+     *
+     * @throws UnsupportedEncodingException If the named encoding is not supported.
+     */
+    public DeadlockPrintStream( PrintStream out, boolean autoFlush, String encoding ) throws UnsupportedEncodingException
+    {
+        super( out, autoFlush, encoding );
         
         m_out = out;
     }

@@ -38,7 +38,11 @@
 
 #ifdef WIN32
  #include <winsock.h>
-
+ #ifdef WINIA
+  #include <limits.h>
+  /* Not defined in fcntl.h on Itanium */
+  #define _O_WTEXT        0x10000 /* file mode is UTF16 (translated) */
+ #endif /* WINIA */
 #else /* UNIX */
  #include <sys/types.h>
  #include <time.h>
@@ -55,6 +59,7 @@
 #include <sys/timeb.h>
 
 #include "property.h"
+#include "wrapper_jvminfo.h"
 
 #ifndef WIN32
  /*
@@ -207,6 +212,8 @@ typedef unsigned long TICKS;
 #define CTRL_CODE_QUEUE_SIZE 26 /* Can enqueue one less than this count at any time. */
 #endif
 
+#define ENCODING_BUFFER_SIZE    32                                              /* ex: x-windows-iso2022jp */
+
 #define WRAPPER_JAVAIO_BUFFER_SIZE_SYSTEM_DEFAULT 0
 #define WRAPPER_JAVAIO_BUFFER_SIZE_MIN 1024
 #define WRAPPER_JAVAIO_BUFFER_SIZE_MAX (10 * 1024 * 1024)
@@ -238,7 +245,6 @@ struct WrapperConfig {
     int     javaArgValueCount;      /* Number of the arguments getting passed over to the java application */
 
     TCHAR   *initialPath;           /* What the working directory was when the Wrapper process was first launched. */
-    TCHAR   *language;              /* The language */
     int     backendType;            /* The type of the backend that the Wrapper and Java use to communicate. */
     int     configured;             /* TRUE if loadConfiguration has been called. */
     int     useSystemTime;          /* TRUE if the wrapper should use the system clock for timing, FALSE if a tick counter should be used. */
@@ -263,6 +269,12 @@ struct WrapperConfig {
     TCHAR   *configFile;            /* Name of the configuration file */
     int     commandLogLevel;        /* The log level to use when logging the java command. */
     int     printJVMVersion;        /* tells the Wrapper to create a temp JVM to query the version, before starting the java application */
+    JavaVersion *javaVersion;       /* Java version used for the current or next JVM instance to be launched. */
+    JavaVersion *javaVersionMin;    /* The minimum version of Java required for the Wrapper to launch a JVM. */
+    JavaVersion *javaVersionMax;    /* The maximum version of Java required for the Wrapper to launch a JVM. */
+    int     jvmMaker;               /* JVM implementation (Oracle, IBM, etc.) used for the current or next JVM instance to be launched. */
+    int     jvmDefaultLogLevel;     /* The default log level used for JVM outputs. */
+    int     jvmSource;              /* The source used for JVM outputs. */
 #ifdef WIN32
     TCHAR   *jvmVersionCommand;     /* Command used to launch the JVM and request its version */
     TCHAR   *jvmCommand;            /* Command used to launch the JVM */
@@ -362,6 +374,7 @@ struct WrapperConfig {
     int     restartReloadConf;      /* TRUE if the configuration should be reloaded before a JVM restart. */
     int     isRestartDisabled;      /* TRUE if restarts should be disabled. */
     int     isAutoRestartDisabled;  /* TRUE if automatic restarts should be disabled. */
+    int     runWithoutJVM;          /* TRUE if the Wrapper should run without launching a JVM (used for testing). */
     int     requestThreadDumpOnFailedJVMExit; /* TRUE if the JVM should be asked to dump its state when it fails to halt on request. */
     int     requestThreadDumpOnFailedJVMExitDelay; /* Number of seconds to wait after the thread dump before killing the JVM. */
     TICKS   jvmLaunchTicks;         /* The tick count at which the previous or current JVM was launched. */
@@ -423,7 +436,7 @@ struct WrapperConfig {
     int     ntServicePasswordPromptMask; /* If true then the password will be masked as it is input. */
     int     ntServiceInteractive;   /* Should the service be allowed to interact with the desktop? */
     int     ntHideJVMConsole;       /* Should the JVMs Console window be hidden when run as a service.  True by default but GUIs will not be visible for JVMs prior to 1.4.0. */
-    int     ntHideWrapperConsole;   /* Should the Wrapper Console window be hidden when run as a service. */
+    int     ntShowWrapperConsole;   /* Should the Wrapper Console window be shown when run as a service/wrapperw. */
     HINSTANCE wrapperHInstance;     /* The HINSTANCE of the Wrapper process. */
     int     wrapperConsoleHide;     /* True if the Wrapper Console window should be hidden. */
     HWND    wrapperConsoleHWND;     /* The HWND of the Wrapper's console if it was located. */
@@ -658,6 +671,14 @@ extern int initializeTimer();
 extern void disposeTimer();
 
 extern int showHostIds(int logLevel);
+#ifdef WIN32
+/**
+ * Returns TRUE if the Wrapper process is associated with a console or if one
+ *  will be allocated a later stage. This function should be called after the
+ *  configuration file has been read.
+ */
+int wrapperProcessHasVisibleConsole();
+#endif
 extern void wrapperLoadHostName();
 
 /**
@@ -687,6 +708,8 @@ extern void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, i
 
 extern void wrapperAddDefaultProperties();
 
+extern int getOriginalWorkingDir();
+
 extern int wrapperLoadConfigurationProperties(int preload);
 
 extern void wrapperGetCurrentTime(struct timeb *timeBuffer);
@@ -709,7 +732,7 @@ extern int wrapperBuildJavaClasspath(TCHAR **classpath);
  * length is the number of strings in the above array.
  */
 extern int wrapperBuildJavaCommandArray(TCHAR ***strings, int *length, int addQuotes, const TCHAR *classpath);
-extern void wrapperFreeJavaCommandArray(TCHAR **strings, int length);
+extern void wrapperFreeStringArray(TCHAR **strings, int length);
 
 extern int wrapperInitialize();
 extern void wrapperDispose();
@@ -748,6 +771,13 @@ extern int wrapperParseArguments(int argc, TCHAR **argv);
 extern void wrapperJVMProcessExited(TICKS nowTicks, int exitCode);
 
 /**
+ * Comfirm that the Java version is in the range in which the Wrapper is allowed to run.
+ *
+ * @return TRUE if the Java version is ok, FALSE otherwise.
+ */
+extern int wrapperConfirmJavaVersion();
+
+/**
  * Read and process any output from the child JVM Process.
  *
  * When maxTimeMS is non-zero this function will only be allowed to run for that maximum
@@ -763,6 +793,11 @@ extern void wrapperJVMProcessExited(TICKS nowTicks, int exitCode);
  * @return TRUE if the calling code should call this function again as soon as possible.
  */
 extern int wrapperReadChildOutput(int maxTimeMS);
+
+/**
+ * Read the output returned by the 'java -version' command.
+ */
+extern void wrapperReadJavaVersionOutput();
 
 /**
  * Changes the current Wrapper state.
@@ -870,11 +905,23 @@ extern int wrapperGetProcessStatus(TICKS nowTicks, int sigChild);
 extern void wrapperPauseBeforeExecute();
 
 /**
+ * Create a child process to print the Java version running the command:
+ *    /path/to/java -version
+ *  After printing the java version, the process is terminated.
+ * 
+ * In case the JVM is slow to start, it will time out after
+ * the number of seconds set in "wrapper.java.version.timeout".
+ * 
+ * Note: before the timeout is reached, the user can ctrl+c to stop the Wrapper.
+ */
+extern int wrapperLaunchJavaVersion();
+
+/**
  * Launches a JVM process and store it internally
  *
  * @return TRUE if there were any problems.  When this happens the Wrapper will not try to restart.
  */
-extern int wrapperExecute();
+extern int wrapperLaunchJavaApp();
 
 /**
  * Returns a tick count that can be used in combination with the
@@ -1037,6 +1084,20 @@ extern void wrapperBuildKey();
 extern void wrapperRequestDumpJVMState();
 
 /**
+ * Build the command line used to get the Java version.
+ *
+ * @return TRUE if there were any problems.
+ */
+extern int wrapperBuildJavaVersionCommand();
+
+/**
+ * Builds up the java command section of the Java command line.
+ *
+ * @return The final index into the strings array, or -1 if there were any problems.
+ */
+extern int wrapperBuildJavaCommandArrayJavaCommand(TCHAR **strings, int addQuotes, int detectDebugJVM, int index);
+
+/**
  * Build the java command line.
  *
  * @return TRUE if there were any problems.
@@ -1130,6 +1191,10 @@ extern void wrapperStopPendingSignaled(int waitHint);
 extern void wrapperStoppedSignaled();
 extern void wrapperStartPendingSignaled(int waitHint);
 extern void wrapperStartedSignaled();
+
+#ifdef WIN32
+int wrapperCheckPPid(DWORD pid, DWORD ppid);
+#endif
 
 /******************************************************************************
  * Inner types and methods for loading Wrapper configuration.

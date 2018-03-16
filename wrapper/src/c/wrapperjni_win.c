@@ -352,13 +352,13 @@ int setUserGroups(JNIEnv *env, jclass wrapperUserClass, jobject wrapperUser, HAN
                                 if (LookupAccountSid(NULL, tokenGroups->Groups[i].Sid, groupName, &groupNameSize, domainName, &domainNameSize, &sidType)) {
                                     /* Create the arguments to the constructor as java objects */
                                     /* SID byte array */
-                                    jstringSID = JNU_NewStringNative(env, sidText);
+                                    jstringSID = JNU_NewStringFromNativeW(env, sidText);
                                     if (jstringSID) {
                                         /* GroupName byte array */
-                                        jstringGroupName = JNU_NewStringNative(env, groupName);
+                                        jstringGroupName = JNU_NewStringFromNativeW(env, groupName);
                                         if (jstringGroupName) {
                                             /* DomainName byte array */
-                                            jstringDomainName = JNU_NewStringNative(env, domainName);
+                                            jstringDomainName = JNU_NewStringFromNativeW(env, domainName);
                                             if (jstringDomainName) {
                                                 /* Now actually add the group to the user. */
                                                 (*env)->CallVoidMethod(env, wrapperUser, addGroup, jstringSID, jstringGroupName, jstringDomainName);
@@ -471,13 +471,13 @@ jobject createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean group
 
                                             /* Create the arguments to the constructor as java objects */
                                             /* SID */
-                                            jstringSID = JNU_NewStringNative(env, sidText);
+                                            jstringSID = JNU_NewStringFromNativeW(env, sidText);
                                             if (jstringSID) {
                                                 /* UserName */
-                                                jstringUserName = JNU_NewStringNative(env, userName);
+                                                jstringUserName = JNU_NewStringFromNativeW(env, userName);
                                                 if (jstringUserName) {
                                                     /* DomainName */
-                                                    jstringDomainName = JNU_NewStringNative(env, domainName);
+                                                    jstringDomainName = JNU_NewStringFromNativeW(env, domainName);
                                                     if (jstringDomainName) {
                                                         /* Now create the new wrapperUser using the constructor arguments collected above. */
                                                         wrapperUser = (*env)->NewObject(env, wrapperUserClass, constructor, jstringSID, jstringUserName, jstringDomainName, loginTime);
@@ -743,7 +743,7 @@ JNIEXPORT void JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetConsoleTitle(JNIEnv *env, jclass clazz, jstring jstringTitle) {
     TCHAR *title;
 
-    title = JNU_GetStringNativeChars(env, jstringTitle);
+    title = JNU_GetNativeWFromString(env, jstringTitle);
     if (!title) {
         throwOutOfMemoryError(env, TEXT("NSCT1"));
     } else {
@@ -962,9 +962,9 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeListServices(JNIEnv *env, j
                     serviceArray = (*env)->NewObjectArray(env, servicesReturned, serviceClass, NULL);
 
                     for (i = 0; i < servicesReturned; i++) {
-                        jStringName = JNU_NewStringNative(env, services[i].lpServiceName);
+                        jStringName = JNU_NewStringFromNativeW(env, services[i].lpServiceName);
                         if (jStringName) {
-                            jStringDisplayName = JNU_NewStringNative(env, services[i].lpDisplayName);
+                            jStringDisplayName = JNU_NewStringFromNativeW(env, services[i].lpDisplayName);
                             if (jStringDisplayName) {
                                 state = services[i].ServiceStatus.dwCurrentState;
 
@@ -1039,7 +1039,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIE
     DWORD state;
     DWORD exitCode;
 
-    if ((serviceName = JNU_GetStringNativeChars(env, jStringServiceName))) {
+    if ((serviceName = JNU_GetNativeWFromString(env, jStringServiceName))) {
         hSCManager = OpenSCManager(NULL, NULL, GENERIC_READ);
         if (hSCManager) {
             /* Decide on the access needed when opening the service. */
@@ -1132,7 +1132,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIE
                                                 threwError = TRUE;
                                             } else {
                                                 /* Convert the display name to a jstring. */
-                                                jStringDisplayName = JNU_NewStringNative(env, displayName);
+                                                jStringDisplayName = JNU_NewStringFromNativeW(env, displayName);
                                                 if (jStringDisplayName) {
                                                     state = serviceStatus.dwCurrentState;
 

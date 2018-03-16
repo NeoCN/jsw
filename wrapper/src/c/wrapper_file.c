@@ -93,6 +93,36 @@ int wrapperGetUNCFilePath(const TCHAR *path, int advice) {
 }
 #endif
 
+const TCHAR* getFileName(const TCHAR* path) {
+    const TCHAR* ptr1;
+#ifdef WIN32
+    const TCHAR* ptr2;
+#endif
+    
+    if (path) {
+        ptr1 = _tcsrchr(path, TEXT('/'));
+#ifdef WIN32
+        ptr2 = _tcsrchr(path, TEXT('\\'));
+        if (!ptr1 && !ptr2) {
+            return path;
+        } else if (!ptr1) {
+            return ptr2 + 1;
+        } else if (!ptr2) {
+            return ptr1 + 1;
+        } else if (&ptr2 > &ptr1) {
+            return ptr2 + 1;
+#else
+        if (!ptr1) {
+            return path;
+#endif
+        } else  {
+            return ptr1 + 1;
+        }
+    }
+    return NULL;
+}
+
+
 /**
  * Read configuration file.
  */
@@ -102,12 +132,10 @@ int configFileReader_Read(ConfigFileReader *reader,
                           int depth,
                           const TCHAR *parentFilename,
                           int parentLineNumber,
-                          const TCHAR *argCommand,
                           const TCHAR *originalWorkingDir,
                           PHashMap warnedVarMap,
                           int logWarnings,
-                          int logWarningLogLevel,
-                          int isDebugging)
+                          int logWarningLogLevel)
 {
     FILE *stream;
     char bufferMB[MAX_PROPERTY_NAME_VALUE_LENGTH];
@@ -458,7 +486,7 @@ int configFileReader_Read(ConfigFileReader *reader,
 #endif
                         if (absoluteBuffer) {
                             if (depth < MAX_INCLUDE_DEPTH) {
-                                readResult = configFileReader_Read(reader, absoluteBuffer, includeRequired, depth + 1, filename, lineNumber, argCommand, originalWorkingDir, warnedVarMap, logWarnings, logWarningLogLevel, isDebugging);
+                                readResult = configFileReader_Read(reader, absoluteBuffer, includeRequired, depth + 1, filename, lineNumber, originalWorkingDir, warnedVarMap, logWarnings, logWarningLogLevel);
                                 if (readResult == CONFIG_FILE_READER_SUCCESS) {
                                     /* Ok continue. */
                                 } else if ((readResult == CONFIG_FILE_READER_FAIL) || (readResult == CONFIG_FILE_READER_HARD_FAIL)) {
@@ -571,12 +599,10 @@ int configFileReader_Read(ConfigFileReader *reader,
  * @param enableIncludes If TRUE then includes will be supported.
  * @param preload TRUE if this is being called in the preload step meaning that all errors
  *                should be suppressed.
- * @param argCommand Argument passed to the binary.
  * @param originalWorkingDir Working directory of the binary at the moment it was launched.
  * @param warnedVarMap Map of undefined environment variables for which the user was warned.
  * @param logWarnings Flag that controls whether or not warnings will be logged.
  * @param logWarningLogLevel Log level at which any log warnings will be logged.
- * @param isDebugging Flag that controls whether or not debug output will be logged.
  *
  * @return CONFIG_FILE_READER_SUCCESS if the file was read successfully,
  *         CONFIG_FILE_READER_FAIL if there were any problems at all, or
@@ -588,12 +614,10 @@ int configFileReader(const TCHAR *filename,
                      void *callbackParam,
                      int enableIncludes,
                      int preload,
-                     const TCHAR *argCommand,
                      const TCHAR *originalWorkingDir,
                      PHashMap warnedVarMap,
                      int logWarnings,
-                     int logWarningLogLevel,
-                     int isDebugging) {
+                     int logWarningLogLevel) {
     ConfigFileReader reader;
     
     /* Initialize the reader. */
@@ -605,7 +629,5 @@ int configFileReader(const TCHAR *filename,
     reader.exitOnOverwrite = FALSE;
     reader.logLevelOnOverwrite = LEVEL_NONE; /* on preload, don't log anything. */
     
-    return configFileReader_Read(&reader, filename, fileRequired, 0, NULL, 0, argCommand, originalWorkingDir, warnedVarMap, logWarnings, logWarningLogLevel, isDebugging);
+    return configFileReader_Read(&reader, filename, fileRequired, 0, NULL, 0, originalWorkingDir, warnedVarMap, logWarnings, logWarningLogLevel);
 }
-
-
