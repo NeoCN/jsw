@@ -68,8 +68,6 @@ extern void throwJNIError(JNIEnv *env, const TCHAR *message);
 extern const char utf8ClassJavaLangString[];
 extern const char utf8MethodInit[];
 extern const char utf8Sig_BrV[];
-extern const char utf8Sigr_B[];
-extern const char utf8MethodGetBytes[];
 extern const char utf8ClassJavaLangOutOfMemoryError[];
 
 /* Symbols which need to be defined. */
@@ -91,10 +89,6 @@ extern char *utf8SigIIStringStringStringStringrV;
 extern char *utf8SigIStringrV;
 #endif
 
-#ifdef WIN32
-#else
-extern jstring JNU_NewStringFromNativeChar(JNIEnv *env, const char *str);
-#endif
 
 extern int initCommon();
 
@@ -107,6 +101,20 @@ extern int wrapperReleaseControlEventQueue();
 extern void wrapperJNIHandleSignal(int signal);
 extern void throwThrowable(JNIEnv *env, char *throwableClassName, const TCHAR *lpszFmt, ...);
 
+#ifdef WIN32
+extern void JNU_SetByteArrayRegion(JNIEnv *env, jbyteArray *jarray, jsize start, jsize len, const TCHAR *buffer);
+#else
+/**
+ * Create a jstring from a MultiBytes Char string.  The jstring must be freed up by caller.
+ *
+ * @param env The current JNIEnv.
+ * @param str The MultiBytes string to convert.
+ *
+ * @return The new jstring or NULL if there were any exceptions thrown.
+ */
+extern jstring JNU_NewStringFromNativeMB(JNIEnv *env, const char *str);
+#endif
+
 /**
  * Create a jstring from a Wide Char string.  The jstring must be freed up by caller.
  *
@@ -115,11 +123,17 @@ extern void throwThrowable(JNIEnv *env, char *throwableClassName, const TCHAR *l
  *
  * @return The new jstring or NULL if there were any exceptions thrown.
  */
-extern jstring JNU_NewStringNative(JNIEnv *env, const TCHAR *strW);
+extern jstring JNU_NewStringFromNativeW(JNIEnv *env, const TCHAR *strW);
 
-extern TCHAR* JNU_GetStringNativeChars(JNIEnv *env, jstring jstr);
-
-extern void JNU_SetByteArrayRegion(JNIEnv *env, jbyteArray *jarray, jsize start, jsize len, const TCHAR *buffer);
+/**
+ * Create a jstring from a Wide Char string.  The jstring must be freed up by caller.
+ *
+ * @param env The current JNIEnv.
+ * @param strW The Wide string to convert.
+ *
+ * @return The new jstring or NULL if there were any exceptions thrown.
+ */
+extern TCHAR* JNU_GetNativeWFromString(JNIEnv *env, jstring jstr);
 
 /**
  * Looks up a System property and sets its value in the propertyValue parameter.

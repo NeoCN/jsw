@@ -59,6 +59,7 @@ typedef wchar_t _TUCHAR;
 
 extern int _tprintf(const wchar_t *fmt,...) ;
 extern int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncoding, char *interumEncoding, wchar_t **outputBuffer, int localizeErrorMessage);
+extern int converterMBToWide(const char *multiByteChars, const char *multiByteEncoding, wchar_t **outputBufferW, int localizeErrorMessage);
 
 #define _taccess      _waccess
 #define _tstoi64      _wtoi64
@@ -463,7 +464,52 @@ extern int multiByteToWideChar(const char *multiByteChars, int encoding, TCHAR *
  #define FALSE 0
 #endif
 
-extern TCHAR* toLower(TCHAR* value);
+#ifndef WIN32
+ #ifdef HPUX
+  #define MB_UTF8   "utf8"
+ #else
+  #define MB_UTF8   "UTF-8"
+ #endif
+ #define __UTF8     MB_UTF8
+#else
+ #define __UTF8     CP_UTF8
+#endif
+
+extern TCHAR* toLower(const TCHAR* value);
+
+#ifndef WIN32
+/**
+ * Get the encoding of the current locale.
+ *
+ * @param buffer output buffer
+ *
+ * @return the buffer or NULL if the encoding could not be retrieved.
+ */
+TCHAR* getCurrentLocaleEncoding(TCHAR* buffer);
+#endif
+
+#ifndef WIN32
+ #define ICONV_ENCODING_SUPPORTED     0
+ #define ICONV_ENCODING_KNOWN_ISSUE   1
+ #define ICONV_ENCODING_NOT_SUPPORTED 2
+
+/**
+ * Check if the given encoding is supported by the iconv library.
+ *
+ * @return ICONV_ENCODING_SUPPORTED if the encoding is supported,
+ *         ICONV_ENCODING_KNOWN_ISSUE if the encoding exist on iconv but fails to convert some characters.
+ *         ICONV_ENCODING_NOT_SUPPORTED if the encoding is not supported.
+ */
+int getIconvEncodingMBSupport(const char* encodingMB);
+/**
+ * Check if the given encoding is supported by the iconv library.
+ *
+ * @return ICONV_ENCODING_SUPPORTED if the encoding is supported,
+ *         ICONV_ENCODING_KNOWN_ISSUE if the encoding exist on iconv but fails to convert some characters.
+ *         ICONV_ENCODING_NOT_SUPPORTED if the encoding is not supported.
+ */
+int getIconvEncodingSupport(const TCHAR* encoding);
+#endif
 
 #ifdef _LIBICONV_VERSION
  #ifdef AIX /* the AIX version of iconv.h doesn't have _LIBICONV_VERSION (need to check the other platforms) */
@@ -512,6 +558,66 @@ extern int loadIconvLibrary();
 extern int getEncodingByName(char* encodingMB, int *encoding);
 #else
 extern int getEncodingByName(char* encodingMB, char** encoding);
+#endif
+
+#ifdef WIN32
+/**
+ * Converts a Wide string into a specific multibyte encoded string.
+ *
+ * @prarm wideChars The Wide string to be converted.
+ * @param outputBufferMB Returns a newly malloced buffer containing the target MB chars.
+ *                       Will contain an error message if the function returns TRUE.
+ *                       If this is NULL then there was an out of memory problem.
+ *                       Caller must free this up.
+ * @param outputEncoding Output encoding to use.
+ *
+ * @return TRUE if there were any problems.  False otherwise.
+ */
+extern int converterWideToMB(const TCHAR *wideChars, char **outputBufferMB, int outputEncoding);
+
+/**
+ * Converts a native multibyte string into a specific multibyte encoded string.
+ *
+ * @param multiByteChars The original multi-byte chars.
+ * @param inputEncoding The multi-byte encoding.
+ * @param outputBufferMB Returns a newly malloced buffer containing the target MB chars.
+ *                       Will contain an error message if the function returns TRUE.
+ *                       If this is NULL then there was an out of memory problem.
+ *                       Caller must free this up.
+ * @param outputEncoding Output encoding to use.
+ *
+ * @return -1 if there were any problems.  buffer size (>=0) if everything was Ok.
+ */
+extern int converterMBToMB(const char *multiByteChars, int inputEncoding, char **outputBufferMB, int outputEncoding);
+#else 
+/**
+ * Converts a native multibyte string into a specific multibyte encoded string.
+ *
+ * @param multiByteChars The original multi-byte chars.
+ * @param multiByteEncoding The multi-byte encoding.
+ * @param outputBufferMB Returns a newly malloced buffer containing the target MB chars.
+ *                       Will contain an error message if the function returns TRUE.
+ *                       If this is NULL then there was an out of memory problem.
+ *                       Caller must free this up.
+ * @param outputEncoding Output encoding to use.
+ *
+ * @return -1 if there were any problems.  buffer size (>=0) if everything was Ok.
+ */
+extern int converterMBToMB(const char *multiByteChars, const char *multiByteEncoding, char **outputBufferMB, const char *outputEncoding);
+
+/**
+ * Converts a Wide string into a specific multibyte encoded string.
+ *
+ * @prarm wideChars The Wide string to be converted.
+ * @param outputBufferMB Returns a newly malloced buffer containing the target MB chars.
+ *                       Will contain an error message if the function returns TRUE.
+ *                       If this is NULL then there was an out of memory problem.
+ *                       Caller must free this up.
+ * @param outputEncoding Output encoding to use.
+ *
+ * @return TRUE if there were any problems.  False otherwise.
+ */
+extern int converterWideToMB(const TCHAR *wideChars, char **outputBufferMB, const char *outputEncoding);
 #endif
 
 /**

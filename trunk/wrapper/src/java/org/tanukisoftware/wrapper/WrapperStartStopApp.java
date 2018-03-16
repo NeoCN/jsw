@@ -29,6 +29,7 @@ package org.tanukisoftware.wrapper;
  * included in all copies or substantial portions of the Software.
  */
 
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -212,9 +213,31 @@ public class WrapperStartStopApp
         Class wmClass = WrapperManager.class;
         
         // Set up some log channels
-        m_outInfo = new WrapperPrintStream( System.out, "WrapperStartStopApp: " );
-        m_outError = new WrapperPrintStream( System.out, "WrapperStartStopApp Error: " );
-        m_outDebug = new WrapperPrintStream( System.out, "WrapperStartStopApp Debug: " );
+        boolean streamsSet = false;
+        String sunStdoutEncoding = System.getProperty( "sun.stdout.encoding" );
+        if ( ( sunStdoutEncoding != null ) && ( sunStdoutEncoding != System.getProperty( "file.encoding" ) ) ) {
+            /* We need to create the stream using the same encoding as the one used for stdout, else this will lead to encoding issues. */
+            try
+            {
+                m_outInfo = new WrapperPrintStream( System.out, false, sunStdoutEncoding, "WrapperStartStopApp: " );
+                m_outError = new WrapperPrintStream( System.out, false, sunStdoutEncoding, "WrapperStartStopApp Error: " );
+                m_outDebug = new WrapperPrintStream( System.out, false, sunStdoutEncoding, "WrapperStartStopApp Debug: " );
+                streamsSet = true;
+            }
+            catch ( UnsupportedEncodingException e )
+            {
+                /* This should not happen when using the localization properties, because we always make sure the encoding exists before passing it to the JVM.
+                 *  Can still happen when passing the encoding directly through the java additionals parameters.
+                 *  If any of the above streams failed, we want to fall back to streams that use the same encoding. */
+                System.out.println( WrapperManager.getRes().getString( "Failed to set the encoding '{0}' when creating a WrapperPrintStream.\n Make sure the value of sun.stdout.encoding is correct.", sunStdoutEncoding ) );
+            }
+        }
+        if ( !streamsSet )
+        {
+            m_outInfo = new WrapperPrintStream( System.out, "WrapperStartStopApp: " );
+            m_outError = new WrapperPrintStream( System.out, "WrapperStartStopApp Error: " );
+            m_outDebug = new WrapperPrintStream( System.out, "WrapperStartStopApp Debug: " );
+        }
         
         // Do all of our initialization here so the modified array lists which are passed
         //  to the WrapperListener.start method can remain unchanged.  Ideally we would

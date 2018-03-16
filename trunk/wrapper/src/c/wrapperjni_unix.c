@@ -288,16 +288,16 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
 
             /* Create the arguments to the constructor as java objects */
             /* User */
-            jstringUser = JNU_NewStringFromNativeChar(env, pw->pw_name);
+            jstringUser = JNU_NewStringFromNativeMB(env, pw->pw_name);
             if (jstringUser) {
                 /* Real Name */
-                jstringRealName = JNU_NewStringFromNativeChar(env, pw->pw_gecos);
+                jstringRealName = JNU_NewStringFromNativeMB(env, pw->pw_gecos);
                 if (jstringRealName) {
                     /* Home */
-                    jstringHome = JNU_NewStringFromNativeChar(env, pw->pw_dir);
+                    jstringHome = JNU_NewStringFromNativeMB(env, pw->pw_dir);
                     if (jstringHome) {
                         /* Shell */
-                        jstringShell = JNU_NewStringFromNativeChar(env, pw->pw_shell);
+                        jstringShell = JNU_NewStringFromNativeMB(env, pw->pw_shell);
                         if (jstringShell) {
                             /* Now create the new wrapperUser using the constructor arguments collected above. */
                             wrapperUser = (*env)->NewObject(env, wrapperUserClass, constructor,
@@ -311,7 +311,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
                                         ggid = aGroup->gr_gid;
 
                                         /* Group name */
-                                        jstringGroupName = JNU_NewStringFromNativeChar(env, aGroup->gr_name);
+                                        jstringGroupName = JNU_NewStringFromNativeMB(env, aGroup->gr_name);
                                         if (jstringGroupName) {
                                             /* Add the group to the user. */
                                             (*env)->CallVoidMethod(env, wrapperUser, setGroup,
@@ -344,7 +344,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
                                             ggid = aGroup->gr_gid;
 
                                             /* Group name */
-                                            jstringGroupName = JNU_NewStringFromNativeChar(env, aGroup->gr_name);
+                                            jstringGroupName = JNU_NewStringFromNativeMB(env, aGroup->gr_name);
                                             if (jstringGroupName) {
                                                 /* Add the group to the user. */
                                                 (*env)->CallVoidMethod(env, wrapperUser, addGroup,

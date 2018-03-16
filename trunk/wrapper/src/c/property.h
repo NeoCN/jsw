@@ -54,6 +54,8 @@
 #define ENV_SOURCE_REG_ACCOUNT 16
 #endif
 
+#define PROPERTIES_DUMP_FORMAT_DEFAULT TEXT("SFNV")
+
 typedef struct EnvSrc EnvSrc;
 struct EnvSrc {
     int     source;                     /* Source of the variable. */
@@ -66,12 +68,15 @@ typedef struct Property Property;
 struct Property {
     TCHAR *name;                        /* The name of the property. */
     TCHAR *value;                       /* The value of the property. */
+    TCHAR *filePath;                    /* The file in which the property was declared. NULL is not defined in a conf file. */
+    int lineNumber;                     /* The line number at which the property was declared. 0 if not defined in a conf file. */
+    int definitions;                    /* Counter for the number of time the property was defined. */
     int finalValue;                     /* TRUE if the Property can not be changed. */
     int quotable;                       /* TRUE if quotes can be optionally added around the value. */
     int internal;                       /* TRUE if the Property is internal. */
+    int isGenerated;                    /* TRUE if the property did not exist in the configuration and was generated using a default value. */
     Property *next;                     /* Pointer to the next Property in a linked list */
     Property *previous;                 /* Pointer to the next Property in a linked list */
-    int isGenerated;                    /* TRUE if the property did not exist in the configuration and was generated using a default value. */
 };
 
 typedef struct Properties Properties;
@@ -83,6 +88,7 @@ struct Properties {
     int logWarnings;                    /* Flag that controls whether or not warnings will be logged. */
     int logWarningLogLevel;             /* Log level at which any log warnings will be logged. */
     int dumpLogLevel;                   /* Log level at which properties will be dumped. */
+    TCHAR* dumpFormat;                  /* Format used when dumping properties. */
     Property *first;                    /* Pointer to the first property. */
     Property *last;                     /* Pointer to the last property.  */
     PHashMap warnedVarMap;              /* Map of undefined environment variables for which the user was warned. */
@@ -145,18 +151,17 @@ extern TCHAR* generateRandValue(const TCHAR* format);
  * @param properties Properties structure to load into.
  * @param filename File to load the properties from.
  * @param preload TRUE if this is a preload call that should have supressed error output.
- * @param argCommand Argument passed to the binary.
  * @param originalWorkingDir Working directory of the binary at the moment it was launched.
- * @param isDebugging Flag that controls whether or not debug output will be logged.
+ * @param fileRequired TRUE if the file specified by filename is required, FALSE if a missing
+ *                     file will silently fail.
  *
  * @return TRUE if there were any problems, FALSE if successful.
  */
 extern int loadProperties(Properties *properties,
                           const TCHAR* filename,
                           int preload,
-                          const TCHAR *argCommand,
                           const TCHAR *originalWorkingDir,
-                          int isDebugging);
+                          int fileRequired);
 
 /**
  * Create a Properties structure.  Must call disposeProperties to free up
@@ -179,8 +184,10 @@ extern void disposeEnvironment();
 /**
  * Remove a single Property from a Properties.  All associated memory is
  *  freed up.
+ *
+ * @return TRUE if the property was found, FALSE otherwise.
  */
-extern void removeProperty(Properties *properties, const TCHAR *propertyName);
+extern int removeProperty(Properties *properties, const TCHAR *propertyName);
 
 /**
  * Used to set a NULL terminated list of property names whose values should be
@@ -195,7 +202,7 @@ extern void setEscapedProperties(const TCHAR **propertyNames);
 
 /**
  * Returns true if the specified property matches one of the property names
- *  previosly set in a call to setEscapableProperties()
+ *  previously set in a call to setEscapedProperties()
  *
  * @param propertyName Property name to test.
  *
@@ -214,7 +221,7 @@ extern int isEscapedProperty(const TCHAR *propertyName);
  * @param finalValue TRUE if the property should be set as static.
  * @param quotable TRUE if the property could contain quotes.
  * @param escapable TRUE if the propertyValue can be escaped if its propertyName
- *                  is in the list set with setEscapableProperties().
+ *                  is in the list set with setEscapedProperties().
  * @param internal TRUE if the property is a Wrapper internal property.
  *
  * @return The newly created Property, or NULL if there was a reported error.
@@ -291,6 +298,11 @@ extern void dumpProperties(Properties *properties);
  * Level at which properties will be dumped.
  */
 extern void setPropertiesDumpLogLevel(Properties *properties, int logLevel);
+
+/**
+ * Format used when dumping properties.
+ */
+extern void setPropertiesDumpFormat(Properties *properties, const TCHAR* format);
 
 /**
  * Set to TRUE if warnings about property values should be logged.

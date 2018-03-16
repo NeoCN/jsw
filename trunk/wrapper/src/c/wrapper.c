@@ -55,6 +55,8 @@
 #include "wrapper.h"
 #include "logger.h"
 #include "logger_file.h"
+#include "wrapper_jvminfo.h"
+#include "wrapper_encoding.h"
 #include "wrapper_file.h"
 #ifndef WIN32
  #include "wrapper_ulimit.h"
@@ -66,6 +68,7 @@
  #include <shlwapi.h>
  #include <windows.h>
  #include <io.h>
+ #include <tlhelp32.h>
 
 /* MS Visual Studio 8 went and deprecated the POXIX names for functions.
  *  Fixing them all would be a big headache for UNIX versions. */
@@ -636,6 +639,8 @@ void wrapperLoadLoggingProperties(int preload) {
     setLogPropertyWarningLogLevel(properties, getLogLevelForName(getStringProperty(properties, TEXT("wrapper.property_warning.loglevel"), TEXT("WARN"))));
     
     setPropertiesDumpLogLevel(properties, getLogLevelForName(getStringProperty(properties, TEXT("wrapper.properties.dump.loglevel"), TEXT("DEBUG"))));
+    
+    setPropertiesDumpFormat(properties, getStringProperty(properties, TEXT("wrapper.properties.dump.format"), PROPERTIES_DUMP_FORMAT_DEFAULT));
 
     setLogWarningThreshold(getIntProperty(properties, TEXT("wrapper.log.warning.threshold"), 0));
     wrapperData->logLFDelayThreshold = propIntMax(propIntMin(getIntProperty(properties, TEXT("wrapper.log.lf_delay.threshold"), 500), 3600000), 0);
@@ -687,7 +692,7 @@ void wrapperLoadLoggingProperties(int preload) {
     /* Get the close timeout. */
     wrapperData->logfileCloseTimeout = propIntMax(propIntMin(getIntProperty(properties, TEXT("wrapper.logfile.close.timeout"), getIntProperty(properties, TEXT("wrapper.logfile.inactivity.timeout"), 1)), 3600), -1);
     setLogfileAutoClose(wrapperData->logfileCloseTimeout == 0);
-    
+
     /* Get the flush timeout. */
     wrapperData->logfileFlushTimeout = propIntMax(propIntMin(getIntProperty(properties, TEXT("wrapper.logfile.flush.timeout"), defaultFlushTimeOut), 3600), 0);
     setLogfileAutoFlush(wrapperData->logfileFlushTimeout == 0);
@@ -784,7 +789,8 @@ void wrapperLoadLoggingProperties(int preload) {
  * @param logLevelOnOverwriteProperties : use this parameter to keep the value of the last #properties.on_overwrite.loglevel found during the preload phase
  * @param exitOnOverwriteProperties     : use this parameter to keep the value of the last #properties.on_overwrite.exit found during the preload phase
  *
- * @return TRUE if something failed.
+ * @return TRUE if there was a FATAL error which will not be reported again during the second load. FALSE otherwise.
+ *         It is prefered to return FALSE and log the localized error on the second load if we know it will reappear.
  */
 int wrapperPreLoadConfigurationProperties(int *logLevelOnOverwriteProperties, int *exitOnOverwriteProperties) {
     int returnVal = FALSE;
@@ -822,6 +828,55 @@ int wrapperPreLoadConfigurationProperties(int *logLevelOnOverwriteProperties, in
 }
 
 /**
+ * Retrieve the original working directory and store it in wrapperData->originalWorkingDir.
+ *
+ * Return TRUE if there were any problems.
+ */
+int getOriginalWorkingDir() {
+#ifdef WIN32
+    int work;
+#endif
+
+    if (wrapperData->originalWorkingDir) {
+        free(wrapperData->originalWorkingDir);
+    }
+#ifdef WIN32
+    /* Get buffer size, including '\0' */
+    work = GetFullPathName(TEXT("."), 0, NULL, NULL);
+    if (!work) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+            TEXT("Unable to resolve the original working directory: %s"), getLastErrorText());
+        return TRUE;
+    }
+    wrapperData->originalWorkingDir = malloc(sizeof(TCHAR) * work);
+    if (!wrapperData->originalWorkingDir) {
+        outOfMemory(TEXT("WLCP"), 3);
+        return TRUE;
+    }
+    if (!GetFullPathName(TEXT("."), work, wrapperData->originalWorkingDir, NULL)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+            TEXT("Unable to resolve the original working directory: %s"), getLastErrorText());
+        return TRUE;
+    }
+#else
+    /* The solaris implementation of realpath will return a relative path if a relative
+     *  path is provided.  We always need an absolute path here.  So build up one and
+     *  then use realpath to remove any .. or other relative references. */
+    wrapperData->originalWorkingDir = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
+    if (!wrapperData->originalWorkingDir) {
+        outOfMemory(TEXT("WLCP"), 4);
+        return TRUE;
+    }
+    if (_trealpathN(TEXT("."), wrapperData->originalWorkingDir, PATH_MAX + 1) == NULL) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+            TEXT("Unable to resolve the original working directory: %s"), getLastErrorText());
+        return TRUE;
+    }
+#endif
+    return FALSE;
+}
+
+/**
  * Load the configuration.
  *
  * @param preload TRUE if the configuration is being preloaded.
@@ -831,6 +886,7 @@ int wrapperPreLoadConfigurationProperties(int *logLevelOnOverwriteProperties, in
 int wrapperLoadConfigurationProperties(int preload) {
     static int logLevelOnOverwriteProperties = LEVEL_NONE;
     static int exitOnOverwriteProperties = FALSE;
+    static int preloadFailed = FALSE;
     int i;
     int firstCall;
 #ifdef WIN32
@@ -841,6 +897,11 @@ int wrapperLoadConfigurationProperties(int preload) {
 #endif
     const TCHAR* prop;
 
+    if (preloadFailed) {
+        /* The preload has failed with a FATAL error that will not be reported again on the second load. Exit. */
+        return TRUE;
+    }
+
     /* Unless this is the first call, we need to dispose the previous properties object. */
     if (properties) {
         firstCall = FALSE;
@@ -848,43 +909,10 @@ int wrapperLoadConfigurationProperties(int preload) {
         properties = NULL;
     } else {
         firstCall = TRUE;
-        if (wrapperData->originalWorkingDir) {
-            free(wrapperData->originalWorkingDir);
-        }
         /* This is the first time, so preserve the working directory. */
-#ifdef WIN32
-        /* Get buffer size, including '\0' */
-        work = GetFullPathName(TEXT("."), 0, NULL, NULL);
-        if (!work) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                TEXT("Unable to resolve the original working directory: %s"), getLastErrorText());
+        if (getOriginalWorkingDir()) {
             return TRUE;
         }
-        wrapperData->originalWorkingDir = malloc(sizeof(TCHAR) * work);
-        if (!wrapperData->originalWorkingDir) {
-            outOfMemory(TEXT("WLCP"), 3);
-            return TRUE;
-        }
-        if (!GetFullPathName(TEXT("."), work, wrapperData->originalWorkingDir, NULL)) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                TEXT("Unable to resolve the original working directory: %s"), getLastErrorText());
-            return TRUE;
-        }
-#else
-        /* The solaris implementation of realpath will return a relative path if a relative
-         *  path is provided.  We always need an absolute path here.  So build up one and
-         *  then use realpath to remove any .. or other relative references. */
-        wrapperData->originalWorkingDir = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
-        if (!wrapperData->originalWorkingDir) {
-            outOfMemory(TEXT("WLCP"), 4);
-            return TRUE;
-        }
-        if (_trealpathN(TEXT("."), wrapperData->originalWorkingDir, PATH_MAX + 1) == NULL) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                TEXT("Unable to resolve the original working directory: %s"), getLastErrorText());
-            return TRUE;
-        }
-#endif
         if (wrapperData->configFile) {
             free(wrapperData->configFile);
         }
@@ -962,7 +990,6 @@ int wrapperLoadConfigurationProperties(int preload) {
     Use properties->logLevelOnOverwrite to see the concerned properties */
     wrapperAddDefaultProperties();
 
-
     /* The argument prior to the argBase will be the configuration file, followed
      *  by 0 or more command line properties.  The command line properties need to be
      *  loaded first, followed by the configuration file. */
@@ -980,9 +1007,9 @@ int wrapperLoadConfigurationProperties(int preload) {
     /* Now load the configuration file.
      *  When this happens, the working directory MUST be set to the original working dir. */
 #ifdef WIN32
-    if (loadProperties(properties, wrapperData->configFile, preload, wrapperData->argCommand, wrapperData->originalWorkingDir, wrapperData->isDebugging)) {
+    if (loadProperties(properties, wrapperData->configFile, preload, wrapperData->originalWorkingDir, FALSE)) {
 #else
-    if (loadProperties(properties, wrapperData->configFile, (preload | wrapperData->daemonize), wrapperData->argCommand, wrapperData->originalWorkingDir, wrapperData->isDebugging)) {
+    if (loadProperties(properties, wrapperData->configFile, (preload | wrapperData->daemonize), wrapperData->originalWorkingDir, FALSE)) {
 #endif
         /* File not found. */
         /* If this was a default file name then we don't want to show this as
@@ -1079,7 +1106,11 @@ int wrapperLoadConfigurationProperties(int preload) {
         wrapperData->javaStatusFileUmask = getIntProperty(properties, TEXT("wrapper.java.statusfile.umask"), wrapperData->umask);
         wrapperData->anchorFileUmask = getIntProperty(properties, TEXT("wrapper.anchorfile.umask"), wrapperData->umask);
         setLogfileUmask(getIntProperty(properties, TEXT("wrapper.logfile.umask"), wrapperData->umask));
-        return wrapperPreLoadConfigurationProperties(&logLevelOnOverwriteProperties, &exitOnOverwriteProperties);
+        if (wrapperPreLoadConfigurationProperties(&logLevelOnOverwriteProperties, &exitOnOverwriteProperties)) {
+            preloadFailed = TRUE;
+            return TRUE; /* Actually the return code is ignored on preload. */
+        }
+        return FALSE;
     }
 #ifndef WIN32
     /** If in the first call here and the wrapper will daemonize, then we don't need
@@ -2147,6 +2178,9 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
     size_t sent;
 #ifdef WIN32
     int maxSendSize;
+#else
+    TCHAR* errorW;
+    const char* outputEncoding = MB_UTF8;
 #endif
 
     /* It is important than there is never more than one thread allowed in here at a time. */
@@ -2155,13 +2189,16 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
     }
 
     if (ok) {
-        /* We will be trasmitting a MultiByte string of characters.  So we need to convert the messageW. */
+        /* We will be transmitting a MultiByte string of characters.  So we need to convert the messageW. */
         if (messageW) {
 #ifdef UNICODE
+        /* We handle the backend communication in UTF-8 to allow support of all characters.
+         *  This is needed when sending properties to the JVM as the system encoding
+         *  may not support certain characters of the configuration file. */
  #ifdef WIN32
             GetLocaleInfo(GetThreadLocale(), LOCALE_IDEFAULTANSICODEPAGE, buffer, sizeof(buffer));
             cp = _ttoi(buffer);
-            len = WideCharToMultiByte(CP_OEMCP, 0, messageW, -1, NULL, 0, NULL, NULL);
+            len = WideCharToMultiByte(CP_UTF8, 0, messageW, -1, NULL, 0, NULL, NULL);
             if (len <= 0) {
                 log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
                     TEXT("Invalid multibyte sequence in %s \"%s\" : %s"), TEXT("protocol message"), messageW, getLastErrorText());
@@ -2174,25 +2211,27 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
                     returnVal = TRUE;
                     ok = FALSE;
                 } else {
-                    WideCharToMultiByte(CP_OEMCP, 0, messageW, -1, messageMB, (int)len, NULL, NULL);
+                    WideCharToMultiByte(CP_UTF8, 0, messageW, -1, messageMB, (int)len, NULL, NULL);
                 }
             }
  #else
-            len = wcstombs(NULL, messageW, 0);
-            if (len == (size_t)-1) {
-                log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
-                    TEXT("Invalid multibyte sequence in %s \"%s\" : %s"), TEXT("protocol message"), messageW, getLastErrorText());
+            if (converterWideToMB(messageW, &messageMB, outputEncoding) < 0) {
+                if (messageMB) {
+                    /* An error message is stored in messageMB (we need to convert it to wide chars to display it). */
+                    if (converterMBToWide(messageMB, NULL, &errorW, TRUE)) {
+                        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN, TEXT("Unexpected conversion error in %s \"%s\""), TEXT("protocol message"), messageW);
+                    } else {
+                        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN, errorW);
+                    }
+                    if (errorW) {
+                        free(errorW);
+                    }
+                    free(messageMB);
+                } else {
+                    outOfMemory(TEXT("WPF"), 3);
+                }
                 returnVal = TRUE;
                 ok = FALSE;
-            } else {
-                messageMB = malloc(len + 1);
-                if (!messageMB) {
-                    outOfMemory(TEXT("WPF"), 3);
-                    returnVal = TRUE;
-                    ok = FALSE;
-                } else {
-                    wcstombs(messageMB, messageW, len + 1);
-                }
             }
  #endif
 #else
@@ -2494,21 +2533,21 @@ int wrapperProtocolRead() {
     int nowMillis;
     time_t durr;
 #ifdef WIN32
-    TCHAR cpBuffer[16];
-    UINT cp;
-#endif
     size_t req;
+#else
+    TCHAR* packetW;
+#endif
 
     wrapperGetCurrentTime(&timeBuffer);
     startTime = now = timeBuffer.time;
     startTimeMillis = nowMillis = timeBuffer.millitm;
 
     /*
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("now=%ld, nowMillis=%d"), now, nowMillis);
+    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("now=%ld, nowMillis=%d"), now, nowMillis);
     */
     while((durr = (now - startTime) * 1000 + (nowMillis - startTimeMillis)) < 250) {
         /*
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("durr=%ld"), durr);
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("durr=%ld"), durr);
         */
 
         /* If we have an open client backend, then use it. */
@@ -2653,21 +2692,28 @@ int wrapperProtocolRead() {
 
         /* Convert the multi-byte packetBufferMB buffer into a wide-character string. */
         /* Source message is always smaller than the MAX_LOG_SIZE so the output will be as well. */
+        /* While the packets sent to the JVM are UTF-8 encoded, it is better to handle the communication
+         *  from the JVM to the native Wrapper in the same encoding as stdout (by default the locale encoding). */
 #ifdef WIN32
-        GetLocaleInfo(GetThreadLocale(), LOCALE_IDEFAULTANSICODEPAGE, cpBuffer, sizeof(cpBuffer));
-        cp = _ttoi(cpBuffer);
-        req = MultiByteToWideChar(cp, 0, packetBufferMB, -1, packetBufferW, MAX_LOG_SIZE + 1);
+        req = MultiByteToWideChar(getJvmOutputCodePage(), 0, packetBufferMB, -1, packetBufferW, MAX_LOG_SIZE + 1);
         if (req <= 0) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
                     TEXT("Invalid multibyte sequence in %s: %s"), TEXT("protocol message"), getLastErrorText());
             packetBufferW[0] = TEXT('\0');
         }
 #else
-        req = mbstowcs(packetBufferW, packetBufferMB, MAX_LOG_SIZE + 1);
-        if (req == (size_t)-1) {
-            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
-                    TEXT("Invalid multibyte sequence in %s: %s"), TEXT("protocol message"), getLastErrorText());
+        if (converterMBToWide(packetBufferMB, getJvmOutputEncodingMB(), &packetW, TRUE)) {
+            if (packetW) {
+                log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN, packetW);
+                free(packetW);
+            } else {
+                outOfMemory(TEXT("WPR"), 1);
+            }
             packetBufferW[0] = TEXT('\0');
+        } else {
+            _sntprintf(packetBufferW, MAX_LOG_SIZE + 1, packetW);
+            packetBufferW[MAX_LOG_SIZE] = TEXT('\0');
+            free(packetW);
         }
 #endif
 
@@ -2750,7 +2796,7 @@ int wrapperProtocolRead() {
         nowMillis = timeBuffer.millitm;
     }
     /*
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("done durr=%ld"), durr);
+    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("done durr=%ld"), durr);
     */
     if ((durr = (now - startTime) * 1000 + (nowMillis - startTimeMillis)) < 250) {
         return 0;
@@ -2880,6 +2926,8 @@ int wrapperInitialize() {
     wrapperData->lastLoggedPingTicks = wrapperGetTicks();
     wrapperData->jvmVersionCommand = NULL;
     wrapperData->jvmCommand = NULL;
+    wrapperData->jvmDefaultLogLevel = LEVEL_INFO;
+    wrapperData->jvmSource = WRAPPER_SOURCE_JVM;
     wrapperData->exitRequested = FALSE;
     wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_INITIAL; /* The first JVM needs to be started. */
     wrapperData->exitCode = 0;
@@ -2893,10 +2941,11 @@ int wrapperInitialize() {
     wrapperData->outputFilterCount = 0;
     wrapperData->confDir = NULL;
     wrapperData->umask = -1;
-    wrapperData->language = NULL;
     wrapperData->portAddress = NULL;
     wrapperData->pingTimedOut = FALSE;
     wrapperData->shutdownActionPropertyName = NULL;
+    wrapperData->javaVersion = NULL;
+    wrapperData->jvmMaker = JVM_MAKER_UNKNOWN;
 #ifdef WIN32
     if (!(tickMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
         printf("Failed to create tick mutex. %s\n", getLastErrorText());
@@ -2981,6 +3030,10 @@ int wrapperInitialize() {
 void wrapperDataDispose() {
     int i;
     
+    if (wrapperData->pingActionList) {
+        free(wrapperData->pingActionList);
+        wrapperData->pingActionList = NULL;
+    }
     if (wrapperData->workingDir) {
         free(wrapperData->workingDir);
         wrapperData->workingDir = NULL;
@@ -3153,15 +3206,15 @@ void wrapperDataDispose() {
         free(wrapperData->argConfFile);
         wrapperData->argConfFile = NULL;
     }
+    disposeJavaVersion(wrapperData->javaVersionMin);
+    disposeJavaVersion(wrapperData->javaVersionMax);
+    disposeJavaVersion(wrapperData->javaVersion);
 
     if (wrapperData) {
         free(wrapperData);
         wrapperData = NULL;
     }
-
 }
-
-
 
 /** Common wrapper cleanup code. */
 void wrapperDispose() {
@@ -3184,6 +3237,7 @@ void wrapperDispose() {
     disposeStartup();
 #endif
 
+    disposeHashMapJvmEncoding();
     
     /* Clean up the javaIO thread. This should be done before the timer thread. */
     if (wrapperData->useJavaIOThread) {
@@ -3891,6 +3945,115 @@ void trim(const TCHAR *in, TCHAR *out) {
     out[len] = TEXT('\0');
 }
 
+/**
+ * Comfirm that the Java version is in the range in which the Wrapper is allowed to run.
+ *
+ * @return TRUE if the Java version is ok, FALSE otherwise.
+ */
+int wrapperConfirmJavaVersion() {
+    int result = TRUE;
+    JavaVersion *minVersion1;
+    JavaVersion *minVersion2;
+    JavaVersion *maxVersion;
+    const TCHAR *minVersionName = NULL;
+    
+    /* wrapper.java.version.min & wrapper.java.version.min can't be less than the minimum version of Java supported by the Wrapper. */
+    minVersion1 = getMinRequiredJavaVersion();
+    minVersion2 = minVersion1;
+    
+    if (wrapperData->javaVersionMin) {
+        disposeJavaVersion(wrapperData->javaVersionMin);
+    }
+    wrapperData->javaVersionMin = getJavaVersionProperty(TEXT("wrapper.java.version.min"), TEXT("1.4"), minVersion1, NULL, 0);
+    if (!wrapperData->javaVersionMin) {
+        /* Invalid configuration. A FATAL error has been logged. */
+        result = FALSE;
+    } else if (compareJavaVersion(wrapperData->javaVersionMin, minVersion2) > 0) {
+        /* wrapper.java.version.max can't be less than wrapper.java.version.min. */
+        minVersion2 = wrapperData->javaVersionMin;
+        minVersionName = TEXT("wrapper.java.version.min");
+    }
+    
+    if (wrapperData->javaVersionMax) {
+        disposeJavaVersion(wrapperData->javaVersionMax);
+    }
+    wrapperData->javaVersionMax = getJavaVersionProperty(TEXT("wrapper.java.version.max"), TEXT("UNLIMITED"), minVersion2, minVersionName, UINT_MAX);
+    if (!wrapperData->javaVersionMax) {
+        /* Invalid configuration. A FATAL error has been logged. */
+        result = FALSE;
+    }
+    
+    if (result) {
+        if (!wrapperData->javaVersion) {
+            /* This should never happen (unless there was an OOM error) as an unknown JVM will be resolved to the lowest supported version and flagged 'unknown'. */
+            result = FALSE;
+        } else if (wrapperData->javaVersion->isUnknown) {
+            maxVersion = getMaxRequiredJavaVersion();
+            if ((compareJavaVersion(wrapperData->javaVersionMin, minVersion1) != 0) || (compareJavaVersion(wrapperData->javaVersionMax, maxVersion) != 0)) {
+                /* We previously failed to parse the Java version currently used, so if wrapper.java.version.min or wrapper.java.version.max
+                 *  are not set to their defaults, we should stop. Otherwise continue to not risk blocking the Wrapper for certain JVMs. */
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, 
+                    TEXT("Cannot confirm the version of Java. Usage of wrapper.java.version.min and\n wrapper.java.version.max will prevent the Wrapper from continuing."));
+                result = FALSE;
+            }
+            disposeJavaVersion(maxVersion);
+        } else {
+            /* If the configuration is correct, confirm that the version Java is between the min and the max. */
+            if (compareJavaVersion(wrapperData->javaVersion, wrapperData->javaVersionMin) < 0) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("The version of Java specified by wrapper.java.command (%s)\n is lower than the minimum required (%s)."),
+                    wrapperData->javaVersion->displayName, wrapperData->javaVersionMin->displayName);
+                result = FALSE;
+            } else if (compareJavaVersion(wrapperData->javaVersion, wrapperData->javaVersionMax) > 0) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("The version of Java specified by wrapper.java.command (%s)\n is greater than the maximum allowed (%s)."),
+                    wrapperData->javaVersion->displayName, wrapperData->javaVersionMax->displayName);
+                result = FALSE;
+            }
+        }
+    }
+    disposeJavaVersion(minVersion1);
+    return result;
+}
+
+static int javaVersionCurrentParseLine = 0;
+
+#define JAVA_VERSION_PARSE_LINE 1   /* The line at which the version of Java can be found in the 'java -version' output. */
+#define JVM_MAKER_PARSE_LINE    3   /* The line at which the JVM maker can be found in the 'java -version' output. */
+
+void logParseJavaVersionOutput(TCHAR* log) {
+    TCHAR buffer[10];
+    
+    if (wrapperData->jvmSource == WRAPPER_SOURCE_JVM_VERSION) {
+        javaVersionCurrentParseLine++;
+        
+        /* Queue the messages to avoid logging it in the middle of the JVM output. */
+        if (javaVersionCurrentParseLine == JAVA_VERSION_PARSE_LINE) {
+            /* Parse the Java version. */
+            if (wrapperData->javaVersion) {
+                disposeJavaVersion(wrapperData->javaVersion);
+            }
+            wrapperData->javaVersion = parseOutputJavaVersion(log);
+            if (!wrapperData->javaVersion) {
+                wrapperData->javaVersion = getMinRequiredJavaVersion();
+                if (wrapperData->javaVersion) {
+                    /* If we fail to get the minimum required version (which should not happen), this would be fatal.
+                     *  We can't return the error now, but we will do it in wrapperConfirmJavaVersion(). */
+                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                        TEXT("Failed to parse the version of Java. Resolving to the lowest supported version (%s)."),
+                        wrapperData->javaVersion->displayName);
+                    wrapperData->javaVersion->isUnknown = TRUE;
+                }
+            } else {
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Java version parsed to: %d.%d.%d"),
+                    wrapperData->javaVersion->major, wrapperData->javaVersion->minor, wrapperData->javaVersion->revision);
+            }
+        } else if (javaVersionCurrentParseLine == JVM_MAKER_PARSE_LINE) {
+            /* Parse the JVM maker (JVM implementation). */
+            wrapperData->jvmMaker = parseOutputJvmMaker(log);
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Java maker parsed to: %s"), getJvmMakerName(wrapperData->jvmMaker, buffer));
+        }
+    }
+}
+
 void logApplyFilters(const TCHAR *log) {
     int i;
     const TCHAR *filter;
@@ -3931,25 +4094,43 @@ void logApplyFilters(const TCHAR *log) {
     }
 }
 
+#ifdef _DEBUG
+void printBytes(const char * s) {
+    TCHAR buffer[MAX_LOG_SIZE];
+    TCHAR *pBuffer;
+    int len = __min(strlen(s), MAX_LOG_SIZE/3);
+    int i;
+    
+    pBuffer = buffer;
+    for (i = 0; i < len; i++) {
+        _sntprintf(pBuffer, 4, TEXT("%02x "), (unsigned char)s[i]);
+        pBuffer +=3;
+    }
+    buffer[MAX_LOG_SIZE-1] = 0; 
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, buffer);
+}
+#endif
+
 /**
  * Logs a single line of child output allowing any filtering
  *  to be done in a common location.
  */
 void logChildOutput(const char* log) {
-    TCHAR* tlog;
+    TCHAR* tlog = NULL;
 #ifdef UNICODE
-    int size;
-
  #ifdef WIN32
-    TCHAR buffer[16];
+    int size;
     UINT cp;
  #endif
 #endif
 
+#ifdef _DEBUG
+    printBytes(log);
+#endif
+
 #ifdef UNICODE
  #ifdef WIN32
-    GetLocaleInfo(GetThreadLocale(), LOCALE_IDEFAULTANSICODEPAGE, buffer, sizeof(buffer));
-    cp = _ttoi(buffer);
+    cp = getJvmOutputCodePage();
     size = MultiByteToWideChar(cp, 0, log, -1 , NULL, 0);
     if (size <= 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
@@ -3964,33 +4145,31 @@ void logChildOutput(const char* log) {
     }
     MultiByteToWideChar(cp, 0, log, -1, tlog, size + 1);
  #else
-    size = mbstowcs(NULL, log, MBSTOWCS_QUERY_LENGTH);
-    if (size == (size_t)-1) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                    TEXT("Invalid multibyte sequence in %s: %s"), TEXT("JVM console output"), getLastErrorText());
+    if (converterMBToWide(log, getJvmOutputEncodingMB(), &tlog, TRUE)) {
+        if (tlog) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, tlog);
+            free(tlog);
+        } else {
+            outOfMemory(TEXT("WLCO"), 1);
+        }
         return;
     }
-    tlog = malloc(sizeof(TCHAR) * (size + 1));
-    if (!tlog) {
-        outOfMemory(TEXT("WLCO"), 1);
-        return;
-    }
-    mbstowcs(tlog, log, size + 1);
-    tlog[size] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
  #endif
 #else
     tlog = (TCHAR*)log;
 #endif
-    log_printf(wrapperData->jvmRestarts, LEVEL_INFO, tlog);
-
+    log_printf(wrapperData->jvmSource == WRAPPER_SOURCE_JVM ? wrapperData->jvmRestarts : wrapperData->jvmSource, wrapperData->jvmDefaultLogLevel, tlog);
+    
     /* Look for output filters in the output.  Only match the first. */
     logApplyFilters(tlog);
+    
+    /* tlog will be modified by this call. Make sure it will not be used after that. */
+    logParseJavaVersionOutput(tlog);
 
 #ifdef UNICODE
     free(tlog);
 #endif
 }
-
 
 /**
  * This function is for moving a buffer inside itself.
@@ -4288,6 +4467,31 @@ int wrapperReadChildOutput(int maxTimeMS) {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("wrapperReadChildOutput() END TIMEOUT"));
 #endif
     return TRUE;
+}
+
+/**
+ * Read the output returned by the 'java -version' command.
+ */
+void wrapperReadJavaVersionOutput() {
+    wrapperData->jvmDefaultLogLevel = wrapperData->printJVMVersion ? LEVEL_INFO : LEVEL_NONE;
+    wrapperData->jvmSource = WRAPPER_SOURCE_JVM_VERSION;
+    javaVersionCurrentParseLine = 0;
+    
+    if (wrapperReadChildOutput(250)) {
+        /* We have waited that the process is up before calling this function.
+         *  Normally, the output is short and can be read right away. If we timed out,
+         *  that means we failed to grab the output at all.
+         * NOTE: this can happen when tracing child processes with a memory tool,
+         *  in which case the output can be much larger. */
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            TEXT("Failed to read the JVM output to get the Java Version."));
+    }
+    
+    wrapperData->jvmDefaultLogLevel = LEVEL_INFO;
+    wrapperData->jvmSource = WRAPPER_SOURCE_JVM;
+    
+    /* Some errors may have been queued when parsing the Java output. Print them now. */
+    maintainLogger();
 }
 
 /**
@@ -6243,7 +6447,7 @@ int wrapperLoadParameterFile(TCHAR **strings, int addQuotes, int detectDebugJVM,
     callbackParam.index = index;
     callbackParam.isJVMParam = isJVMParameter;
 
-    readResult = configFileReader(parameterFilePath, TRUE, loadParameterFileCallback, &callbackParam, FALSE, FALSE, wrapperData->argCommand, wrapperData->originalWorkingDir, properties->warnedVarMap, properties->logWarnings, properties->logWarningLogLevel, wrapperData->isDebugging);
+    readResult = configFileReader(parameterFilePath, TRUE, loadParameterFileCallback, &callbackParam, FALSE, FALSE, wrapperData->originalWorkingDir, properties->warnedVarMap, properties->logWarnings, properties->logWarningLogLevel);
     switch (readResult) {
     case CONFIG_FILE_READER_SUCCESS:
         return callbackParam.index;
@@ -6891,7 +7095,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
 
     detectDebugJVM = getBooleanProperty(properties, TEXT("wrapper.java.detect_debug_jvm"), TRUE);
 
-    /* Java commnd */
+    /* Java command */
     if ((index = wrapperBuildJavaCommandArrayJavaCommand(strings, addQuotes, detectDebugJVM, index)) < 0) {
         return -1;
     }
@@ -6920,7 +7124,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * 5);
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 46);
+                outOfMemory(TEXT("WBJCAI"), 1);
                 return -1;
             }
             _sntprintf(strings[index], 5, TEXT("-d%s"), wrapperBits);
@@ -7457,11 +7661,12 @@ int wrapperBuildJavaCommandArray(TCHAR ***stringsPtr, int *length, int addQuotes
     *length = reqLen;
 
     /* Allocate the correct amount of memory */
-    *stringsPtr = malloc((*length) * sizeof **stringsPtr );
+    *stringsPtr = malloc((*length) * sizeof **stringsPtr);
     if (!(*stringsPtr)) {
         outOfMemory(TEXT("WBJCA"), 1);
         return TRUE;
     }
+    memset(*stringsPtr, 0, (*length) * sizeof **stringsPtr);
 
     /* Now actually fill in the strings */
     reqLen = wrapperBuildJavaCommandArrayInner(*stringsPtr, addQuotes, classpath);
@@ -7485,7 +7690,7 @@ int wrapperBuildJavaCommandArray(TCHAR ***stringsPtr, int *length, int addQuotes
     return FALSE;
 }
 
-void wrapperFreeJavaCommandArray(TCHAR **strings, int length) {
+void wrapperFreeStringArray(TCHAR **strings, int length) {
     int i;
 
     if (strings != NULL) {
@@ -7846,8 +8051,8 @@ int wrapperBuildNTServiceInfo() {
 
         /* Display a Console Window. */
         wrapperData->ntAllocConsole = getBooleanProperty(properties, TEXT("wrapper.ntservice.console"), FALSE);
-        /* Set the default hide wrapper console flag to the inverse of the alloc console flag. */
-        wrapperData->ntHideWrapperConsole = !wrapperData->ntAllocConsole;
+        /* Set the default show wrapper console flag to the value of the alloc console flag. */
+        wrapperData->ntShowWrapperConsole = wrapperData->ntAllocConsole;
 
         /* Hide the JVM Console Window. */
         wrapperData->ntHideJVMConsole = getBooleanProperty(properties, TEXT("wrapper.ntservice.hide_console"), TRUE);
@@ -8569,6 +8774,9 @@ int loadConfiguration() {
     wrapperData->isRestartDisabled = getBooleanProperty(properties, TEXT("wrapper.disable_restarts"), FALSE);
     wrapperData->isAutoRestartDisabled = getBooleanProperty(properties, TEXT("wrapper.disable_restarts.automatic"), wrapperData->isRestartDisabled);
 
+    /* Get the flag which decides whether or not a JVM is allowed to be launched. */
+    wrapperData->runWithoutJVM = getBooleanProperty(properties, TEXT("wrapper.test.no_jvm"), FALSE); 
+
     /* Get the timeout settings */
     wrapperData->cpuTimeout = getIntProperty(properties, TEXT("wrapper.cpu.timeout"), 10);
     wrapperData->startupTimeout = getIntProperty(properties, TEXT("wrapper.startup.timeout"), 30);
@@ -8756,17 +8964,16 @@ int loadConfiguration() {
         if (!wrapperData->ntAllocConsole) {
             /* We need to allocate a console in order for the thread dumps to work
              *  when running as a service.  But the user did not request that a
-             *  console be visible so we want to hide it. */
+             *  console be visible. */
             wrapperData->ntAllocConsole = TRUE;
-            wrapperData->ntHideWrapperConsole = TRUE;
+            wrapperData->ntShowWrapperConsole = FALSE; /* Unchanged actually */
         }
     }
- #ifdef WIN32
-    if ((!strcmpIgnoreCase(wrapperData->argCommand, TEXT("s")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-service")))
-        && (!wrapperData->ntAllocConsole || wrapperData->ntHideWrapperConsole)) {
- #else
+#ifdef WIN32
+    if (!wrapperProcessHasVisibleConsole()) {
+#else
     if (!wrapperData->isConsole) {
- #endif
+#endif
         /* The console is not visible, so we shouldn't waste time logging to it. */
         setConsoleLogLevelInt(LEVEL_NONE);
     }
@@ -9522,6 +9729,86 @@ void wrapperStartedSignaled() {
         wrapperSetJavaState(WRAPPER_JSTATE_STOP, 0, -1);
     }
 }
+
+/**
+ * Get the parent process id
+ *  ATTENTION: in some rare cases CreateToolhelp32Snapshot can have infinite cycles when looping on the parent processes
+ *  It is the responsibility of the caller not to fall into an infinite loop.
+ *
+ * @param pid process id
+ * @param found TRUE if the parent process could be found.
+ *
+ * @return the parent process id
+ */
+#ifdef WIN32
+DWORD wrapperGetPPid(DWORD pid, int *found) {
+    DWORD ppid = 0;
+    HANDLE h = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    PROCESSENTRY32 pe = { 0 };
+    
+    pe.dwSize = sizeof(PROCESSENTRY32);
+    if (found != NULL) {
+        *found = FALSE;
+    }
+    
+    if( Process32First(h, &pe)) {
+        do {
+            if (pe.th32ProcessID == pid) {
+                ppid = pe.th32ParentProcessID;
+                if (found != NULL) {
+                    *found = TRUE;
+                }
+                break;
+            }
+        } while( Process32Next(h, &pe));
+    }
+
+    CloseHandle(h);
+    return ppid;
+}
+#endif
+
+/**
+ * Check if the window was created by a given process or by one of its child process
+ *  NOTE: this function will give up if a matching parent can't be found after 100 iterations.
+ *  It keeps a list of all parents found in order to prevent infinite loop (see comment in wrapperGetPPid)
+ *
+ * @param ppid: parent process id to be compared with the window process id or one of its ancestor.
+ *
+ * @return TRUE if the window's pid or one of its ancestor match with the given PID
+ */
+#ifdef WIN32
+int wrapperCheckPPid(DWORD pid, DWORD ppid) {
+    DWORD pids[100] = {0};
+    int i = 0;
+    int j = 0;
+    
+    do {
+ #ifdef DEBUG_PPID
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("  pid:%d - ppid:%d"), pid, ppid);
+ #endif
+        if (pid == ppid) {
+            return TRUE;
+        }
+        
+        /* add pid to the list of the PIDs found */
+        pids[j] = pid;
+        
+        pid = wrapperGetPPid(pid, NULL);
+        
+        /* make sure that the parent PID was not already found before */
+        j = 0;
+        while (pids[j] != 0) {
+            if (pids[j] == pid) {
+                return FALSE;
+            }
+            j++;
+        }
+    } while (pid != 0 && i++ < 100);
+    
+    return FALSE;
+}
+#endif
 
 #ifdef CUNIT
 static void tsJAP_subTestJavaAdditionalParamSuite(int stripQuote, TCHAR *config, TCHAR **strings, int strings_len, int isJVMParam) {

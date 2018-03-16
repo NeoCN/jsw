@@ -39,6 +39,10 @@
  #define dup2 _dup2
 #endif
 #include "wrapper_i18n.h"
+#ifndef WIN32
+ #include <langinfo.h>
+#endif
+
 #include "loggerjni.h"
 #include "wrapperjni.h"
 #include "wrapperinfo.h"
@@ -66,8 +70,6 @@ const char utf8ClassJavaLangString[] = {106, 97,118, 97, 47, /* java/ */
                                         83,116,114,105,110,103, 0}; /* "java/lang/String" */
 const char utf8MethodInit[] = {60,105,110,105,116, 62, 0}; /* "<init>" */
 const char utf8Sig_BrV[] = {40, 91, 66, 41, 86, 0}; /* "([B)V" */
-const char utf8Sigr_B[] = { 40, 41, 91, 66, 0}; /* "()[B") */
-const char utf8MethodGetBytes[] = {103, 101, 116, 66, 121, 116, 101, 115, 0}; /* getBytes */
 const char utf8ClassJavaLangOutOfMemoryError[] = {106, 97,118, 97, 47, /* java/ */
                                                   108, 97,110, 103, 47, /* lang/ */
                                                   79, 117, 116, 79, 102, 77, 101, 109, 111, 114, 121, 69, 114, 114, 111, 114, 0}; /* OutOfMemoryError */
@@ -141,6 +143,62 @@ int wrapperSleep(int ms) {
 }
 
 /**
+ * Create a jstring from a MultiBytes Char string.  The jstring must be freed up by caller.
+ *
+ * @param env The current JNIEnv.
+ * @param str The MultiBytes string to convert.
+ *
+ * @return The new jstring or NULL if there were any exceptions thrown.
+ */
+jstring JNU_NewStringFromNativeMB(JNIEnv *env, const char *str) {
+    jstring result;
+    size_t len;
+    char *strOut;
+    TCHAR* errorW;
+#ifdef WIN32
+    int encodingFrom = CP_OEMCP;
+#else
+    char* encodingFrom = nl_langinfo(CODESET);
+ #ifdef MACOSX
+    if (strlen(encodingFrom) == 0) {
+        encodingFrom = "UTF-8";
+    }
+ #endif
+#endif
+    
+    len = strlen(str);
+    if (len > 0) {
+        if (converterMBToMB(str, encodingFrom, &strOut, __UTF8) < 0) {
+            if (strOut) {
+                /* An error message is stored in strOut (we need to convert it to wide chars to display it). */
+#ifdef WIN32
+                if (multiByteToWideChar(strOut, __UTF8, &errorW, FALSE)) {
+#else
+                if (converterMBToWide(strOut, __UTF8, &errorW, FALSE)) {
+#endif
+                    _tprintf(TEXT("WrapperJNI Warn: Unexpected conversion error: %s\n"), getLastErrorText()); fflush(NULL);
+                } else {
+                    _tprintf(errorW); fflush(NULL);
+                }
+                if (errorW) {
+                    free(errorW);
+                }
+                free(strOut);
+            } else {
+                throwOutOfMemoryError(env, TEXT("JNSFNC1"));
+            }
+            return NULL;
+        }
+        result = (*env)->NewStringUTF(env, strOut);
+        free(strOut);
+    } else {
+        result = (*env)->NewStringUTF(env, str);
+    }
+    
+    return result;
+}
+
+/**
  * Create a jstring from a Wide Char string.  The jstring must be freed up by caller.
  *
  * @param env The current JNIEnv.
@@ -148,25 +206,21 @@ int wrapperSleep(int ms) {
  *
  * @return The new jstring or NULL if there were any exceptions thrown.
  */
-jstring JNU_NewStringNative(JNIEnv *env, const TCHAR *strW) {
+jstring JNU_NewStringFromNativeW(JNIEnv *env, const TCHAR *strW) {
     jstring result;
-
-    jclass jClassString;
-    jmethodID MID_String_init;
-    jbyteArray jBytes;
     size_t len;
     char* msgMB;
-#ifdef UNICODE
+#ifdef WIN32
     int size;
+#else
+    TCHAR* errorW;
 #endif
-#ifdef UNICODE
-    /* We need to special case empty strings as some of the functions don't work correctly for them. */
+
     len = _tcslen(strW);
     if (len > 0) {
- #ifdef WIN32
+#ifdef WIN32
         size = WideCharToMultiByte(CP_UTF8, 0, strW, -1, NULL, 0, NULL, NULL);
-        if (size == 0) {
-            /* Failed. */
+        if (size <= 0) {
             _tprintf(TEXT("WrapperJNI Warn: Failed to convert string \"%s\": %s\n"), strW, getLastErrorText()); fflush(NULL);
             return NULL;
         }
@@ -176,25 +230,27 @@ jstring JNU_NewStringNative(JNIEnv *env, const TCHAR *strW) {
             return NULL;
         }
         WideCharToMultiByte(CP_UTF8, 0, strW, -1, msgMB, size + 1, NULL, NULL);
-        result = (*env)->NewStringUTF(env, msgMB);
-        free(msgMB);
-        return result;
- #else
-        size = wcstombs(NULL, strW, 0);
-        if (size == (size_t)-1) {
-            _tprintf(TEXT("Invalid multibyte sequence \"%s\": %s\n"), strW, getLastErrorText());
+#else
+        if (converterWideToMB(strW, &msgMB, MB_UTF8) < 0) {
+            if (msgMB) {
+                /* An error message is stored in msgMB (we need to convert it to wide chars to display it). */
+                if (converterMBToWide(msgMB, NULL, &errorW, FALSE)) {
+                    _tprintf(TEXT("WrapperJNI Warn: Failed to convert string \"%s\": %s\n"), strW, getLastErrorText()); fflush(NULL);
+                } else {
+                    _tprintf(errorW); fflush(NULL);
+                }
+                if (errorW) {
+                    free(errorW);
+                }
+                free(msgMB);
+            } else {
+                throwOutOfMemoryError(env, TEXT("JNSN2"));
+            }
             return NULL;
         }
-
-        msgMB = malloc(sizeof(char) * (size + 1));
-        if (!msgMB) {
-            throwOutOfMemoryError(env, TEXT("JNSN2"));
-            return NULL;
-        }
-        wcstombs(msgMB, strW, size + 1);
- #endif
+#endif
     } else {
-        /* Empty string. */
+        /* We need to special case empty strings as some of the functions don't work correctly for them. */
         msgMB = malloc(sizeof(char) * 1);
         if (!msgMB) {
             throwOutOfMemoryError(env, TEXT("JNSN3"));
@@ -202,67 +258,10 @@ jstring JNU_NewStringNative(JNIEnv *env, const TCHAR *strW) {
         }
         msgMB[0] = '\0';
     }
-#else
-    msgMB = (TCHAR*)strW;
-#endif
-    result = NULL;
-    if ((*env)->EnsureLocalCapacity(env, 2) < 0) {
-        throwOutOfMemoryError(env, TEXT("JNSN4"));
-#ifdef UNICODE
-        if (msgMB) {
-            free(msgMB);
-        }
-#endif
-        return NULL; /* out of memory error */
-    }
-    len = strlen(msgMB);
-    if ((jBytes = (*env)->NewByteArray(env, (jsize)len))) {
-        (*env)->SetByteArrayRegion(env, jBytes, 0, (jsize)len, (jbyte*)msgMB);
-        if ((jClassString = (*env)->FindClass(env, utf8ClassJavaLangString))) {
-            if ((MID_String_init = (*env)->GetMethodID(env, jClassString, utf8MethodInit, utf8Sig_BrV))) {
-                result = (*env)->NewObject(env, jClassString, MID_String_init, jBytes);
-            }
-
-            (*env)->DeleteLocalRef(env, jClassString);
-        }
-
-        (*env)->DeleteLocalRef(env, jBytes);
-    }
-
-#ifdef UNICODE
-    if (msgMB) {
-        free(msgMB);
-    }
-#endif
-
+    result = (*env)->NewStringUTF(env, msgMB);
+    free(msgMB);
     return result;
 }
-
-
-#ifdef WIN32
-/* So far this function is only used by windows. if we want to use it for unix as well, first
-   provide correct wchar handling... */
-void JNU_SetByteArrayRegion(JNIEnv *env, jbyteArray* jarray, jsize start, jsize len, const TCHAR *buffer) {
-
-    char* msg;
-#if defined(UNICODE) && defined(WIN32)
-    int size;
-    size = WideCharToMultiByte(CP_OEMCP, 0, buffer, -1, NULL, 0, NULL, NULL);
-    msg = malloc(size);
-    if (!msg) {
-        throwOutOfMemoryError(env, TEXT("JSBAR1"));
-        return;
-    }
-    WideCharToMultiByte(CP_OEMCP,0, buffer,-1, msg, size, NULL, NULL);
-#else
-     msg = (TCHAR*) buffer;
-#endif
-    (*env)->SetByteArrayRegion(env, *jarray, start, len, (jbyte*) msg);
-#if defined(UNICODE) && defined(WIN32)
-    free(msg);
-#endif
-}
-#endif
 
 /**
  * Converts a jstring into a newly malloced TCHAR array.
@@ -273,105 +272,70 @@ void JNU_SetByteArrayRegion(JNIEnv *env, jbyteArray* jarray, jsize start, jsize 
  * @return The requested Wide String, or NULL if there was a problem.  It is
  *         the responsibility of the caller to free up the returned string.
  */
-TCHAR *JNU_GetStringNativeChars(JNIEnv *env, jstring jstr) {
-    jbyteArray jByteArrayBytes = 0;
-    jclass jClassString = NULL;
-    jmethodID jMethodIdStringGetBytes = NULL;
-#ifdef UNICODE
-    int size;
-    TCHAR* tresult;
-#endif
-    char *result = 0;
-
-    if ((*env)->EnsureLocalCapacity(env, 2) < 0) {
-        throwOutOfMemoryError(env, TEXT("GSNC1"));
-        return NULL; /* out of memory error */
-    }
-    if ((jClassString = (*env)->FindClass(env, utf8ClassJavaLangString)) != NULL) {
-        if ((jMethodIdStringGetBytes = (*env)->GetMethodID(env, jClassString, utf8MethodGetBytes, utf8Sigr_B)) != NULL) {
-            if ((jByteArrayBytes = (*env)->CallObjectMethod(env, jstr, jMethodIdStringGetBytes)) != NULL) {
-                jint len = (*env)->GetArrayLength(env, jByteArrayBytes);
-                result = (char *)malloc(sizeof(char) * (len + 1));
-                if (!result) {
-                    throwOutOfMemoryError(env, TEXT("GSNC2"));
-                } else {
-                    (*env)->GetByteArrayRegion(env, jByteArrayBytes, 0, len, (jbyte *)result);
-                    result[len] = 0; /* NULL-terminate */
-                }
-                
-                (*env)->DeleteLocalRef(env, jByteArrayBytes);
-            }
-        }
-        (*env)->DeleteLocalRef(env, jClassString);
-    }
-#ifdef UNICODE
+TCHAR *JNU_GetNativeWFromString(JNIEnv *env, jstring jstr) {
+    TCHAR* tresult = NULL;
+    const char *result;
 #ifdef WIN32
-    size = MultiByteToWideChar(CP_OEMCP, 0, result, -1, NULL, 0);
-    tresult = malloc(size*sizeof(LPWSTR));
-    if (!tresult) {
-        free(result);
-        throwOutOfMemoryError(env, TEXT("GSNC3"));
-        return NULL;
-    }
-    MultiByteToWideChar(CP_OEMCP, 0, result,-1, tresult, size);
-    free(result);
-    return tresult;
-#else
-    size = mbstowcs(NULL, result, MBSTOWCS_QUERY_LENGTH);
-    if (size == (size_t)-1) {
-        throwJNIError(env, TEXT("Encoding error."));
-        return NULL;
-    }
-    tresult = malloc(sizeof(TCHAR) * (size + 1));
-    if (!tresult) {
-        free(result);
-        throwOutOfMemoryError(env, TEXT("GSNC3"));
-        return NULL;
-    }
-    mbstowcs(tresult, result, size + 1);
-    tresult[size] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
-    
-    free(result);
-    return tresult;
+    int size;
 #endif
-#else
-    return result;
-#endif
-}
 
-jstring JNU_NewStringFromNativeChar(JNIEnv *env, const char *str) {
-    jstring result;
-    jclass jClassString;
-    jmethodID MID_String_init;
-    jbyteArray bytes = 0;
-    size_t len;
-
-    result = NULL;
-    if ((*env)->EnsureLocalCapacity(env, 2) < 0) {
-        throwOutOfMemoryError(env, TEXT("JNSN2"));
-        return NULL; /* out of memory error */
-    }
-    
-    len = strlen(str);
-    bytes = (*env)->NewByteArray(env, (jsize)len);
-    if (bytes != NULL) {
-        (*env)->SetByteArrayRegion(env, bytes, 0, (jsize)len,(jbyte*) str);
-        if ((jClassString = (*env)->FindClass(env, utf8ClassJavaLangString)) != NULL) {
-            if ((MID_String_init = (*env)->GetMethodID(env, jClassString, utf8MethodInit, utf8Sig_BrV)) != NULL) {
-                result = (*env)->NewObject(env, jClassString, MID_String_init, bytes);
-            }
-            
-            (*env)->DeleteLocalRef(env, jClassString);
+    result = (*env)->GetStringUTFChars(env, jstr, NULL);
+#ifdef WIN32
+    size = MultiByteToWideChar(CP_UTF8, 0, result, -1, NULL, 0);
+    if (size <= 0) {
+        _tprintf(TEXT("WrapperJNI Warn: Unexpected conversion error: %s\n"), getLastErrorText()); fflush(NULL);
+    } else {
+        tresult = malloc(sizeof(TCHAR) * (size + 1));
+        if (!tresult) {
+            throwOutOfMemoryError(env, TEXT("GSNC1"));
+        } else {
+            MultiByteToWideChar(CP_UTF8, 0, result,-1, tresult, size + 1);
         }
-        
-        (*env)->DeleteLocalRef(env, bytes);
-
-    } /* else fall through */
-    return result;
+    }
+#else
+    if (converterMBToWide(result, MB_UTF8, &tresult, TRUE)) {
+        if (tresult) {
+            _tprintf(tresult); fflush(NULL);
+            free(tresult);
+            tresult = NULL;
+        } else {
+            throwOutOfMemoryError(env, TEXT("GSNC2"));
+        }
+    }
+#endif
+    (*env)->ReleaseStringUTFChars(env, jstr, (const char *)result);
+    return tresult;
 }
+
+#ifdef WIN32
+/* So far this function is only used by windows. if we want to use it for unix as well, first
+   provide correct wchar handling... */
+void JNU_SetByteArrayRegion(JNIEnv *env, jbyteArray* jarray, jsize start, jsize len, const TCHAR *buffer) {
+    char* msg;
+ #if defined(UNICODE) && defined(WIN32)
+    int size;
+
+    size = WideCharToMultiByte(CP_OEMCP, 0, buffer, -1, NULL, 0, NULL, NULL);
+    msg = malloc(size);
+    if (!msg) {
+        throwOutOfMemoryError(env, TEXT("JSBAR1"));
+        return;
+    }
+    WideCharToMultiByte(CP_OEMCP,0, buffer,-1, msg, size, NULL, NULL);
+ #else
+     msg = (TCHAR*) buffer;
+ #endif
+    (*env)->SetByteArrayRegion(env, *jarray, start, len, (jbyte*) msg);
+ #if defined(UNICODE) && defined(WIN32)
+    free(msg);
+ #endif
+}
+#endif
 
 /**
  * Returns a new buffer containing the UTF8 characters for the specified native string.
+ *  Note: this function is ok. Just not sure we need to need to pass through a jstring.
+ *  We could handle the conversion in native code only.
  *
  * It is the responsibility of the caller to free the returned buffer.
  */
@@ -382,7 +346,7 @@ char *getUTF8Chars(JNIEnv *env, const char *nativeChars) {
     jboolean isCopy;
     char *utf8Chars = NULL;
 
-    js = JNU_NewStringFromNativeChar(env, nativeChars);
+    js = JNU_NewStringFromNativeMB(env, nativeChars);
     if (js != NULL) {
         jlen = (*env)->GetStringUTFLength(env, js);
         utf8Chars = malloc(jlen + 1);
@@ -451,11 +415,11 @@ int getSystemProperty(JNIEnv *env, const TCHAR *propertyName, TCHAR **propertyVa
 
     if ((jClassSystem = (*env)->FindClass(env, utf8ClassJavaLangSystem)) != NULL) {
         if ((jMethodIdGetProperty = (*env)->GetStaticMethodID(env, jClassSystem, utf8MethodGetProperty, utf8SigLjavaLangStringrLjavaLangString)) != NULL) {
-            if ((jStringKeyPropName = JNU_NewStringNative(env, propertyName)) != NULL) {
+            if ((jStringKeyPropName = JNU_NewStringFromNativeW(env, propertyName)) != NULL) {
                 if ((jStringKeyValue = (jstring)(*env)->CallStaticObjectMethod(env, jClassSystem, jMethodIdGetProperty, jStringKeyPropName)) != NULL) {
                     /* Collect the value. */
                     if (!encodeNative) {
-                        if ((keyChars = JNU_GetStringNativeChars(env, jStringKeyValue)) != NULL) {
+                        if ((keyChars = JNU_GetNativeWFromString(env, jStringKeyValue)) != NULL) {
                             *propertyValue = malloc(sizeof(TCHAR) * (_tcslen(keyChars) + 1));
                             if (!*propertyValue) {
                                 throwOutOfMemoryError(env, TEXT("GSP1"));
@@ -571,6 +535,36 @@ void throwThrowable(JNIEnv *env, char *throwableClassName, const TCHAR *lpszFmt,
     jmethodID constructor;
     jstring jMessageBuffer;
     jobject jThrowable;
+#if defined(UNICODE) && !defined(WIN32)
+    TCHAR *msg = NULL;
+    int i;
+    int flag;
+#endif
+
+#if defined(UNICODE) && !defined(WIN32)
+    if (wcsstr(lpszFmt, TEXT("%s")) != NULL) {
+        msg = malloc(sizeof(wchar_t) * (wcslen(lpszFmt) + 1));
+        if (msg) {
+            /* Loop over the format and convert all '%s' patterns to %S' so the UNICODE displays correctly. */
+            if (wcslen(lpszFmt) > 0) {
+                for (i = 0; i < _tcslen(lpszFmt); i++){
+                    msg[i] = lpszFmt[i];
+                    if ((lpszFmt[i] == TEXT('%')) && (i  < _tcslen(lpszFmt)) && (lpszFmt[i + 1] == TEXT('s')) && ((i == 0) || (lpszFmt[i - 1] != TEXT('%')))){
+                        msg[i+1] = TEXT('S'); i++;
+                    }
+                }
+            }
+            msg[wcslen(lpszFmt)] = TEXT('\0');
+        } else {
+            throwOutOfMemoryError(env, TEXT("TT0"));
+            return;
+        }
+        flag = TRUE;
+    } else {
+        msg = (TCHAR*) lpszFmt;
+        flag = FALSE;
+    }
+#endif
 
     do {
         if (messageBufferSize == 0) {
@@ -583,6 +577,11 @@ void throwThrowable(JNIEnv *env, char *throwableClassName, const TCHAR *lpszFmt,
             messageBuffer = (TCHAR*)malloc( messageBufferSize * sizeof(TCHAR));
             if (!messageBuffer) {
                 throwOutOfMemoryError(env, TEXT("TT1"));
+#if defined(UNICODE) && !defined(WIN32)
+                if (flag == TRUE) {
+                    free(msg);
+                }
+#endif
                 return;
             }
         }
@@ -590,7 +589,11 @@ void throwThrowable(JNIEnv *env, char *throwableClassName, const TCHAR *lpszFmt,
         /* Try writing to the buffer. */
         va_start(vargs, lpszFmt);
 
+#if defined(UNICODE) && !defined(WIN32)
+        count = _vsntprintf(messageBuffer, messageBufferSize, msg, vargs);
+#else
         count = _vsntprintf(messageBuffer, messageBufferSize, lpszFmt, vargs);
+#endif
 
         va_end(vargs);
         if ((count < 0) || (count >= (int)messageBufferSize)) {
@@ -604,9 +607,7 @@ void throwThrowable(JNIEnv *env, char *throwableClassName, const TCHAR *lpszFmt,
             free(messageBuffer);
 
             /* Decide on a new buffer size. */
-            if (count <= (int)messageBufferSize) {
-                messageBufferSize += 50;
-            } else if (count + 1 <= (int)messageBufferSize + 50) {
+            if (count + 1 <= (int)messageBufferSize + 50) {
                 messageBufferSize += 50;
             } else {
                 messageBufferSize = count + 1;
@@ -619,6 +620,11 @@ void throwThrowable(JNIEnv *env, char *throwableClassName, const TCHAR *lpszFmt,
             messageBuffer = (TCHAR*)malloc(messageBufferSize * sizeof(TCHAR));
             if (!messageBuffer) {
                 throwOutOfMemoryError(env, TEXT("TT2"));
+#if defined(UNICODE) && !defined(WIN32)
+                if (flag == TRUE) {
+                    free(msg);
+                }
+#endif
                 return;
             }
 
@@ -627,10 +633,16 @@ void throwThrowable(JNIEnv *env, char *throwableClassName, const TCHAR *lpszFmt,
         }
     } while (count < 0);
 
+#if defined(UNICODE) && !defined(WIN32)
+    if (flag == TRUE) {
+        free(msg);
+    }
+#endif
+
     /* We have the messageBuffer */
     if ((jThrowableClass = (*env)->FindClass(env, throwableClassName)) != NULL) {
         if ((constructor = (*env)->GetMethodID(env, jThrowableClass, utf8MethodInit, utf8SigLjavaLangStringrV)) != NULL) {
-            if ((jMessageBuffer = JNU_NewStringNative(env, messageBuffer)) != NULL) {
+            if ((jMessageBuffer = JNU_NewStringFromNativeW(env, messageBuffer)) != NULL) {
                 if ((jThrowable = (*env)->NewObject(env, jThrowableClass, constructor, jMessageBuffer)) != NULL) {
                     if ((*env)->Throw(env, jThrowable)) {
                         _tprintf(TEXT("WrapperJNI Error: Unable to throw %s with message: %s"), throwableClassName, messageBuffer); fflush(NULL);
@@ -667,7 +679,7 @@ void throwJNIError(JNIEnv *env, const TCHAR *message) {
     if ((exceptionClass = (*env)->FindClass(env, utf8ClassOrgTanukisoftwareWrapperWrapperJNIError)) != NULL) {
         /* Look for the constructor. Ignore failures. */
         if ((constructor = (*env)->GetMethodID(env, exceptionClass, utf8MethodInit, utf8Sig_BrV)) != NULL) {
-            if ((jMessage = JNU_NewStringNative(env, message)) != NULL) {
+            if ((jMessage = JNU_NewStringFromNativeW(env, message)) != NULL) {
                 if ((exception = (*env)->NewObject(env, exceptionClass, constructor, jMessage)) != NULL) {
                     if ((*env)->Throw(env, exception)) {
                         _tprintf(TEXT("WrapperJNI Error: Unable to throw WrapperJNIError with message: %s"), message);
@@ -720,7 +732,7 @@ void wrapperJNIHandleSignal(int signal) {
 JNIEXPORT jstring JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetLibraryVersion(JNIEnv *env, jclass clazz) {
     jstring version;
-    version = JNU_NewStringNative(env, wrapperVersion);
+    version = JNU_NewStringFromNativeW(env, wrapperVersion);
     return version;
 }
 

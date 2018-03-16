@@ -41,7 +41,7 @@
 #ifndef FALSE
 #define FALSE 0
 #endif
-
+    
 /**
  * Dynamically load the symbols for the iconv library
  */
@@ -122,7 +122,7 @@ int multiByteToWideChar(const char *multiByteChars, int encoding, TCHAR **output
 
 
 /**
- * Converts a MultiByte encoded string to a WideChars (UNICODE/Locale dependant) string.
+ * Converts a MultiByte encoded string to a WideChars string specifying the output encoding.
  *
  * @param multiByteChars The MultiByte encoded source string.
  * @param multiByteEncoding The source encoding.
@@ -137,8 +137,7 @@ int multiByteToWideChar(const char *multiByteChars, int encoding, TCHAR **output
  *
  * @return TRUE if there were problems, FALSE if Ok.
  */
-int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncoding, char *interumEncoding, wchar_t **outputBufferW, int localizeErrorMessage)
-{
+int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncoding, char *interumEncoding, wchar_t **outputBufferW, int localizeErrorMessage) {
     const TCHAR *errorTemplate;
     size_t errorTemplateLen;
     size_t iconv_value;
@@ -263,9 +262,17 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
                     return TRUE;
                     
                 case E2BIG:
-                    /* native char buffer was too small, extend buffer and redo */
-                    nativeCharLen += multiByteCharsLen;
-                    redoIConv = TRUE;
+                    /* The output buffer was too small, extend it and redo.
+                     *  iconv decrements multiByteCharsLenStart by the number of converted input bytes.
+                     *  The remaining bytes to convert may not correspond exactly to the additional size
+                     *  required in the output buffer, but it is a good value to minimize the number of
+                     *  conversions while ensuring not to extend too much the output buffer. */
+                    if (multiByteCharsLenStart > 0) {
+                        /* Testing that multiByteCharsLenStart is >0 should not be needed, but it's a
+                         *  sanity check to make sure we never fall into an infinite loop. */
+                        nativeCharLen += multiByteCharsLenStart;
+                        redoIConv = TRUE;
+                    }
                     break;
                     
                 default:
@@ -340,6 +347,34 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
         free(nativeCharStart);
     }
     return FALSE;
+}
+
+/**
+ * Converts a MultiByte encoded string to a WideChars string using the locale encoding.
+ *
+ * @param multiByteChars The MultiByte encoded source string.
+ * @param multiByteEncoding The source encoding (if NULL use the locale encoding).
+ * @param outputBufferW If return is TRUE then this will be an error message.  If return is FALSE then this will contain the
+ *                      requested WideChars string.  If there were any memory problems, the return will be TRUE and the
+ *                      buffer will be set to NULL.  In any case, it is the responsibility of the caller to free the output
+ *                      buffer memory. 
+ * @param localizeErrorMessage TRUE if the error message can be localized.
+ *
+ * @return TRUE if there were problems, FALSE if Ok.
+ */
+int converterMBToWide(const char *multiByteChars, const char *multiByteEncoding, wchar_t **outputBufferW, int localizeErrorMessage) {
+    char* loc;
+    loc = nl_langinfo(CODESET);
+  #ifdef MACOSX
+    if (strlen(loc) == 0) {
+        loc = "UTF-8";
+    }
+  #endif
+    if (multiByteEncoding) {
+        return multiByteToWideChar(multiByteChars, multiByteEncoding, loc, outputBufferW, localizeErrorMessage);
+    } else {
+        return multiByteToWideChar(multiByteChars, loc, loc, outputBufferW, localizeErrorMessage);
+    }
 }
 
 size_t _treadlink(TCHAR* exe, TCHAR* fullPath, size_t size) {
@@ -478,28 +513,35 @@ TCHAR *_tsetlocale(int category, const TCHAR *locale) {
     return NULL;
 }
 
-int _tprintf(const wchar_t *fmt,...) {
-    int i, flag;
-    wchar_t *msg;
-    va_list args;
-
+int createWideFormat(const wchar_t *fmt, wchar_t **msg) {
+    int i, result;
+    
     if (wcsstr(fmt, TEXT("%s")) != NULL) {
-        msg = malloc(sizeof(wchar_t) * (wcslen(fmt) + 1));
-        if (msg) {
-            wcsncpy(msg, fmt, wcslen(fmt) + 1);
+        *msg = malloc(sizeof(wchar_t) * (wcslen(fmt) + 1));
+        if (*msg) {
+            wcsncpy(*msg, fmt, wcslen(fmt) + 1);
             for (i = 0; i < wcslen(fmt); i++){
                 if (fmt[i] == TEXT('%') && i  < wcslen(fmt) && fmt[i + 1] == TEXT('s') && (i == 0 || fmt[i - 1] != TEXT('%'))) {
-                    msg[i + 1] = TEXT('S');
+                    (*msg)[i + 1] = TEXT('S');
                     i++;
                 }
             }
-            msg[wcslen(fmt)] = TEXT('\0');
+            (*msg)[wcslen(fmt)] = TEXT('\0');
         }
-        flag = TRUE;
+        result = TRUE;
     } else {
-         msg = (wchar_t*)fmt;
-         flag = FALSE;
+        *msg = (wchar_t*)fmt;
+        result = FALSE;
     }
+    return result;
+}
+
+int _tprintf(const wchar_t *fmt,...) {
+    int i, flag;
+    wchar_t *msg = NULL;
+    va_list args;
+
+    flag = createWideFormat(fmt, &msg);
     if (msg) {
         va_start(args, fmt);
         i = vwprintf(msg, args);
@@ -514,25 +556,10 @@ int _tprintf(const wchar_t *fmt,...) {
 
 int _ftprintf(FILE *stream, const wchar_t *fmt, ...) {
     int i, flag;
-    wchar_t *msg;
+    wchar_t *msg = NULL;
     va_list args;
-    if (wcsstr(fmt, TEXT("%s")) != NULL) {
-        msg = malloc(sizeof(wchar_t) * (wcslen(fmt) + 1));
-        if (msg) {
-            wcsncpy(msg, fmt, wcslen(fmt) + 1);
-            for (i = 0; i < wcslen(fmt); i++){
-                if (fmt[i] == TEXT('%') && i  < wcslen(fmt) && fmt[i + 1] == TEXT('s') && (i == 0 || fmt[i - 1] != TEXT('%'))) {
-                    msg[i + 1] = TEXT('S');
-                    i++;
-                }
-            }
-            msg[wcslen(fmt)] = TEXT('\0');
-        }
-        flag = TRUE;
-    } else {
-         msg = (wchar_t*)fmt;
-         flag = FALSE;
-    }
+
+    flag = createWideFormat(fmt, &msg);
     if (msg) {
         va_start(args, fmt);
         i = vfwprintf(stream, msg, args);
@@ -547,25 +574,10 @@ int _ftprintf(FILE *stream, const wchar_t *fmt, ...) {
 
 int _sntprintf(TCHAR *str, size_t size, const TCHAR *fmt, ...) {
     int i, flag;
-    wchar_t *msg;
+    wchar_t *msg = NULL;
     va_list args;
-    if (wcsstr(fmt, TEXT("%s")) != NULL) {
-        msg = malloc(sizeof(wchar_t) * (wcslen(fmt) + 1));
-        if (msg) {
-            wcsncpy(msg, fmt, wcslen(fmt) + 1);
-            for (i = 0; i < wcslen(fmt); i++){
-                if (fmt[i] == TEXT('%') && i  < wcslen(fmt) && fmt[i + 1] == TEXT('s') && (i == 0 || fmt[i - 1] != TEXT('%'))) {
-                    msg[i + 1] = TEXT('S');
-                    i++;
-                }
-            }
-            msg[wcslen(fmt)] = TEXT('\0');
-        }
-        flag = TRUE;
-    } else {
-         msg = (wchar_t*)fmt;
-         flag = FALSE;
-    }
+
+    flag = createWideFormat(fmt, &msg);
     if (msg) {
         va_start(args, fmt);
         i = vswprintf(str, size, msg, args);
@@ -1219,7 +1231,7 @@ wchar_t* _trealpathN(const wchar_t* fileName, wchar_t *resolvedName, size_t reso
  *
  * @return The converted string.
  */
-TCHAR* toLower(TCHAR* value) {
+TCHAR* toLower(const TCHAR* value) {
     TCHAR* result;
     size_t len;
     size_t i;
@@ -1239,6 +1251,33 @@ TCHAR* toLower(TCHAR* value) {
     return result;
 }
 
+#ifndef WIN32
+/**
+ * Get the encoding of the current locale.
+ *
+ * @param buffer output buffer
+ *
+ * @return the buffer or NULL if the encoding could not be retrieved.
+ */
+TCHAR* getCurrentLocaleEncoding(TCHAR* buffer) {
+    char* sysEncodingChar;
+    size_t size;
+
+    sysEncodingChar = nl_langinfo(CODESET);
+ #ifdef MACOSX
+    if (strlen(sysEncodingChar) == 0) {
+        sysEncodingChar = "UTF-8";
+    }
+ #endif
+    size = mbstowcs(NULL, sysEncodingChar, MBSTOWCS_QUERY_LENGTH);
+    if ((size > (size_t)0) && (size < (size_t)32)) {
+        mbstowcs(buffer, sysEncodingChar, size + 1);
+        buffer[size] = TEXT('\0');
+        return buffer;
+    }
+    return NULL;
+}
+#endif
 
 /**
  * Function to get the system encoding name/number for the encoding
@@ -1445,6 +1484,321 @@ int getEncodingByName(char* encodingMB, char** encoding) {
     return FALSE;
 }
 
+#ifdef WIN32
+/**
+ * Converts a Wide string into a specific multibyte encoded string.
+ *
+ * @prarm wideChars The Wide string to be converted.
+ * @param outputBufferMB Returns a newly malloced buffer containing the target MB chars.
+ *                       Will contain an error message if the function returns TRUE.
+ *                       If this is NULL then there was an out of memory problem.
+ *                       Caller must free this up.
+ * @param outputEncoding Output encoding to use.
+ *
+ * @return -1 if there were any problems.  size of the buffer in byte otherwise.
+ */
+int converterWideToMB(const TCHAR *wideChars, char **outputBufferMB, int outputEncoding) {
+    char *errorTemplate;
+    size_t errorTemplateLen;
+    int req;
+
+    /* Initialize the outputBuffer. */
+    *outputBufferMB = NULL;
+
+    req = WideCharToMultiByte(outputEncoding, 0, wideChars, -1, NULL, 0, NULL, 0);
+    if (req <= 0) {
+        errorTemplate = "Unexpected conversion error: %d";
+        errorTemplateLen = strlen(errorTemplate) + 10 + 1;
+        *outputBufferMB = malloc(errorTemplateLen);
+        if (*outputBufferMB) {
+            _snprintf(*outputBufferMB, errorTemplateLen, errorTemplate, wrapperGetLastError());
+        } else {
+            /* Out of memory. *outputBufferW already NULL. */
+        }
+        return -1;
+    }
+    *outputBufferMB = malloc((req + 1));
+    if (!(*outputBufferMB)) {
+        outOfMemory(TEXT("CTW"), 1);
+        /* Out of memory. *outputBufferW already NULL. */
+        return -1;
+    }
+
+    WideCharToMultiByte(outputEncoding, 0, wideChars, -1, *outputBufferMB, req + 1, NULL, 0);
+    return req;
+}
+
+/**
+ * Converts a native multibyte string into a specific multibyte encoded string.
+ *
+ * @param multiByteChars The original multi-byte chars.
+ * @param inputEncoding The multi-byte encoding.
+ * @param outputBufferMB Returns a newly malloced buffer containing the target MB chars.
+ *                       Will contain an error message if the function returns TRUE.
+ *                       If this is NULL then there was an out of memory problem.
+ *                       Caller must free this up.
+ * @param outputEncoding Output encoding to use.
+ *
+ * @return -1 if there were any problems.  buffer size (>=0) if everything was Ok.
+ */
+int converterMBToMB(const char *multiByteChars, int inputEncoding, char **outputBufferMB, int outputEncoding) {
+    TCHAR* tempBuffer = NULL;
+    int result1 = 0;
+    int result2;
+    
+    if (multiByteToWideChar(multiByteChars, inputEncoding, &tempBuffer, FALSE)) {
+        if (!tempBuffer) {
+            return -1;
+        }
+        /* The result will be -1 but we still need to convert the error message. */
+        result1 = -1;
+    }
+    result2 = converterWideToMB((const TCHAR*)tempBuffer, outputBufferMB, outputEncoding);
+    if (result1 == -1) {
+        return -1;
+    }
+    return result2;
+}
+#else
+/**
+ * Converts a native multibyte string into a specific multibyte encoded string.
+ *
+ * @param multiByteChars The original multi-byte chars.
+ * @param multiByteEncoding The multi-byte encoding.
+ * @param outputBufferMB Returns a newly malloced buffer containing the target MB chars.
+ *                       Will contain an error message if the function returns TRUE.
+ *                       If this is NULL then there was an out of memory problem.
+ *                       Caller must free this up.
+ * @param outputEncoding Output encoding to use.
+ *
+ * @return -1 if there were any problems.  buffer size (>=0) if everything was Ok.
+ */
+int converterMBToMB(const char *multiByteChars, const char *multiByteEncoding, char **outputBufferMB, const char *outputEncoding) {
+    char *errorTemplate;
+    size_t errorTemplateLen;
+    size_t iconv_value;
+    char *nativeChar;
+    char *nativeCharStart;
+    size_t multiByteCharsLen;
+    int nativeCharLen = -1;
+    size_t nativeCharWithEndCharLen;
+    size_t multiByteCharsLenStart;
+#if defined(FREEBSD) || defined(SOLARIS) || (defined(AIX) && defined(USE_LIBICONV_GNU))
+    const char* multiByteCharsStart;
+#else
+    char* multiByteCharsStart;
+#endif
+    iconv_t conv_desc;
+    int redoIConv;
+
+
+    /* Clear the output buffer as a sanity check.  Shouldn't be needed. */
+    *outputBufferMB = NULL;
+
+    /* First we need to convert from the multi-byte string to native. */
+    /* If the multiByteEncoding and outputEncoding encodings are equal then there is nothing to do. */
+    if ((strcmp(multiByteEncoding, outputEncoding) != 0) && (strcmp(outputEncoding, "646") != 0) && (strlen(multiByteChars) > 0)) {
+        conv_desc = wrapper_iconv_open(outputEncoding, multiByteEncoding); /* convert multiByte encoding to interum-encoding*/
+        if (conv_desc == (iconv_t)(-1)) {
+            /* Initialization failure. */
+            if (errno == EINVAL) {
+                errorTemplate = "Conversion from '%s' to '%s' is not supported.";
+                errorTemplateLen = strlen(errorTemplate) + strlen(multiByteEncoding) + strlen(outputEncoding) + 1;
+                *outputBufferMB = malloc(errorTemplateLen);
+                if (*outputBufferMB) {
+                    snprintf(*outputBufferMB, errorTemplateLen, errorTemplate, multiByteEncoding, outputEncoding);
+                } else {
+                    /* Out of memory. *outputBufferMB already NULL. */
+                }
+                return -1;
+            } else {
+                errorTemplate = "Initialization failure in iconv: %d";
+                errorTemplateLen = strlen(errorTemplate) + 10 + 1;
+                *outputBufferMB = malloc( errorTemplateLen);
+                if (*outputBufferMB) {
+                    snprintf(*outputBufferMB, errorTemplateLen, errorTemplate, errno);
+                } else {
+                    /* Out of memory. *outputBufferMB already NULL. */
+                }
+                return -1;
+            }
+
+        }
+        multiByteCharsLen = strlen(multiByteChars);
+
+        /* We need to figure out how many bytes we need to store the native encoded string. */
+        nativeCharLen = multiByteCharsLen;
+        do {
+            redoIConv = FALSE;
+            multiByteCharsLenStart = multiByteCharsLen + 1;
+#if defined(FREEBSD) || defined(SOLARIS) || (defined(AIX) && defined(USE_LIBICONV_GNU))
+            multiByteCharsStart = multiByteChars;
+#else
+            multiByteCharsStart = (char *)multiByteChars;
+#endif
+            nativeChar = calloc(nativeCharLen + 1, 1);
+            if (!nativeChar) {
+                wrapper_iconv_close(conv_desc);
+                /* Out of memory. */
+                *outputBufferMB = NULL;
+                return -1;
+            }
+
+            nativeCharStart = nativeChar;
+
+            /* Make a copy of the nativeCharLen as this call will replace it with the number of chars used. */
+            nativeCharWithEndCharLen = nativeCharLen + 1;
+            iconv_value = wrapper_iconv(conv_desc, &multiByteCharsStart, &multiByteCharsLenStart, &nativeChar, &nativeCharWithEndCharLen);
+            /* Handle failures. */
+            if (iconv_value == (size_t)-1) {
+                /* See "man 3 iconv" for an explanation. */
+                switch (errno) {
+                case EILSEQ:
+                    wrapper_iconv_close(conv_desc);
+                    free(nativeCharStart);
+                    errorTemplate = "Invalid multibyte sequence.";
+                    errorTemplateLen = strlen(errorTemplate) + 1;
+                    *outputBufferMB = malloc(errorTemplateLen);
+                    if (*outputBufferMB) {
+                       snprintf(*outputBufferMB, errorTemplateLen, "%s", errorTemplate);
+                    } else {
+                        /* Out of memory. *outputBufferMB already NULL. */
+                    }
+                    return -1;
+                    break;
+                case EINVAL:
+                    wrapper_iconv_close(conv_desc);
+                    free(nativeCharStart);
+                    errorTemplate = "Incomplete multibyte sequence.";
+                    errorTemplateLen = strlen(errorTemplate) + 1;
+                    *outputBufferMB = malloc(errorTemplateLen);
+                    if (*outputBufferMB) {
+                       snprintf(*outputBufferMB, errorTemplateLen, "%s", errorTemplate);
+                    } else {
+                        /* Out of memory. *outputBufferMB already NULL. */
+                    }
+                    return -1;
+
+                case E2BIG:
+                    /* The output buffer was too small, extend it and redo.
+                     *  iconv decrements multiByteCharsLenStart by the number of converted input bytes.
+                     *  The remaining bytes to convert may not correspond exactly to the additional size
+                     *  required in the output buffer, but it is a good value to minimize the number of
+                     *  conversions while ensuring not to extend too much the output buffer. */
+                    if (multiByteCharsLenStart > 0) {
+                        /* Testing that multiByteCharsLenStart is >0 should not be needed, but it's a
+                         *  sanity check to make sure we never fall into an infinite loop. */
+                        nativeCharLen += multiByteCharsLenStart;
+                        redoIConv = TRUE;
+                    }
+                    break;
+
+                default:
+                    wrapper_iconv_close(conv_desc);
+                    free(nativeCharStart);
+                    errorTemplate = "Unexpected iconv error: %d";
+                    errorTemplateLen = strlen(errorTemplate) + 10 + 1;
+                    *outputBufferMB = malloc(errorTemplateLen);
+                    if (*outputBufferMB) {
+                        snprintf(*outputBufferMB, errorTemplateLen, errorTemplate, errno);
+                    } else {
+                        /* Out of memory. *outputBufferMB already NULL. */
+                    }
+                    return -1;
+                }
+            }
+        } while (redoIConv);
+
+        /* finish iconv */
+        if (wrapper_iconv_close(conv_desc)) {
+            free(nativeCharStart);
+            errorTemplate = "Cleanup failure in iconv: %d";
+            errorTemplateLen = strlen(errorTemplate) + 10 + 1;
+            *outputBufferMB = malloc(errorTemplateLen);
+            if (*outputBufferMB) {
+                snprintf(*outputBufferMB, errorTemplateLen, errorTemplate, errno);
+            } else {
+                /* Out of memory. *outputBufferMB already NULL. */
+            }
+            return -1;
+        }
+    } else {
+        /* The source chars do not need to be converted.  Copy them to make a consistant API. */
+        nativeCharLen = strlen(multiByteChars);
+        nativeCharStart = malloc(sizeof(char) * (nativeCharLen + 1));
+        if (nativeCharStart) {
+            snprintf(nativeCharStart, nativeCharLen + 1, "%s", multiByteChars);
+        } else {
+            /* Out of memory.  *outputBufferMB already NULL. */
+            return -1;
+        }
+    }
+    *outputBufferMB = nativeCharStart;
+
+    return nativeCharLen;
+}
+
+/**
+ * Converts a Wide string into a specific multibyte encoded string.
+ *
+ * @prarm wideChars The Wide string to be converted.
+ * @param outputBufferMB Returns a newly malloced buffer containing the target MB chars.
+ *                       Will contain an error message if the function returns TRUE.
+ *                       If this is NULL then there was an out of memory problem.
+ *                       Caller must free this up.
+ * @param outputEncoding Output encoding to use (if NULL use the encoding of the locale).
+ *
+ * @return -1 if there were any problems.  buffer size (>=0) if everything was Ok.
+ */
+int converterWideToMB(const TCHAR *wideChars, char **outputBufferMB, const char *outputEncoding) {
+    char *errorTemplate;
+    size_t errorTemplateLen;
+    size_t len;
+    char *interumBufferMB;
+    char* encodingFrom;
+    int result;
+
+    /* Initialize the outputBuffer. */
+    *outputBufferMB = NULL;
+
+    len = wcstombs(NULL, wideChars, 0);
+
+    if (len == (size_t)-1) {
+        errorTemplate = "Invalid multibyte sequence (0x%x)";
+        errorTemplateLen = strlen(errorTemplate) + 10 + 1;
+        *outputBufferMB = malloc(errorTemplateLen);
+        if (*outputBufferMB) {
+            snprintf(*outputBufferMB, errorTemplateLen, errorTemplate, wrapperGetLastError());
+        } else {
+            /* Out of memory. *outputBufferW already NULL. */
+        }
+        return -1;
+    }
+    interumBufferMB = malloc(len + 1);
+    if (!interumBufferMB) {
+        return -1;
+    }
+    wcstombs(interumBufferMB, wideChars, len + 1);
+    encodingFrom = nl_langinfo(CODESET);
+ #ifdef MACOSX
+    if (strlen(encodingFrom) == 0) {
+        encodingFrom = "UTF-8";
+    }
+ #endif
+    if (outputEncoding && (strcmp(encodingFrom, outputEncoding) != 0)) {
+        result = converterMBToMB(interumBufferMB, encodingFrom, outputBufferMB, outputEncoding);
+        free(interumBufferMB);
+    } else {
+        /* The output encoding is the same as the one of the current locale.
+         *  No need to call converterMBToMB() which would cause an additional malloc/free */
+        *outputBufferMB = interumBufferMB;
+        result = (int)strlen(*outputBufferMB);
+    }
+
+    return result;
+}
+#endif
+
 /**
  * Gets the error code for the last operation that failed.
  */
@@ -1493,6 +1847,76 @@ void wrapperCorrectNixPath(TCHAR *filename) {
     }
 #endif
 }
+
+#ifndef WIN32
+/**
+ * Check if the given encoding is supported by the iconv library.
+ *
+ * @return ICONV_ENCODING_SUPPORTED if the encoding is supported,
+ *         ICONV_ENCODING_KNOWN_ISSUE if the encoding exist on iconv but fails to convert some characters.
+ *         ICONV_ENCODING_NOT_SUPPORTED if the encoding is not supported.
+ */
+int getIconvEncodingMBSupport(const char* encodingMB) {
+    iconv_t conv_desc;
+    int ret;
+    const char* fromcode = MB_UTF8;
+    TCHAR *outputBufferW;
+    
+    if (encodingMB) {
+        if ((strIgnoreCaseCmp(encodingMB, "utf8") == 0) || (strIgnoreCaseCmp(encodingMB, "UTF-8") == 0)
+        ) {
+            /* On some platforms, it is not correct to open iconv with the same input and output encodings
+             *  (this is the case on HP-UX). We know anyway that UTF-8 is always supported, so return TRUE.
+             *  On HPUX & ZOS (so most likely on all platforms), iconv supports both the uppercase and
+             *  lowercase notations. */
+            return ICONV_ENCODING_SUPPORTED;
+        }
+        conv_desc = wrapper_iconv_open(encodingMB, fromcode);
+        if (conv_desc != (iconv_t)(-1)) {
+            wrapper_iconv_close(conv_desc);
+            /* On some platforms iconv may fail to convert some characters to certain encodings.
+             *  For example backslashs fail to be converted to 'SJIS' on FreeBSD 7.
+             *  The following condition can be improved as new issues are found. */
+            ret = multiByteToWideChar("\\", fromcode, (char *)encodingMB, &outputBufferW, FALSE);
+            if (outputBufferW) {
+                free(outputBufferW);
+            }
+            if (ret) {
+                return ICONV_ENCODING_KNOWN_ISSUE;
+            } else {
+                return ICONV_ENCODING_SUPPORTED;
+            }
+        }
+    }
+    return ICONV_ENCODING_NOT_SUPPORTED;
+}
+
+/**
+ * Check if the given encoding is supported by the iconv library.
+ *
+ * @return ICONV_ENCODING_SUPPORTED if the encoding is supported,
+ *         ICONV_ENCODING_KNOWN_ISSUE if the encoding exist on iconv but fails to convert some characters.
+ *         ICONV_ENCODING_NOT_SUPPORTED if the encoding is not supported.
+ */
+int getIconvEncodingSupport(const TCHAR* encoding) {
+    size_t size;
+    char *encodingMB = NULL;
+    int result = FALSE;
+    
+    if (encoding) {
+        size = wcstombs(NULL, encoding, 0);
+        if (size > (size_t)0) {
+            encodingMB = malloc(size + 1);
+            if(encodingMB) {
+                wcstombs(encodingMB, encoding, size + 1);
+                result = getIconvEncodingMBSupport(encodingMB);
+                free(encodingMB);
+            }
+        }
+    }
+    return result;
+}
+#endif
 
 #ifdef FREEBSD
 /**

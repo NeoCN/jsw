@@ -38,6 +38,7 @@ import java.io.InterruptedIOException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -307,6 +308,9 @@ public final class WrapperManager
     
     /** Flag to remember whether or not this is AIX. */
     private static boolean m_aix = false;
+    
+    /** Flag to remember whether or not this is z/OS. */
+    private static boolean m_zos = false;
     
     /** Flag that will be set to true once a SecurityManager has been detected and tested. */
     private static boolean m_securityManagerChecked = false;
@@ -601,9 +605,31 @@ public final class WrapperManager
         m_err = System.err;
 
         // Set up some log channels
-        m_outInfo = new WrapperPrintStream( m_out, "WrapperManager: " );
-        m_outError = new WrapperPrintStream( m_out, "WrapperManager Error: " );
-        m_outDebug = new WrapperPrintStream( m_out, "WrapperManager Debug: " );
+        boolean streamsSet = false;
+        String sunStdoutEncoding = System.getProperty( "sun.stdout.encoding" );
+        if ( ( sunStdoutEncoding != null ) && ( sunStdoutEncoding != System.getProperty( "file.encoding" ) ) ) {
+            /* We need to create the stream using the same encoding as the one used for stdout, else this will lead to encoding issues. */
+            try
+            {
+                m_outInfo = new WrapperPrintStream( m_out, false, sunStdoutEncoding, "WrapperManager: " );
+                m_outError = new WrapperPrintStream( m_out, false, sunStdoutEncoding, "WrapperManager Error: " );
+                m_outDebug = new WrapperPrintStream( m_out, false, sunStdoutEncoding, "WrapperManager Debug: " );
+                streamsSet = true;
+            }
+            catch ( UnsupportedEncodingException e )
+            {
+                /* This should not happen when using the localization properties, because we always make sure the encoding exists before passing it to the JVM.
+                 *  Can still happen when passing the encoding directly through the java additionals parameters.
+                 *  If any of the above streams failed, we want to fall back to streams that use the same encoding. */
+                System.out.println( "Failed to set the encoding '" + sunStdoutEncoding + "' when creating a WrapperPrintStream.\n Make sure the value of sun.stdout.encoding is correct." );
+            }
+        }
+        if ( !streamsSet )
+        {
+            m_outInfo = new WrapperPrintStream( m_out, "WrapperManager: " );
+            m_outError = new WrapperPrintStream( m_out, "WrapperManager Error: " );
+            m_outDebug = new WrapperPrintStream( m_out, "WrapperManager Debug: " );
+        }
         
         // Always create an empty properties object in case we are not running
         //  in the Wrapper or the properties are never sent.
@@ -1412,6 +1438,7 @@ public final class WrapperManager
         else if ( os.equals( "z/os" ) )
         {
             os = "zos";
+            m_zos = true;
         }
         else if ( os.indexOf("aix") > -1 )
         {
@@ -2473,6 +2500,18 @@ public final class WrapperManager
     public static boolean isAIX()
     {
         return m_aix;
+    }
+    
+    /**
+     * Returns true if the current JVM is z/OS.
+     *
+     * @return True if this is z/OS.
+     *
+     * @since Wrapper 3.5.35
+     */
+    private static boolean isZOS()
+    {
+        return m_zos;
     }
     
     /**
@@ -5573,8 +5612,16 @@ public final class WrapperManager
                     }
                     while ( b != 0 );
                     
-                    // The message should be multi-byte string in the system encoding.
-                    String msg = new String( m_backendReadBuffer, 0, i );
+                    // The message should be a multi-byte UTF-8 string (except on z/OS where the system encoding is used).
+                    String msg;
+                    if ( !isZOS() )
+                    {
+                        msg = new String( m_backendReadBuffer, 0, i, "UTF-8" );
+                    }
+                    else
+                    {
+                        msg = new String( m_backendReadBuffer, 0, i );
+                    }
                     
                     if ( m_appearHung )
                     {

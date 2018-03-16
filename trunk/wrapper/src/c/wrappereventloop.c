@@ -1288,7 +1288,21 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
                 wrapperData->exitCode = wrapperData->errorExitCode;
                 return;
             }
-
+            
+            /* Generate the command used to get the Java version but don't stop on failure. */
+            wrapperBuildJavaVersionCommand();
+            
+            /* Get the Java version before building the command line. */
+            wrapperLaunchJavaVersion();
+            
+            /* Make sure that the Java version is in the range in which the Wrapper is allowed to run. */
+            if (!wrapperConfirmJavaVersion()) {
+                /* Failed. Wrapper shutdown. */
+                wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
+                wrapperData->exitCode = wrapperData->errorExitCode;
+                return;
+            }
+            
             /* Generate the command used to launch the Java process */
             if (wrapperBuildJavaCommand()) {
                 /* Failed. Wrapper shutdown. */
@@ -1371,9 +1385,11 @@ void jStateLaunch(TICKS nowTicks, int nextSleep) {
         (wrapperData->wState == WRAPPER_WSTATE_STARTED) ||
         (wrapperData->wState == WRAPPER_WSTATE_RESUMING)) {
 
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Launching a JVM..."));
+        if (!wrapperData->runWithoutJVM) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Launching a JVM..."));
+        }
 
-        if (wrapperExecute()) {
+        if (wrapperLaunchJavaApp()) {
             /* We know that there was a problem launching the JVM process.
              *  If we fail at this level, assume it is a critical problem and don't bother trying to restart later.
              *  A message should have already been logged. */

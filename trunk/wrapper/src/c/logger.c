@@ -378,6 +378,15 @@ TCHAR *replaceStringLongWithShort(TCHAR *string, const TCHAR *oldToken, const TC
     return string;
 }
 
+static int isInitialized = FALSE;
+
+/**
+ * Return TRUE if the logging is initialized, FALSE otherwise.
+ */
+int isLogInitialized() {
+    return isInitialized;
+}
+
 /**
  * Initializes the logger.  Returns 0 if the operation was successful.
  */
@@ -425,6 +434,7 @@ int initLogging(void (*logFileChanged)(const TCHAR *logFile)) {
             queueLevels[threadId][i] = 0;
         }
     }
+    isInitialized = TRUE;
     return 0;
 }
 
@@ -739,18 +749,21 @@ int setLogfilePath(const TCHAR *log_file_path, int isConfigured) {
         return TRUE;
     }
     _tcsncpy(fixed_log_file_path, log_file_path, len + 1);
+    if (len > 0) {
+        /* An empty value means that the file logging should be disabled. Skip any conversion and keep the value as is. */
 #ifdef WIN32
-    wrapperCorrectWindowsPath(fixed_log_file_path);
+        wrapperCorrectWindowsPath(fixed_log_file_path);
 #else
-    wrapperCorrectNixPath(fixed_log_file_path);
+        wrapperCorrectNixPath(fixed_log_file_path);
 #endif
 
-    /* Convert the path to an absolute path.
-     * Log in DEBUG here. We will later show a warning with checkLogfileDir() if the directory does not exist. */
-    logFilePath = getAbsolutePathOfFile(fixed_log_file_path, TEXT("log file path"), getLoggingIsPreload() ? LEVEL_NONE : LEVEL_DEBUG, FALSE);
+        /* Convert the path to an absolute path.
+         * Log in DEBUG here. We will later show a warning with checkLogfileDir() if the directory does not exist. */
+        logFilePath = getAbsolutePathOfFile(fixed_log_file_path, TEXT("log file path"), getLoggingIsPreload() ? LEVEL_NONE : LEVEL_DEBUG, FALSE);
 #ifdef _DEBUG
-    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Absolute path to the configured log file resolved to %s."), logFilePath);
+        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Absolute path to the configured log file resolved to %s."), logFilePath);
 #endif
+    }
 
     if (!logFilePath) {
         /* Continue with the relative path. */
@@ -1609,6 +1622,10 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
 
             case WRAPPER_SOURCE_PROTOCOL:
                 temp = _sntprintf( pos, reqSize - len, TEXT("wrapperp") );
+                break;
+
+            case WRAPPER_SOURCE_JVM_VERSION:
+                temp = _sntprintf( pos, reqSize - len, TEXT("jvm ver.") );
                 break;
 
             default:
@@ -3135,6 +3152,10 @@ void sendEventlogMessage( int source_id, int level, const TCHAR *szBuff ) {
         _sntprintf( header, 16, TEXT("wrapperp") );
         break;
 
+    case WRAPPER_SOURCE_JVM_VERSION:
+        _sntprintf( header, 16, TEXT("jvm ver.") );
+        break;
+
     default:
         _sntprintf( header, 16, TEXT("jvm %d"), source_id );
         header[15] = TEXT('\0'); /* Just in case we get lots of restarts. */
@@ -4007,6 +4028,9 @@ void log_printf_queue( int useQueue, int source_id, int level, const TCHAR *lpsz
     }
 #endif
 
+    if (!isLogInitialized()) {
+        useQueue = FALSE;
+    }
     
     /** For queued logging, we have a fixed length buffer to work with.  Just to make it easy to catch
      *   problems, always use the same sized fixed buffer even if we will be using the non-queued logging. */
@@ -4076,14 +4100,25 @@ void log_printf_queue( int useQueue, int source_id, int level, const TCHAR *lpsz
             queueWrapped[threadId] = 1;
         }
     } else {
-        /* Make a normal logging call with our new buffer.  Parameters are already expanded. */
-        log_printf(source_id, level,
+        if (isLogInitialized()) {
+            /* Make a normal logging call with our new buffer.  Parameters are already expanded. */
+            log_printf(source_id, level,
 #if defined(UNICODE) && !defined(WIN32)
-            TEXT("%S"),
+                TEXT("%S"),
 #else
-            TEXT("%s"),
+                TEXT("%s"),
 #endif
-            buffer);
+                buffer);
+        } else {
+            /* The best we can do is print something on the screen. */
+            _tprintf(
+#if defined(UNICODE) && !defined(WIN32)
+                TEXT("%S\n"),
+#else
+                TEXT("%s\n"),
+#endif
+                buffer);
+        }
         
         free(buffer);
     }
