@@ -38,11 +38,6 @@
 
 #ifdef WIN32
  #include <winsock.h>
- #ifdef WINIA
-  #include <limits.h>
-  /* Not defined in fcntl.h on Itanium */
-  #define _O_WTEXT        0x10000 /* file mode is UTF16 (translated) */
- #endif /* WINIA */
 #else /* UNIX */
  #include <sys/types.h>
  #include <time.h>
@@ -706,7 +701,7 @@ extern int *wrapperGetActionListForNames(const TCHAR *actionNameList, const TCHA
  */
 extern void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int actionSourceCode, int actionPropertyIndex, int logForActionNone, int exitCode);
 
-extern void wrapperAddDefaultProperties();
+extern void wrapperAddDefaultProperties(Properties *props);
 
 extern int getOriginalWorkingDir();
 

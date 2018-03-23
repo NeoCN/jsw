@@ -477,6 +477,8 @@ extern int multiByteToWideChar(const char *multiByteChars, int encoding, TCHAR *
 
 extern TCHAR* toLower(const TCHAR* value);
 
+extern void clearNonAlphanumeric(TCHAR* bufferIn, TCHAR* bufferOut);
+
 #ifndef WIN32
 /**
  * Get the encoding of the current locale.

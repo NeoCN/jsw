@@ -1251,6 +1251,25 @@ TCHAR* toLower(const TCHAR* value) {
     return result;
 }
 
+/**
+ * Clear any non-alphanumeric characters.
+ *  Generally the OS will ignore the canonical dashes and punctuation in the encoding notation when setting the locale.
+ *  This function is used when comparing two notations to check if they refer to the same encoding.
+ *
+ * @param bufferIn input string
+ * @param bufferOut output string
+ */
+void clearNonAlphanumeric(TCHAR* bufferIn, TCHAR* bufferOut) {
+    while (*bufferIn) {
+        if (_istdigit(*bufferIn) || _istalpha(*bufferIn)) {
+            *bufferOut = *bufferIn;
+            bufferOut++;
+        }
+        bufferIn++;
+    }
+    *bufferOut = TEXT('\0');
+}
+
 #ifndef WIN32
 /**
  * Get the encoding of the current locale.

@@ -232,7 +232,7 @@ struct tm wrapperGetBuildTime() {
  *  so that it will be impossible for users to override their values by
  *  creating a "set.XXX=NNN" property in the configuration file.
  */
-void wrapperAddDefaultProperties() {
+void wrapperAddDefaultProperties(Properties *props) {
     size_t bufferLen;
     TCHAR* buffer, *confDirTemp;
 #ifdef WIN32
@@ -339,32 +339,32 @@ void wrapperAddDefaultProperties() {
     }
 
     _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_LANG=en"));
-    addPropertyPair(properties, NULL, 0, buffer, TRUE, FALSE, TRUE);
+    addPropertyPair(props, NULL, 0, buffer, TRUE, FALSE, TRUE);
 
     _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_PID=%d"), wrapperData->wrapperPID);
-    addPropertyPair(properties, NULL, 0, buffer, TRUE, FALSE, TRUE);
+    addPropertyPair(props, NULL, 0, buffer, TRUE, FALSE, TRUE);
 
     _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_BITS=%s"), wrapperBits);
-    addPropertyPair(properties, NULL, 0, buffer, TRUE, FALSE, TRUE);
+    addPropertyPair(props, NULL, 0, buffer, TRUE, FALSE, TRUE);
 
     _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_ARCH=%s"), wrapperArch);
-    addPropertyPair(properties, NULL, 0, buffer, TRUE, FALSE, TRUE);
+    addPropertyPair(props, NULL, 0, buffer, TRUE, FALSE, TRUE);
 
     _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_OS=%s"), wrapperOS);
-    addPropertyPair(properties, NULL, 0, buffer, TRUE, FALSE, TRUE);
+    addPropertyPair(props, NULL, 0, buffer, TRUE, FALSE, TRUE);
 
     _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_HOSTNAME=%s"), wrapperData->hostName);
-    addPropertyPair(properties, NULL, 0, buffer, TRUE, FALSE, TRUE);
+    addPropertyPair(props, NULL, 0, buffer, TRUE, FALSE, TRUE);
 
     _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_HOST_NAME=%s"), wrapperData->hostName);
-    addPropertyPair(properties, NULL, 0, buffer, TRUE, FALSE, TRUE);
+    addPropertyPair(props, NULL, 0, buffer, TRUE, FALSE, TRUE);
 
 #ifdef WIN32
-    addPropertyPair(properties, NULL, 0, TEXT("set.WRAPPER_FILE_SEPARATOR=\\"), TRUE, FALSE, TRUE);
-    addPropertyPair(properties, NULL, 0, TEXT("set.WRAPPER_PATH_SEPARATOR=;"), TRUE, FALSE, TRUE);
+    addPropertyPair(props, NULL, 0, TEXT("set.WRAPPER_FILE_SEPARATOR=\\"), TRUE, FALSE, TRUE);
+    addPropertyPair(props, NULL, 0, TEXT("set.WRAPPER_PATH_SEPARATOR=;"), TRUE, FALSE, TRUE);
 #else
-    addPropertyPair(properties, NULL, 0, TEXT("set.WRAPPER_FILE_SEPARATOR=/"), TRUE, FALSE, TRUE);
-    addPropertyPair(properties, NULL, 0, TEXT("set.WRAPPER_PATH_SEPARATOR=:"), TRUE, FALSE, TRUE);
+    addPropertyPair(props, NULL, 0, TEXT("set.WRAPPER_FILE_SEPARATOR=/"), TRUE, FALSE, TRUE);
+    addPropertyPair(props, NULL, 0, TEXT("set.WRAPPER_PATH_SEPARATOR=:"), TRUE, FALSE, TRUE);
 #endif
 
     free(buffer);
@@ -807,7 +807,7 @@ int wrapperPreLoadConfigurationProperties(int *logLevelOnOverwriteProperties, in
         setSilentLogLevels();
     }
     
-    wrapperAddDefaultProperties();
+    wrapperAddDefaultProperties(properties);
     if (wrapperData->workingDir && wrapperData->originalWorkingDir) {
         if (wrapperSetWorkingDir(wrapperData->originalWorkingDir, FALSE)) {
             /* Failed to restore the working dir.  Shutdown the Wrapper */
@@ -988,7 +988,7 @@ int wrapperLoadConfigurationProperties(int preload) {
     
     /* Not sure we need to call again wrapperAddDefaultProperties() here. The function was already called on preload.
     Use properties->logLevelOnOverwrite to see the concerned properties */
-    wrapperAddDefaultProperties();
+    wrapperAddDefaultProperties(properties);
 
     /* The argument prior to the argBase will be the configuration file, followed
      *  by 0 or more command line properties.  The command line properties need to be
@@ -7074,6 +7074,36 @@ int wrapperBuildJavaCommandArrayAppParameters(TCHAR **strings, int addQuotes, in
 }
 
 /**
+ *  Checks the additional java parameters to see if the user has specified a specific system property.
+ *   Returns TRUE if already set or there was an error, FALSE if it is safe to set again.
+ *
+ *  @param propName the name of the system property to search
+ *
+ *  @return  TRUE if a JVM option was already specified by the user, FALSE otherwise
+ */
+int isSysPropInJavaArgs(const TCHAR* propName) {
+    TCHAR** propNames;
+    TCHAR** propValues;
+    long unsigned int* propIndices;
+    int i;
+    int ret = FALSE;
+
+    if (getStringProperties(properties, TEXT("wrapper.java.additional."), TEXT(""), wrapperData->ignoreSequenceGaps, FALSE, &propNames, &propValues, &propIndices)) {
+        /* Failed */
+        return TRUE;
+    }
+
+    for (i = 0; propNames[i] && !ret; i++){
+        if (_tcsstr(propValues[i], propName) == propValues[i]) {
+            ret = TRUE;
+        }
+    }
+
+    freeStringProperties(propNames, propValues, propIndices);
+    return ret;
+}
+
+/**
  * Loops over and stores all necessary commands into an array which
  *  can be used to launch a process.
  * This method will only count the elements if stringsPtr is NULL.
@@ -7089,6 +7119,12 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     int initMemory = 0;
     int maxMemory;
     int thisIsTestWrapper;
+    TCHAR encodingBuff[ENCODING_BUFFER_SIZE];
+    TCHAR* fileEncodingPtr = NULL;
+    int passEncoding = FALSE;
+#ifndef WIN32
+    TCHAR localeEncodingBuff[ENCODING_BUFFER_SIZE];
+#endif
 
     setLogPropertyWarnings(properties, strings != NULL);
     index = 0;
@@ -7141,6 +7177,35 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     /* Store additional java parameters specified in the parameter file */
     if ((index = wrapperLoadParameterFile(strings, addQuotes, detectDebugJVM, index, TEXT("wrapper.java.additional_file"), TRUE)) < 0) {
         return -1;
+    }
+
+    encodingBuff[0] = 0;
+#ifdef MACOSX
+    if (!passEncoding && (wrapperData->javaVersion->major < 7) && !isSysPropInJavaArgs(TEXT("-Dfile.encoding"))) {
+        /* Java 6 on MacOSX ignores the encoding of the current locale and set file.encoding to "MacRoman". To be consistent with other JVMs,
+         *  and to read the JVM output in the correct encoding, we will specify this system property in the Java command line. */
+        passEncoding = TRUE;
+    }
+#endif
+    if (passEncoding) {
+        if (strings) {
+            if (!getJvmIoEncoding(getCurrentLocaleEncoding(localeEncodingBuff), wrapperData->javaVersion->major, encodingBuff)) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Could not infer the JVM encoding from the locale encoding '%s'."), localeEncodingBuff);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT(" Please add the 'file.encoding' system property to the JVM arguments\n and set it with an appropriate encoding for the current platform."));
+                /* Stop the Wrapper. The user must fix the configuration. */
+                return -1;
+            }
+            if (!fileEncodingPtr) {
+                fileEncodingPtr = encodingBuff;
+            }
+            strings[index] = malloc(sizeof(TCHAR) * (16 + _tcslen(fileEncodingPtr) + 1));
+            if (!strings[index]) {
+                outOfMemory(TEXT("WBJCAI"), 4);
+                return -1;
+            }
+            _sntprintf(strings[index], 16 + _tcslen(fileEncodingPtr) + 1, TEXT("-Dfile.encoding=%s"), fileEncodingPtr);
+        }
+        index++;
     }
 
     /* Initial JVM memory */

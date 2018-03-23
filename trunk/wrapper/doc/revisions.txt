@@ -40,6 +40,15 @@ Java Service Wrapper Revision History.
   cause garbled outputs if it was using another language. From now on, the
   Wrapper makes use of file.encoding (and sun.stdout.encoding when available)
   only if wrapper.lang.[windows|unix].encoding or wrapper.jvm.encoding are set.
+* On MacOSX, JVMs older than version 7 have their default encoding set to
+  "MacRoman" regardless the current locale. This can cause some encoding issues
+  because the Wrapper uses the encoding of the locale to read the JVM output.
+  To ensure a correct reading, the Wrapper will automatically set file.encoding
+  to the locale encoding and pass it to the JVM whenever the version is older
+  than 7 (unless file.encoding is already specified by the user).
+* On Windows, user.language and user.country will be set and passed to the JVM
+  whenever wrapper.lang differs from the language and country of the UI.
+  Previously only user.language was passed.
 * Make it possible to use wrapper.lang.folder, wrapper.lang.domain,
   wrapper.lang.window.encoding and wrapper.lang.unix.encoding without setting
   wrapper.lang. This can be useful if any of this configuration needs to be
@@ -58,7 +67,7 @@ Java Service Wrapper Revision History.
   versions of Java for which the Wrapper is allowed to run. Out of the
   specified range, the Wrapper will stop.
 * Fix wrapper.console.title being ignored with wrapperw.exe and
-  wrapper.ntservice.console set TRUE.
+  wrapper.ntservice.console set to TRUE.
 * Add four customization options (properties-default, property-file-default,
   properties-default, property-file-default) to include configuration
   properties into the Wrapper binaries (Windows). The properties specified with

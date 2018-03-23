@@ -69,6 +69,17 @@ int getJvmArgumentsEncoding(TCHAR* buffer, int javaVersion, int jvmMaker);
 UINT getJvmOutputCodePage();
 #else
 /**
+ * Check if the encoding is supported by the JVM.
+ *
+ * @jvmEncoding the jvm encoding
+ * @javaVersion current java version
+ * @buffer      buffer where the output encoding should be copied
+ *
+ * @return a string representation of the JVM io encoding, or NULL if no value could be found.
+ */
+TCHAR* getJvmIoEncoding(TCHAR* jvmEncoding, int javaVersion, TCHAR* buffer);
+
+/**
  * Get the encoding used for the current JVM outputs.
  *  resolveJvmEncoding() should be called before using this function.
  *

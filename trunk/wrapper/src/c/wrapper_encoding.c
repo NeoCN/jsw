@@ -46,6 +46,10 @@
 
 #define K_ENCODING_V_ENCODING           1   /* map any encoding (io or nio) to its corresponding encoding (io if key is nio, and nio if key is io). */
 #define K_ENCODING_V_JVERSION           2   /* map any encoding (io or nio) to the Java version in which it was introduced. */
+#ifndef WIN32
+ #define K_ENCODING_V_IOENCODING        3   /* map any encoding (io or nio) to its corresponding io encoding (this also allows to normalize the case when the key is an io encoding). */
+ #define K_SHORTENCODING_V_IOENCODING   4   /* map the short notation of any encoding (io or nio) to its corresponding io encoding (this also allows to normalize the case when the key is an io encoding). */
+#endif
 
 /**
  * Build a hashMap containing the encodings supported by Java.
@@ -66,6 +70,9 @@ PHashMap buildJvmEncodingsHashMap(int mode) {
 #ifdef WIN32
     int          cp[163]; /* Windows Code Pages */
     int          id[163]; /* Whether the code page is an ID to retrieve the encoding */
+#else
+    TCHAR  key1Buff[ENCODING_BUFFER_SIZE];
+    TCHAR  key2Buff[ENCODING_BUFFER_SIZE];
 #endif
     TCHAR* key1;
     TCHAR* key2;
@@ -287,6 +294,40 @@ PHashMap buildJvmEncodingsHashMap(int mode) {
             free(key1);
             free(key2);
         }
+#ifndef WIN32
+    } else if ((mode == K_ENCODING_V_IOENCODING) || (mode == K_SHORTENCODING_V_IOENCODING)) {
+        for (; i >= 0; i--) {
+            key1 = toLower(e1[i]);
+            if (!key1) {
+                freeHashMap(hashMap);
+                return NULL;
+            }
+            if (mode == K_SHORTENCODING_V_IOENCODING) {
+                clearNonAlphanumeric(key1, key1Buff);
+                free(key1);
+                key1 = key1Buff;
+            }
+            key2 = toLower(e2[i]);
+            if (!key2) {
+                free(key1);
+                freeHashMap(hashMap);
+                return NULL;
+            }
+            if (mode == K_SHORTENCODING_V_IOENCODING) {
+                clearNonAlphanumeric(key2, key2Buff);
+                free(key2);
+                key2 = key2Buff;
+            }
+            hashMapPutKWVW(hashMap, key1, e1[i]);
+            if (_tcscmp(key1, key2) != 0) {
+                hashMapPutKWVW(hashMap, key2, e1[i]);
+            }
+            if (mode != K_SHORTENCODING_V_IOENCODING) {
+                free(key1);
+                free(key2);
+            }
+        }
+#endif
     }
     return hashMap;
 }
@@ -341,6 +382,52 @@ int checkEncodingJavaVersion(const TCHAR* encoding, int javaVersion, int *pRequi
     }
     return result;
 }
+
+#ifndef WIN32
+/**
+ * Check if the encoding is supported by the JVM.
+ *
+ * @jvmEncoding the jvm encoding
+ * @javaVersion current java version
+ * @buffer      buffer where the output encoding should be copied
+ *
+ * @return a string representation of the JVM io encoding, or NULL if no value could be found.
+ */
+TCHAR* getJvmIoEncoding(TCHAR* jvmEncoding, int javaVersion, TCHAR* buffer) {
+    TCHAR* jvmEncLower;
+    TCHAR jvmEncShort[ENCODING_BUFFER_SIZE];
+    PHashMap hashMap;
+    const TCHAR* encoding;
+    TCHAR* result = NULL;
+    
+    buffer[0] = 0;
+    if (jvmEncoding) {
+        jvmEncLower = toLower(jvmEncoding);
+        if (jvmEncLower) {
+            hashMap = buildJvmEncodingsHashMap(K_ENCODING_V_IOENCODING);
+            if (hashMap) {
+                encoding = hashMapGetKWVW(hashMap, jvmEncLower);
+                if (!encoding) {
+                    /* The locale encoding doesn't match any of the JVM encodings. Try without canonical dashes and punctuation (ex: EUC-JP -> eucjp). */
+                    freeHashMap(hashMap);
+                    hashMap = buildJvmEncodingsHashMap(K_SHORTENCODING_V_IOENCODING);
+                    if (hashMap) {
+                        clearNonAlphanumeric(jvmEncLower, jvmEncShort);
+                        encoding = hashMapGetKWVW(hashMap, jvmEncShort);
+                    }
+                }
+                if (checkEncodingJavaVersion(encoding, javaVersion, NULL)) {
+                    _tcscpy(buffer, encoding);
+                    result = buffer;
+                }
+                freeHashMap(hashMap);
+            }
+            free(jvmEncLower);
+        }
+    }
+    return result;
+}
+#endif
 
 int checkEquivalentEncodings(TCHAR* encoding1, TCHAR* encoding2) {
 #ifndef WIN32
