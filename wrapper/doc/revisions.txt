@@ -32,20 +32,26 @@ Java Service Wrapper Revision History.
   this property requires Java 8 and above, and should be limited to cases where
   the encoding of the JVM has to be different from the Wrapper output encoding.
   Otherwise wrapper.lang.[windows|unix].encoding is preferred.
-* By default, stop adding 'file.encoding' to the arguments used when launching
-  a JVM on Windows. This was added in version 3.5.8 Profesional and Standard)
-  to ensure that the Wrapper always reads the JVM output using a suitable
-  encoding for its own language regardless of the OS language. However it
-  forced the Java application to use the same encoding which may, for example,
-  cause garbled outputs if it was using another language. From now on, the
-  Wrapper makes use of file.encoding (and sun.stdout.encoding when available)
-  only if wrapper.lang.[windows|unix].encoding or wrapper.jvm.encoding are set.
-* On MacOSX, JVMs older than version 7 have their default encoding set to
-  "MacRoman" regardless the current locale. This can cause some encoding issues
-  because the Wrapper uses the encoding of the locale to read the JVM output.
-  To ensure a correct reading, the Wrapper will automatically set file.encoding
-  to the locale encoding and pass it to the JVM whenever the version is older
-  than 7 (unless file.encoding is already specified by the user).
+* Improve the way the encoding is passed to the JVM on the different platforms:
+  - On windows, since version 3.5.8 (Profesional and Standard Editions),
+    file.encoding was added to the JVM arguments to ensure that the Wrapper
+    always reads the JVM output using a suitable encoding for its own language
+    regardless of the OS language. However it forced the Java application to
+    use an encoding that may not be appropriate. From now on, the encoding is
+    passed to the JVM only if wrapper.lang.windows.encoding or
+    wrapper.jvm.encoding are set, or if the version of Java is older than 7
+    (recent versions of Java have their default encoding set to the default
+    ANSI Windows code page, like the Wrapper, but that was not always the case
+    on older versions of Java).
+  - On MacOSX, JVMs older than version 7 have their default encoding set to
+    "MacRoman" regardless the current locale. This caused some encoding issues
+    because the Wrapper uses the encoding of the locale to read the JVM output.
+    To correctly read the output of those JVMs, the Wrapper sets file.encoding
+    to the locale encoding (unless it is already present among the JVM
+    arguments).
+  - On all other UNIX platforms, the JVM encoding is automatically resolved
+    from the current locale, so it is only added to the JVM arguments if
+    wrapper.jvm.encoding specifies a different value.
 * On Windows, user.language and user.country will be set and passed to the JVM
   whenever wrapper.lang differs from the language and country of the UI.
   Previously only user.language was passed.

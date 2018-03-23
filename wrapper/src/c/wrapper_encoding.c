@@ -708,6 +708,8 @@ int resolveJvmEncoding(int javaVersion, int jvmMaker) {
     int requiredJavaVersion = 0;
     TCHAR* encodingLwr;
     
+    wrapperData->use_sun_encoding = FALSE;
+    
     jvmEncodingOrigin = getJvmArgumentsEncoding(buffer, javaVersion, jvmMaker);
     if (jvmEncodingOrigin == UNRESOLVED_ENCODING) {
         /* Unresolved encoding - any error has already been logged */
@@ -818,6 +820,9 @@ int resolveJvmEncoding(int javaVersion, int jvmMaker) {
                 jvmOutputEncoding);
         }
 #endif
+        if (jvmEncodingOrigin == SUN_ENCODING) {
+            wrapperData->use_sun_encoding = TRUE;
+        }
     } else {
         /* The encoding of the current locale should be used. */
         resetJvmOutputEncoding(wrapperData->isDebugging);

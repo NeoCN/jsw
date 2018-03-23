@@ -193,22 +193,23 @@ public abstract class AbstractActionApp
     protected void prepareSystemOutErr()
     {
         boolean streamsSet = false;
-        String sunStdoutEncoding = System.getProperty( "sun.stdout.encoding" );
-        if ( ( sunStdoutEncoding != null ) && ( sunStdoutEncoding != System.getProperty( "file.encoding" ) ) ) {
-            /* We need to create the stream using the same encoding as the one used for stdout, else this will lead to encoding issues. */
-            try
-            {
-                m_out = new DeadlockPrintStream( System.out, false, sunStdoutEncoding );
-                m_err = new DeadlockPrintStream( System.err, false, sunStdoutEncoding );
-                streamsSet = true;
-            }
-            catch ( UnsupportedEncodingException e )
-            {
-                /* This should not happen when using the localization properties, because we always make sure the encoding exists before passing it to the JVM.
-                 *  Can still happen when passing the encoding directly through the java additionals parameters.
-                 *  If any of the above streams failed, we want to fall back to streams that use the same encoding.
-                 *  This message can be localized because we did not redirect the streams yet. */
-                System.out.println( Main.getRes().getString( "Failed to set the encoding '{0}' when creating a DeadlockPrintStream.\n Make sure the value of sun.stdout.encoding is correct.", sunStdoutEncoding ) );
+        if ( "true".equals( System.getProperty( "wrapper.use_sun_encoding" ) ) ) {
+            String sunStdoutEncoding = System.getProperty( "sun.stdout.encoding" );
+            if ( ( sunStdoutEncoding != null ) && !sunStdoutEncoding.equals( System.getProperty( "file.encoding" ) ) ) {
+                /* We need to create the stream using the same encoding as the one used for stdout, else this will lead to encoding issues. */
+                try
+                {
+                    m_out = new DeadlockPrintStream( System.out, false, sunStdoutEncoding );
+                    m_err = new DeadlockPrintStream( System.err, false, sunStdoutEncoding );
+                    streamsSet = true;
+                }
+                catch ( UnsupportedEncodingException e )
+                {
+                    /* This should not happen because we always make sure the encoding exists before launching a JVM.
+                     *  If any of the above streams failed, we want to fall back to streams that use the same encoding.
+                     *  This message can be localized because we did not redirect the streams yet. */
+                    System.out.println( Main.getRes().getString( "Failed to set the encoding '{0}' when creating a DeadlockPrintStream.\n Make sure the value of sun.stdout.encoding is correct.", sunStdoutEncoding ) );
+                }
             }
         }
         if ( !streamsSet )

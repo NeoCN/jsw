@@ -7180,10 +7180,11 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     }
 
     encodingBuff[0] = 0;
-#ifdef MACOSX
+#if defined(WIN32) || defined(MACOSX)
     if (!passEncoding && (wrapperData->javaVersion->major < 7) && !isSysPropInJavaArgs(TEXT("-Dfile.encoding"))) {
-        /* Java 6 on MacOSX ignores the encoding of the current locale and set file.encoding to "MacRoman". To be consistent with other JVMs,
-         *  and to read the JVM output in the correct encoding, we will specify this system property in the Java command line. */
+        /* On MacOSX, Java 6 ignores the encoding of the current locale and set file.encoding to "MacRoman".
+         * On Windows, Java 6 does not always use the default ANSI Windows code page (for example when the UI language is English but the System language is Japanese).
+         * => To be consistent with other JVMs and to read the JVM output in the correct encoding, we will add file.encoding to the Java command line. */
         passEncoding = TRUE;
     }
 #endif
@@ -7207,6 +7208,23 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         }
         index++;
     }
+    
+    if (wrapperData->use_sun_encoding) {
+        /* On the Java side, we need to know if sun.stdout.encoding (and sun.stderr.encoding) will be used to read JVM outputs.
+         *  There is indeed a chance that these properties are passed to the JVM although they are not supported, and we don't
+         *  want to remove any system property that the user may have added. We could duplicate the logic on the Java side to
+         *  check whether or not these properties are implemented, but there is a risk of not being in sync. Instead we will
+         *  pass an insternal property to inform the JVM when sun.stdout.encoding is used. */
+        if (strings) {
+            strings[index] = malloc(sizeof(TCHAR) * (31 + 1));
+            if (!strings[index]) {
+                outOfMemory(TEXT("WBJCAI"), 7);
+                return -1;
+            }
+            _sntprintf(strings[index], 31 + 1, TEXT("-Dwrapper.use_sun_encoding=true"));
+        }
+        index++;
+    }
 
     /* Initial JVM memory */
     initMemory = getIntProperty(properties, TEXT("wrapper.java.initmemory"), 0);
@@ -7215,7 +7233,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
             initMemory = __max(initMemory, 1); /* 1 <= n */
             strings[index] = malloc(sizeof(TCHAR) * (5 + 10 + 1));  /* Allow up to 10 digits. */
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 8);
+                outOfMemory(TEXT("WBJCAI"), 9);
                 return -1;
             }
             _sntprintf(strings[index], 5 + 10 + 1, TEXT("-Xms%dm"), initMemory);
@@ -7233,7 +7251,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
             maxMemory = __max(maxMemory, initMemory);  /* initMemory <= n */
             strings[index] = malloc(sizeof(TCHAR) * (5 + 10 + 1));  /* Allow up to 10 digits. */
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 10);
+                outOfMemory(TEXT("WBJCAI"), 11);
                 return -1;
             }
             _sntprintf(strings[index], 5 + 10 + 1, TEXT("-Xmx%dm"), maxMemory);

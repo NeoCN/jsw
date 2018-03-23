@@ -1535,13 +1535,6 @@ int wrapperLaunchJavaApp() {
         }
     }
     
-    if (resolveJvmEncoding(wrapperData->javaVersion->major, wrapperData->jvmMaker)) {
-        /* Failed to get the encoding of the JVM output.
-         *  Stop here because won't be able to display output correctly. */
-        wrapperData->exitCode = wrapperData->errorExitCode;
-        return TRUE;
-    }
-    
     if (wrapperData->runWithoutJVM) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
             TEXT("Not launching a JVM because %s was set to TRUE."), TEXT("wrapper.test.no_jvm"));

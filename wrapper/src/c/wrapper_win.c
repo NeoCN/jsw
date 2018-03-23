@@ -2337,13 +2337,6 @@ int wrapperLaunchJavaApp() {
         }
     }
     
-    if (resolveJvmEncoding(wrapperData->javaVersion->major, wrapperData->jvmMaker)) {
-        /* Failed to get the encoding of the JVM output.
-         *  Stop here because won't be able to display output correctly. */
-        wrapperData->exitCode = wrapperData->errorExitCode;
-        return TRUE;
-    }
-    
     if (wrapperData->runWithoutJVM) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
             TEXT("Not launching a JVM because %s was set to TRUE."), TEXT("wrapper.test.no_jvm"));
@@ -4918,13 +4911,16 @@ int wrapperStartService() {
     
     /* Log file path. */
     path = getLogfilePath();
-    result = GetFullPathName(path, FILEPATHSIZE, logFileFullPath, NULL);
-    if (result >= FILEPATHSIZE) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("The full path of %s is too large. (%d)"), path, result);
-        _tcsncpy(logFileFullPath, path, FILEPATHSIZE);
-    } else if (result == 0) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to resolve the full path of %s : %s"), path, getLastErrorText());
-        _tcsncpy(logFileFullPath, path, FILEPATHSIZE);
+    if (_tcslen(path) > 0) {
+        /* The log file may have been set to an empty value to disable it. */
+        result = GetFullPathName(path, FILEPATHSIZE, logFileFullPath, NULL);
+        if (result >= FILEPATHSIZE) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("The full path of %s is too large. (%d)"), path, result);
+            _tcsncpy(logFileFullPath, path, FILEPATHSIZE);
+        } else if (result == 0) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to resolve the full path of %s : %s"), path, getLastErrorText());
+            _tcsncpy(logFileFullPath, path, FILEPATHSIZE);
+        }
     }
 
     /* Default Log file path. */
