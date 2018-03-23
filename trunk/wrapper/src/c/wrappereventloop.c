@@ -57,6 +57,7 @@
 #ifndef WIN32
  #include "wrapper_ulimit.h"
 #endif
+#include "wrapper_encoding.h"
 #include "wrapper_i18n.h"
 
 #ifndef MAX
@@ -1298,6 +1299,15 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
             /* Make sure that the Java version is in the range in which the Wrapper is allowed to run. */
             if (!wrapperConfirmJavaVersion()) {
                 /* Failed. Wrapper shutdown. */
+                wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
+                wrapperData->exitCode = wrapperData->errorExitCode;
+                return;
+            }
+            
+            /* Resolve the encoding to be used for reading the JVM output (this needs to be done before building the Java command line). */
+            if (resolveJvmEncoding(wrapperData->javaVersion->major, wrapperData->jvmMaker)) {
+                /* Failed to get the encoding of the JVM output.
+                 *  Stop here because won't be able to display output correctly. */
                 wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
                 wrapperData->exitCode = wrapperData->errorExitCode;
                 return;

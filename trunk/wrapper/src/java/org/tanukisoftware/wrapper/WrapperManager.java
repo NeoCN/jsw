@@ -606,22 +606,23 @@ public final class WrapperManager
 
         // Set up some log channels
         boolean streamsSet = false;
-        String sunStdoutEncoding = System.getProperty( "sun.stdout.encoding" );
-        if ( ( sunStdoutEncoding != null ) && ( sunStdoutEncoding != System.getProperty( "file.encoding" ) ) ) {
-            /* We need to create the stream using the same encoding as the one used for stdout, else this will lead to encoding issues. */
-            try
-            {
-                m_outInfo = new WrapperPrintStream( m_out, false, sunStdoutEncoding, "WrapperManager: " );
-                m_outError = new WrapperPrintStream( m_out, false, sunStdoutEncoding, "WrapperManager Error: " );
-                m_outDebug = new WrapperPrintStream( m_out, false, sunStdoutEncoding, "WrapperManager Debug: " );
-                streamsSet = true;
-            }
-            catch ( UnsupportedEncodingException e )
-            {
-                /* This should not happen when using the localization properties, because we always make sure the encoding exists before passing it to the JVM.
-                 *  Can still happen when passing the encoding directly through the java additionals parameters.
-                 *  If any of the above streams failed, we want to fall back to streams that use the same encoding. */
-                System.out.println( "Failed to set the encoding '" + sunStdoutEncoding + "' when creating a WrapperPrintStream.\n Make sure the value of sun.stdout.encoding is correct." );
+        if ( "true".equals( System.getProperty( "wrapper.use_sun_encoding" ) ) ) {
+            String sunStdoutEncoding = System.getProperty( "sun.stdout.encoding" );
+            if ( ( sunStdoutEncoding != null ) && !sunStdoutEncoding.equals( System.getProperty( "file.encoding" ) ) ) {
+                /* We need to create the stream using the same encoding as the one used for stdout, else this will lead to encoding issues. */
+                try
+                {
+                    m_outInfo = new WrapperPrintStream( m_out, false, sunStdoutEncoding, "WrapperManager: " );
+                    m_outError = new WrapperPrintStream( m_out, false, sunStdoutEncoding, "WrapperManager Error: " );
+                    m_outDebug = new WrapperPrintStream( m_out, false, sunStdoutEncoding, "WrapperManager Debug: " );
+                    streamsSet = true;
+                }
+                catch ( UnsupportedEncodingException e )
+                {
+                    /* This should not happen because we always make sure the encoding exists before launching a JVM.
+                     *  If any of the above streams failed, we want to fall back to streams that use the same encoding. */
+                    System.out.println( "Failed to set the encoding '" + sunStdoutEncoding + "' when creating a WrapperPrintStream.\n Make sure the value of sun.stdout.encoding is correct." );
+                }
             }
         }
         if ( !streamsSet )
