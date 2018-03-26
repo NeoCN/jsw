@@ -797,6 +797,9 @@ int wrapperPreLoadConfigurationProperties(int *logLevelOnOverwriteProperties, in
 #ifdef WIN32
     /* For the community edition, always try to display the system errors in English. */
     setLogSysLangId((SUBLANG_ENGLISH_US << 10) + LANG_ENGLISH);
+
+    /* Always read JVM output using the default Windows ANSI code page. */
+    wrapperData->jvm_stdout_codepage = GetACP();
 #endif
     
     /* Load log file */
@@ -7190,8 +7193,16 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
 #endif
     if (passEncoding) {
         if (strings) {
+#ifdef WIN32
+            /* On Windows, convert the code page to the corresponding encoding expressed in the Java syntax: */
+            if (!getJvmIoEncodingFromCodePage(wrapperData->jvm_stdout_codepage, wrapperData->javaVersion->major, encodingBuff)) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Could not infer the JVM encoding from the code page '%d'."), wrapperData->jvm_stdout_codepage);
+#else
+            /* On Unix the JVM automatically maps system encodings to its own encodings if nothing is specified in the command line (see note above).
+             *  However, when adding system properties we need to convert the locale encoding to the Java syntax: */
             if (!getJvmIoEncoding(getCurrentLocaleEncoding(localeEncodingBuff), wrapperData->javaVersion->major, encodingBuff)) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Could not infer the JVM encoding from the locale encoding '%s'."), localeEncodingBuff);
+#endif
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT(" Please add the 'file.encoding' system property to the JVM arguments\n and set it with an appropriate encoding for the current platform."));
                 /* Stop the Wrapper. The user must fix the configuration. */
                 return -1;

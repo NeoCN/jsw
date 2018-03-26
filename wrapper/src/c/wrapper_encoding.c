@@ -49,6 +49,8 @@
 #ifndef WIN32
  #define K_ENCODING_V_IOENCODING        3   /* map any encoding (io or nio) to its corresponding io encoding (this also allows to normalize the case when the key is an io encoding). */
  #define K_SHORTENCODING_V_IOENCODING   4   /* map the short notation of any encoding (io or nio) to its corresponding io encoding (this also allows to normalize the case when the key is an io encoding). */
+#else
+ #define K_CODEPAGE_V_IOENCODING        5   /* map a code page to its corresponding io encoding. */
 #endif
 
 /**
@@ -327,6 +329,19 @@ PHashMap buildJvmEncodingsHashMap(int mode) {
                 free(key2);
             }
         }
+#else
+    } else if (mode == K_CODEPAGE_V_IOENCODING) {
+        for (; i >= 0; i--) {
+            if (id[i] && cp[i] > 0) {
+                if (wrapperData->isDebugging) {
+                    if (hashMapGetKIVW(hashMap, cp[i])) {
+                        /* This should not happen if the above tables are well maintened. */
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Don't know if code page %d should be mapped to '%s' or '%s'."), cp[i], hashMapGetKIVW(hashMap, cp[i]), e1[i]);
+                    }
+                }
+                hashMapPutKIVW(hashMap, cp[i], e1[i]);
+            }
+        }
 #endif
     }
     return hashMap;
@@ -424,6 +439,32 @@ TCHAR* getJvmIoEncoding(TCHAR* jvmEncoding, int javaVersion, TCHAR* buffer) {
             }
             free(jvmEncLower);
         }
+    }
+    return result;
+}
+#else
+/**
+ * Get the JVM encoding corresponding to a code page.
+ *
+ * @codePage    the Windows code page
+ * @javaVersion current java version
+ * @buffer      buffer where the output encoding should be copied.
+ *
+ * @return a string representation of the JVM io encoding, or NULL if no value could be found.
+ */
+TCHAR* getJvmIoEncodingFromCodePage(int codePage, int javaVersion, TCHAR* buffer) {
+    PHashMap hashMap = buildJvmEncodingsHashMap(K_CODEPAGE_V_IOENCODING);
+    const TCHAR* encoding;
+    TCHAR* result = NULL;
+    
+    buffer[0] = 0;
+    if (hashMap) {
+        encoding = hashMapGetKIVW(hashMap, codePage);
+        if (checkEncodingJavaVersion(encoding, javaVersion, NULL)) {
+            _tcscpy(buffer, encoding);
+            result = buffer;
+        }
+        freeHashMap(hashMap);
     }
     return result;
 }
@@ -672,7 +713,7 @@ void resetJvmOutputEncoding(int debug) {
 
     buffer[0] = 0;
 #ifdef WIN32
-    jvmOutputCodePage = GetACP();
+    jvmOutputCodePage = wrapperData->jvm_stdout_codepage;
     _sntprintf(buffer, ENCODING_BUFFER_SIZE, TEXT("%d"), jvmOutputCodePage);
 #else
     jvmOutputEncoding[0] = 0;
