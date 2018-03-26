@@ -45,6 +45,17 @@
 
 #ifdef WIN32
 /**
+ * Get the JVM encoding corresponding to a code page.
+ *
+ * @codePage    the Windows code page
+ * @javaVersion current java version
+ * @buffer      buffer where the output encoding should be copied.
+ *
+ * @return a string representation of the JVM io encoding, or NULL if no value could be found.
+ */
+TCHAR* getJvmIoEncodingFromCodePage(int codePage, int javaVersion, TCHAR* buffer);
+
+/**
  * Retrieved the value of file.encoding (or sun.std*.encoding) if defined in the java additional properties.
  *  The buffer is set to an empty string if the value could not be found.
  *  disposeHashMapJvmEncoding() should be called before calling this function.

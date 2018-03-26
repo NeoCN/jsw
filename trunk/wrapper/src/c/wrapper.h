@@ -240,6 +240,9 @@ struct WrapperConfig {
     int     javaArgValueCount;      /* Number of the arguments getting passed over to the java application */
 
     TCHAR   *initialPath;           /* What the working directory was when the Wrapper process was first launched. */
+#ifdef WIN32
+    UINT    jvm_stdout_codepage;    /* The code page used for JVM outputs. */
+#endif
     int     use_sun_encoding;       /* TRUE if the Wrapper uses the value of sun.stdout.encoding to read JVM output. */
     int     backendType;            /* The type of the backend that the Wrapper and Java use to communicate. */
     int     configured;             /* TRUE if loadConfiguration has been called. */
