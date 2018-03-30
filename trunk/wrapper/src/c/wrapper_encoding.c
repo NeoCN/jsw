@@ -420,34 +420,43 @@ int checkEncodingJavaVersion(const TCHAR* encoding, int javaVersion, int *pRequi
 
 #ifndef WIN32
 /**
- * Used to check if the encoding (or its uppercase notation) is supported by Iconv.
- *  NOTE: I always noticed that encodings supported by Iconv are uppercase.
- *  Sometimes a lowercase suffix is used, but I never saw complete lowercase names.
- *  If some versions of Iconv use lowercase notations and are case-sensitive, then
- *  we should also test it.
+ * On most systems, Iconv uses uppercase notations for the encodings, sometimes being case-sensitive.
+ *  On HPUX, the lowercase notation is often used (e.g. 'utf8').
+ * 　This function will check Iconv support of the given encoding and its uppercase/lowercase notations
+ *  to offer more flexibility. It's not a problem to try many times, because we would stop anyway if
+ *  no supported encoding can be found.
  *
  * @encoding the encoding to check
  * @buffer   buffer which will be filled with the supported encoding:
  *           - encoding if it is supported by iconv without transformation.
- *           - the uppercase of encoding, if the uppercase is supported.
+ *           - the uppercase/lowercase version of encoding, if supported.
  *           - empty if none of the above are supported.
  *
  * @return the buffer or NULL if the encoding is not supported.
  */
-TCHAR* getIconvEncodingOrUpper(const TCHAR* encoding, TCHAR* buffer) {
-    TCHAR* encUpper;
+TCHAR* getIconvEncodingVariousCases(const TCHAR* encoding, TCHAR* buffer) {
+    TCHAR* altEncoding;
     
     buffer[0] = 0;
     if (encoding && (_tcslen(encoding) > 0)) {
         if (getIconvEncodingSupport(encoding) != ICONV_ENCODING_NOT_SUPPORTED) {
             _tcscpy(buffer, encoding);
         } else {
-            encUpper = toUpper(encoding);
-            if (encUpper) {
-                if ((_tcscmp(encUpper, encoding) != 0) && (getIconvEncodingSupport(encUpper) != ICONV_ENCODING_NOT_SUPPORTED)) {
-                    _tcscpy(buffer, encUpper);
+            altEncoding = toUpper(encoding);
+            if (altEncoding) {
+                if ((_tcscmp(altEncoding, encoding) != 0) && (getIconvEncodingSupport(altEncoding) != ICONV_ENCODING_NOT_SUPPORTED)) {
+                    _tcscpy(buffer, altEncoding);
+                    free(altEncoding);
+                } else {
+                    free(altEncoding);
+                    altEncoding = toLower(encoding);
+                    if (altEncoding) {
+                        if ((_tcscmp(altEncoding, encoding) != 0) && (getIconvEncodingSupport(altEncoding) != ICONV_ENCODING_NOT_SUPPORTED)) {
+                            _tcscpy(buffer, altEncoding);
+                        }
+                        free(altEncoding);
+                    }
                 }
-                free(encUpper);
             }
         }
     }
@@ -887,16 +896,16 @@ int resolveJvmEncoding(int javaVersion, int jvmMaker) {
                 GET_ENCODING_SYSPROP(jvmEncodingOrigin));
             free(encLower);
             return TRUE;
-        } else if (!getIconvEncodingOrUpper(buffer, jvmOutputEncoding)) {
+        } else if (!getIconvEncodingVariousCases(buffer, jvmOutputEncoding)) {
             /* Check if the alternative encoding is supported by Iconv. */
-            if ((_tcscmp(altEncoding, TEXT("Not available")) == 0) || (!getIconvEncodingOrUpper(altEncoding, jvmOutputEncoding))) {
+            if ((_tcscmp(altEncoding, TEXT("Not available")) == 0) || (!getIconvEncodingVariousCases(altEncoding, jvmOutputEncoding))) {
                 /* Check if an alias is supported by Iconv. */
                 altEncoding = NULL;
                 aliasHashMap = buildJvmEncodingsHashMap(K_ENCODING_V_ALIAS);
                 if (aliasHashMap) {
                     altEncoding = hashMapGetKWVW(aliasHashMap, encLower);
                 }
-                if (!altEncoding || (_tcslen(altEncoding) == 0) || (!getIconvEncodingOrUpper(altEncoding, jvmOutputEncoding))) {
+                if (!altEncoding || (_tcslen(altEncoding) == 0) || (!getIconvEncodingVariousCases(altEncoding, jvmOutputEncoding))) {
                     /* Possible improvement: list all locale encodings, build a hashmap (key=<SHORT_LOCALE_ENCODING>, value=<LOCALE_ENCODING>), and search a match in it. */
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                         TEXT("The value '%s' of %s is not supported by iconv."),

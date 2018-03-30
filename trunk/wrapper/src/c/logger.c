@@ -442,11 +442,10 @@ int initLogging(void (*logFileChanged)(const TCHAR *logFile)) {
  * Disposes of any logging resouces prior to shutdown.
  */
 int disposeLogging() {
-#ifdef WIN32
-    
     /* Always call maintain logger once to make sure that all queued messages are logged before we exit. */
     maintainLogger();
     
+#ifdef WIN32
     if (log_printfMutexHandle) {
         if (!CloseHandle(log_printfMutexHandle)) {
             _tprintf(TEXT("Unable to close Logging Mutex handle. %s\n"), getLastErrorText());
