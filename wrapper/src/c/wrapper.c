@@ -780,6 +780,23 @@ void wrapperLoadLoggingProperties(int preload) {
     }
 }
 
+/**
+ * Retrieve the configured exit code that should be returned when the Wrapper ends with an error.
+ *  This function should be called after the configuration has been loaded (after the logging
+ *  has been loaded if silent is FALSE).
+ *
+ * @param silent TRUE of log output should be disabled.
+ */
+void getConfiguredErrorExitCode(int silent) {
+    wrapperData->errorExitCode = getIntProperty(properties, TEXT("wrapper.exit_code.error"), 1);
+    if (wrapperData->errorExitCode < 1 || wrapperData->errorExitCode > 255) {
+        wrapperData->errorExitCode = 1;
+        if (!silent) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                TEXT("%s must be in the range %d to %d.  Changing to %d."), TEXT("wrapper.exit_code.error"), 1, 255, 1);
+        }
+    }
+}
 
 /**
  * This function provides a log file after proloading the properties.
@@ -1029,6 +1046,10 @@ int wrapperLoadConfigurationProperties(int preload) {
 
     /* The properties have just been loaded. */
     if (preload == TRUE) {
+        /* Get the error exit code just after the properties have been loaded in case we need to stop before the second load.
+         *  We will get it again in loadConfiguration() to allow the property to be reloaded. */
+        getConfiguredErrorExitCode(TRUE);
+
         /* If we are in preload mode, we want to enable log warning messages here so everything below this point has propper warnings. */
         setLogPropertyWarnings(properties, TRUE);
     } else if (properties->overwrittenPropertyCausedExit) {
@@ -7210,6 +7231,10 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
             if (!fileEncodingPtr) {
                 fileEncodingPtr = encodingBuff;
             }
+            /* NOTE: On Linux and jre 1.4.2_19, file.encoding is not used for stdout, but it is used with jre 1.5!
+             *       On Solaris and jre 1.4.1_07, file.encoding is used for stdout.
+             *       => file.encoding is not a standard specification. Its implementation may differ on old JVMs.
+             *       Currently the Wrapper will assume file.encoding is used to encode the JVM output as this is the case for recent JVMs. */
             strings[index] = malloc(sizeof(TCHAR) * (16 + _tcslen(fileEncodingPtr) + 1));
             if (!strings[index]) {
                 outOfMemory(TEXT("WBJCAI"), 4);
@@ -7225,7 +7250,8 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
          *  There is indeed a chance that these properties are passed to the JVM although they are not supported, and we don't
          *  want to remove any system property that the user may have added. We could duplicate the logic on the Java side to
          *  check whether or not these properties are implemented, but there is a risk of not being in sync. Instead we will
-         *  pass an insternal property to inform the JVM when sun.stdout.encoding is used. */
+         *  pass an insternal property to inform the JVM when sun.stdout.encoding is used. Make sure that resolveJvmEncoding()
+         *  was already called, else this won't work. */
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (31 + 1));
             if (!strings[index]) {
@@ -8658,12 +8684,7 @@ int loadConfiguration() {
     wrapperLoadLoggingProperties(FALSE);
     
     /* Decide on the error exit code */
-    wrapperData->errorExitCode = getIntProperty(properties, TEXT("wrapper.exit_code.error"), 1);
-    if (wrapperData->errorExitCode < 1 || wrapperData->errorExitCode > 255) {
-        wrapperData->errorExitCode = 1;
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-            TEXT("%s must be in the range %d to %d.  Changing to %d."), TEXT("wrapper.exit_code.error"), 1, 255, 1);
-    }
+    getConfiguredErrorExitCode(FALSE);
 
     /* Decide on the backend type to use. */    
     val = getStringProperty(properties, TEXT("wrapper.backend.type"), TEXT("AUTO"));

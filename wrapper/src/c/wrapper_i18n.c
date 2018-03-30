@@ -1252,6 +1252,33 @@ TCHAR* toLower(const TCHAR* value) {
 }
 
 /**
+ * Convert a string to uppercase. A new string will be allocated.
+ *
+ * @param value Input string
+ *
+ * @return The converted string.
+ */
+TCHAR* toUpper(const TCHAR* value) {
+    TCHAR* result;
+    size_t len;
+    size_t i;
+    
+    len = _tcslen(value);
+    result = malloc(sizeof(TCHAR) * (len + 1));
+    if (!result) {
+        outOfMemory(TEXT("TU"), 1);
+        return NULL;
+    }
+    
+    for (i = 0; i < len; i++) {
+        result[i] = _totupper(value[i]);
+    }
+    result[len] = TEXT('\0');
+    
+    return result;
+}
+
+/**
  * Clear any non-alphanumeric characters.
  *  Generally the OS will ignore the canonical dashes and punctuation in the encoding notation when setting the locale.
  *  This function is used when comparing two notations to check if they refer to the same encoding.
@@ -1870,6 +1897,7 @@ void wrapperCorrectNixPath(TCHAR *filename) {
 #ifndef WIN32
 /**
  * Check if the given encoding is supported by the iconv library.
+ *  We can't use the 'iconv -l' because it is not supported on all platforms.
  *
  * @return ICONV_ENCODING_SUPPORTED if the encoding is supported,
  *         ICONV_ENCODING_KNOWN_ISSUE if the encoding exist on iconv but fails to convert some characters.
@@ -1882,12 +1910,10 @@ int getIconvEncodingMBSupport(const char* encodingMB) {
     TCHAR *outputBufferW;
     
     if (encodingMB) {
-        if ((strIgnoreCaseCmp(encodingMB, "utf8") == 0) || (strIgnoreCaseCmp(encodingMB, "UTF-8") == 0)
-        ) {
+        if (strcmp(encodingMB, fromcode) == 0) {
             /* On some platforms, it is not correct to open iconv with the same input and output encodings
-             *  (this is the case on HP-UX). We know anyway that UTF-8 is always supported, so return TRUE.
-             *  On HPUX & ZOS (so most likely on all platforms), iconv supports both the uppercase and
-             *  lowercase notations. */
+             *  (this is the case on HP-UX). We know that 'fromcode' should be supported, so return TRUE.
+             *  On AIX (and maybe other OS?), the case, dashes and punctuations are important! */
             return ICONV_ENCODING_SUPPORTED;
         }
         conv_desc = wrapper_iconv_open(encodingMB, fromcode);

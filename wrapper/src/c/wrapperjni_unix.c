@@ -138,6 +138,12 @@ JNIEXPORT void JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jClassWrapperManager, jboolean debugging) {
     TCHAR *retLocale;
     wrapperJNIDebugging = debugging;
+#ifdef FREEBSD
+    if (loadIconvLibrary()) {
+        /* Already reported. */
+        return;
+    }
+#endif
 
     /* Set the locale so we can display MultiByte characters. */
     retLocale = _tsetlocale(LC_ALL, TEXT(""));

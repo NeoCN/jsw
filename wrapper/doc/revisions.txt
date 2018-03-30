@@ -66,7 +66,11 @@ Java Service Wrapper Revision History.
   UNIX.
 * Fix an issue where the Wrapper failed to load a language pack (*.mo) other
   than those provided by default (German and Japanese).
-* Fix wrong exit code returned in case the Wrapper would fail to launch a JVM.
+* Fix wrong exit code (0) returned in case the Wrapper would fail to launch a
+  JVM.
+* Allow wrapper.exit_code.error to apply at a earlier stage if the Wrapper has
+  to stop while loading the configuration (for example when duplicate
+  properties are found and properties.on_overwrite.exit is set to TRUE).
 * Allow the CPU affinity of the Wrapper process to be changed when the
   configuration is reloaded.
 * Add wrapper.java.version.min and wrapper.java.version.max to control the
@@ -93,8 +97,15 @@ Java Service Wrapper Revision History.
   is possible to pass a different timezone using one of the
   wrapper.java.additional.<n> property, in which case the Wrapper will not add
   its own timezone to the Java command line.
-* Fixed incorrect Linux distribution detection in the shell script resulting in
-  a daemon installation failure when update-rc.d was not present on the system.
+* Fix incorrect Linux distribution detection in the shell script resulting in a
+  daemon installation failure when update-rc.d was not present on the system.
+* No longer use IBM Advanced Toolchain when building the Wrapper for Linux
+  PPC-LE. Advanced Toolchain was introduced in v. 3.5.34, but since then some
+  users reported that the Wrapper binaries could not be executed on their
+  machine.
+* Fix a bug happening on Red Hat Enterprise Linux, CentOS, Amazon Linux AMI and
+  Fedora, where the logfile was not rolling if the ROLLNUM token was used
+  inside the value of wrapper.logfile.
 
 3.5.34
 * Fix a memory access violation when the Wrapper uses localization files.
