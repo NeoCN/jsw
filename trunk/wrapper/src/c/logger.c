@@ -3905,7 +3905,8 @@ void checkAndRollLogs(const TCHAR *nowDate, size_t printBufferSize) {
             }
         } else {
             /* File is not open or we can't use ftell because of memory leak issue */
-            if (_tstat(logFilePath, &fileStat) != 0) {
+            generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, nowDate, NULL);
+            if (_tstat(currentLogFileName, &fileStat) != 0) {
                 if (getLastError() == 2) {
                     /* File does not yet exist. */
                     position = 0;

@@ -82,13 +82,13 @@ UINT getJvmOutputCodePage();
 /**
  * Check if the encoding is supported by the JVM.
  *
- * @jvmEncoding the jvm encoding
+ * @localeEncoding the locale encoding
  * @javaVersion current java version
  * @buffer      buffer where the output encoding should be copied
  *
  * @return a string representation of the JVM io encoding, or NULL if no value could be found.
  */
-TCHAR* getJvmIoEncoding(TCHAR* jvmEncoding, int javaVersion, TCHAR* buffer);
+TCHAR* getJvmIoEncoding(TCHAR* localeEncoding, int javaVersion, TCHAR* buffer);
 
 /**
  * Get the encoding used for the current JVM outputs.
