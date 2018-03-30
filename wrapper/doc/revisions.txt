@@ -106,6 +106,8 @@ Java Service Wrapper Revision History.
 * Fix a bug happening on Red Hat Enterprise Linux, CentOS, Amazon Linux AMI and
   Fedora, where the logfile was not rolling if the ROLLNUM token was used
   inside the value of wrapper.logfile.
+* Always make sure to process queued log messages before the Wrapper exits on
+  UNIX platforms (previously this was only done on Windows).
 
 3.5.34
 * Fix a memory access violation when the Wrapper uses localization files.
