@@ -141,12 +141,12 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
     const TCHAR *errorTemplate;
     size_t errorTemplateLen;
     size_t iconv_value;
+    char *nativeChar;
     char *nativeCharStart;
-    char *nativeCharStartCopy;
     size_t multiByteCharsLen;
     size_t nativeCharLen;
-    size_t nativeCharLenCopy;
-    size_t multiByteCharsLenStart;
+    size_t outBytesLeft;
+    size_t inBytesLeft;
 #if defined(FREEBSD) || defined(SOLARIS) || (defined(AIX) && defined(USE_LIBICONV_GNU))
     const char* multiByteCharsStart;
 #else
@@ -154,19 +154,33 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
 #endif
     iconv_t conv_desc;
     int didIConv;
-    int redoIConv;
     size_t wideCharLen;
+    int err;
     
     /* Clear the output buffer as a sanity check.  Shouldn't be needed. */
     *outputBufferW = NULL;
 
+    multiByteCharsLen = strlen(multiByteChars);
+    if (!multiByteCharsLen) {
+        /* The input string is empty, so the output will be as well. */
+        *outputBufferW = malloc(sizeof(TCHAR));
+        if (*outputBufferW) {
+            (*outputBufferW)[0] = TEXT('\0');
+            return FALSE;
+        } else {
+            /* Out of memory. *outputBufferW already NULL. */
+            return TRUE;
+        }
+    }
+
     /* First we need to convert from the multi-byte string to native. */
     /* If the multiByteEncoding and interumEncoding encodings are equal then there is nothing to do. */
-    if (strcmp(multiByteEncoding, interumEncoding) != 0 && strcmp(interumEncoding, "646") != 0) {
+    if ((strcmp(multiByteEncoding, interumEncoding) != 0) && strcmp(interumEncoding, "646") != 0) {
         conv_desc = wrapper_iconv_open(interumEncoding, multiByteEncoding); /* convert multiByte encoding to interum-encoding*/
         if (conv_desc == (iconv_t)(-1)) {
             /* Initialization failure. */
-            if (errno == EINVAL) {
+            err = errno;
+            if (err == EINVAL) {
                 errorTemplate = (localizeErrorMessage ? TEXT("Conversion from '% s' to '% s' is not supported.") : TEXT("Conversion from '% s' to '% s' is not supported."));
                 errorTemplateLen = _tcslen(errorTemplate) + strlen(multiByteEncoding) + strlen(interumEncoding) + 1;
                 *outputBufferW = malloc(sizeof(TCHAR) * errorTemplateLen);
@@ -181,63 +195,44 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
                 errorTemplateLen = _tcslen(errorTemplate) + 10 + 1;
                 *outputBufferW = malloc(sizeof(TCHAR) * errorTemplateLen);
                 if (*outputBufferW) {
-                    _sntprintf(*outputBufferW, errorTemplateLen, errorTemplate, errno);
+                    _sntprintf(*outputBufferW, errorTemplateLen, errorTemplate, err);
                 } else {
                     /* Out of memory. *outputBufferW already NULL. */
                 }
                 return TRUE;
             }
         }
-        multiByteCharsLen = strlen(multiByteChars);
-        if (!multiByteCharsLen) {
-            wrapper_iconv_close(conv_desc);
-            /* The input string is empty, so the output will be as well. */
-            *outputBufferW = malloc(sizeof(TCHAR));
-            if (*outputBufferW) {
-                (*outputBufferW)[0] = TEXT('\0');
-                return FALSE;
-            } else {
-                /* Out of memory. *outputBufferW already NULL. */
-                return TRUE;
-            }
-        }
-        ++multiByteCharsLen; /* add 1 in order to store \0 - especially necessary in UTF-8 -> UTF-8 conversions*/
+        ++multiByteCharsLen; /* add 1 in order to store \0 - especially necessary in UTF-8 -> UTF-8 conversions. Note: it would be better to do it like in converterMBToMB(). */
         
         /* We need to figure out how many bytes we need to store the native encoded string. */
         nativeCharLen = multiByteCharsLen;
-        nativeCharStart = NULL;
         do {
-            redoIConv = FALSE;
-            
-            if (nativeCharStart) {
-                free(nativeCharStart);
-            }
-            
-            multiByteCharsLenStart = multiByteCharsLen;
 #if defined(FREEBSD) || defined(SOLARIS) || (defined(AIX) && defined(USE_LIBICONV_GNU))
             multiByteCharsStart = multiByteChars;
 #else
             multiByteCharsStart = (char *)multiByteChars;
 #endif
-            nativeCharStart = malloc(nativeCharLen);
-            if (!nativeCharStart) {
+            nativeChar = malloc(nativeCharLen);
+            if (!nativeChar) {
                 wrapper_iconv_close(conv_desc);
                 /* Out of memory. */
                 *outputBufferW = NULL;
                 return TRUE;
             }
-            
-            /* Make a copy of the nativeCharLen as this call will replace it with the number of chars used. */
-            nativeCharLenCopy = nativeCharLen;
-            nativeCharStartCopy = nativeCharStart;
-            iconv_value = wrapper_iconv(conv_desc, &multiByteCharsStart, &multiByteCharsLenStart, &nativeCharStartCopy, &nativeCharLenCopy);
+
+            nativeCharStart = nativeChar;
+
+            /* Make a copy of nativeCharLen & multiByteCharsLen (Iconv will decrement inBytesLeft and increment outBytesLeft). */
+            inBytesLeft = multiByteCharsLen;
+            outBytesLeft = nativeCharLen;
+            iconv_value = wrapper_iconv(conv_desc, &multiByteCharsStart, &inBytesLeft, &nativeCharStart, &outBytesLeft);
              /* Handle failures. */
             if (iconv_value == (size_t)-1) {
                 /* See "man 3 iconv" for an explanation. */
-                switch (errno) {
+                err = errno;
+                free(nativeChar);
+                switch (err) {
                 case EILSEQ:
-                    wrapper_iconv_close(conv_desc);
-                    free(nativeCharStart);
                     errorTemplate = (localizeErrorMessage ? TEXT("Invalid multibyte sequence.") : TEXT("Invalid multibyte sequence."));
                     errorTemplateLen = _tcslen(errorTemplate) + 1;
                     *outputBufferW = malloc(sizeof(TCHAR) * errorTemplateLen);
@@ -246,11 +241,10 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
                     } else {
                         /* Out of memory. *outputBufferW already NULL. */
                     }
+                    wrapper_iconv_close(conv_desc);
                     return TRUE;
                     
                 case EINVAL:
-                    wrapper_iconv_close(conv_desc);
-                    free(nativeCharStart);
                     errorTemplate = (localizeErrorMessage ? TEXT("Incomplete multibyte sequence.") : TEXT("Incomplete multibyte sequence."));
                     errorTemplateLen = _tcslen(errorTemplate) + 1;
                     *outputBufferW = malloc(sizeof(TCHAR) * errorTemplateLen);
@@ -259,46 +253,49 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
                     } else {
                         /* Out of memory. *outputBufferW already NULL. */
                     }
+                    wrapper_iconv_close(conv_desc);
                     return TRUE;
                     
                 case E2BIG:
                     /* The output buffer was too small, extend it and redo.
-                     *  iconv decrements multiByteCharsLenStart by the number of converted input bytes.
+                     *  iconv decrements inBytesLeft by the number of converted input bytes.
                      *  The remaining bytes to convert may not correspond exactly to the additional size
                      *  required in the output buffer, but it is a good value to minimize the number of
                      *  conversions while ensuring not to extend too much the output buffer. */
-                    if (multiByteCharsLenStart > 0) {
-                        /* Testing that multiByteCharsLenStart is >0 should not be needed, but it's a
+                    if (inBytesLeft > 0) {
+                        /* Testing that inBytesLeft is >0 should not be needed, but it's a
                          *  sanity check to make sure we never fall into an infinite loop. */
-                        nativeCharLen += multiByteCharsLenStart;
-                        redoIConv = TRUE;
+                        nativeCharLen += inBytesLeft;
+                        continue;
                     }
-                    break;
+                    wrapper_iconv_close(conv_desc);
+                    return TRUE;
                     
                 default:
-                    wrapper_iconv_close(conv_desc);
-                    free(nativeCharStart);
                     errorTemplate = (localizeErrorMessage ? TEXT("Unexpected iconv error: %d") : TEXT("Unexpected iconv error: %d"));
                     errorTemplateLen = _tcslen(errorTemplate) + 10 + 1;
                     *outputBufferW = malloc(sizeof(TCHAR) * errorTemplateLen);
                     if (*outputBufferW) {
-                        _sntprintf(*outputBufferW, errorTemplateLen, errorTemplate, errno);
+                        _sntprintf(*outputBufferW, errorTemplateLen, errorTemplate, err);
                     } else {
                         /* Out of memory. *outputBufferW already NULL. */
                     }
+                    wrapper_iconv_close(conv_desc);
                     return TRUE;
                 }
             }
-        } while (redoIConv);
+            break;
+        } while (TRUE);
         
         /* finish iconv */
         if (wrapper_iconv_close(conv_desc)) {
-            free(nativeCharStart);
+            err = errno;
+            free(nativeChar);
             errorTemplate = (localizeErrorMessage ? TEXT("Cleanup failure in iconv: %d") : TEXT("Cleanup failure in iconv: %d"));
             errorTemplateLen = _tcslen(errorTemplate) + 10 + 1;
             *outputBufferW = malloc(sizeof(TCHAR) * errorTemplateLen);
             if (*outputBufferW) {
-                _sntprintf(*outputBufferW, errorTemplateLen, errorTemplate, errno);
+                _sntprintf(*outputBufferW, errorTemplateLen, errorTemplate, err);
             } else {
                 /* Out of memory. *outputBufferW already NULL. */
             }
@@ -306,17 +303,18 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
         }
         didIConv = TRUE;
     } else {
-        nativeCharStart = (char *)multiByteChars;
+        nativeChar = (char *)multiByteChars;
         didIConv = FALSE;
     }
 
     /* now store the result into a wchar_t */
-    wideCharLen = mbstowcs(NULL, nativeCharStart, MBSTOWCS_QUERY_LENGTH);
+    wideCharLen = mbstowcs(NULL, nativeChar, MBSTOWCS_QUERY_LENGTH);
     if (wideCharLen == (size_t)-1) {
+        err = errno;
         if (didIConv) {
-            free(nativeCharStart);
+            free(nativeChar);
         }
-        if (errno == EILSEQ) {
+        if (err == EILSEQ) {
             errorTemplate = (localizeErrorMessage ? TEXT("Invalid multibyte sequence.") : TEXT("Invalid multibyte sequence."));
             errorTemplateLen = _tcslen(errorTemplate) + 1;
         } else {
@@ -325,7 +323,7 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
         }
         *outputBufferW = malloc(sizeof(TCHAR) * errorTemplateLen);
         if (*outputBufferW) {
-            _sntprintf(*outputBufferW, errorTemplateLen, errorTemplate, errno);
+            _sntprintf(*outputBufferW, errorTemplateLen, errorTemplate, err);
         } else {
             /* Out of memory. *outputBufferW already NULL. */
         }
@@ -335,16 +333,16 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
     if (!(*outputBufferW)) {
         /* Out of memory. *outputBufferW already NULL. */
         if (didIConv) {
-            free(nativeCharStart);
+            free(nativeChar);
         }
         return TRUE;
     }
-    mbstowcs(*outputBufferW, nativeCharStart, wideCharLen + 1);
+    mbstowcs(*outputBufferW, nativeChar, wideCharLen + 1);
     (*outputBufferW)[wideCharLen] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
     
     /* free the native char */
     if (didIConv) {
-        free(nativeCharStart);
+        free(nativeChar);
     }
     return FALSE;
 }
@@ -1606,6 +1604,18 @@ int converterMBToMB(const char *multiByteChars, int inputEncoding, char **output
     return result2;
 }
 #else
+
+#ifdef HPUX
+static int isIconvHpuxFixEnabled = FALSE;
+
+/**
+ * Turns on or off a fix used in converterMBToMB()
+ */
+void toggleIconvHpuxFix(int value) {
+   isIconvHpuxFixEnabled = value;
+}
+#endif
+
 /**
  * Converts a native multibyte string into a specific multibyte encoded string.
  *
@@ -1627,27 +1637,31 @@ int converterMBToMB(const char *multiByteChars, const char *multiByteEncoding, c
     char *nativeCharStart;
     size_t multiByteCharsLen;
     int nativeCharLen = -1;
-    size_t nativeCharWithEndCharLen;
-    size_t multiByteCharsLenStart;
+    size_t outBytesLeft;
+    size_t inBytesLeft;
 #if defined(FREEBSD) || defined(SOLARIS) || (defined(AIX) && defined(USE_LIBICONV_GNU))
     const char* multiByteCharsStart;
 #else
     char* multiByteCharsStart;
 #endif
     iconv_t conv_desc;
-    int redoIConv;
-
+    int err;
+#ifdef HPUX
+    int isIconvHpuxFixEnabledLocal = isIconvHpuxFixEnabled;
+#endif
 
     /* Clear the output buffer as a sanity check.  Shouldn't be needed. */
     *outputBufferMB = NULL;
 
-    /* First we need to convert from the multi-byte string to native. */
+    multiByteCharsLen = strlen(multiByteChars);
+
     /* If the multiByteEncoding and outputEncoding encodings are equal then there is nothing to do. */
-    if ((strcmp(multiByteEncoding, outputEncoding) != 0) && (strcmp(outputEncoding, "646") != 0) && (strlen(multiByteChars) > 0)) {
+    if ((strcmp(multiByteEncoding, outputEncoding) != 0) && (strcmp(outputEncoding, "646") != 0) && (multiByteCharsLen > 0)) {
         conv_desc = wrapper_iconv_open(outputEncoding, multiByteEncoding); /* convert multiByte encoding to interum-encoding*/
         if (conv_desc == (iconv_t)(-1)) {
             /* Initialization failure. */
-            if (errno == EINVAL) {
+            err = errno;
+            if (err == EINVAL) {
                 errorTemplate = "Conversion from '%s' to '%s' is not supported.";
                 errorTemplateLen = strlen(errorTemplate) + strlen(multiByteEncoding) + strlen(outputEncoding) + 1;
                 *outputBufferMB = malloc(errorTemplateLen);
@@ -1662,21 +1676,22 @@ int converterMBToMB(const char *multiByteChars, const char *multiByteEncoding, c
                 errorTemplateLen = strlen(errorTemplate) + 10 + 1;
                 *outputBufferMB = malloc( errorTemplateLen);
                 if (*outputBufferMB) {
-                    snprintf(*outputBufferMB, errorTemplateLen, errorTemplate, errno);
+                    snprintf(*outputBufferMB, errorTemplateLen, errorTemplate, err);
                 } else {
                     /* Out of memory. *outputBufferMB already NULL. */
                 }
                 return -1;
             }
-
         }
-        multiByteCharsLen = strlen(multiByteChars);
 
         /* We need to figure out how many bytes we need to store the native encoded string. */
         nativeCharLen = multiByteCharsLen;
+#ifdef HPUX
+        if (isIconvHpuxFixEnabledLocal) {
+            multiByteCharsLen = multiByteCharsLen + (((multiByteCharsLen - 1) % 8) == 0 ? 0 : 8 - ((multiByteCharsLen - 1) % 8));
+        }
+#endif
         do {
-            redoIConv = FALSE;
-            multiByteCharsLenStart = multiByteCharsLen + 1;
 #if defined(FREEBSD) || defined(SOLARIS) || (defined(AIX) && defined(USE_LIBICONV_GNU))
             multiByteCharsStart = multiByteChars;
 #else
@@ -1692,77 +1707,142 @@ int converterMBToMB(const char *multiByteChars, const char *multiByteEncoding, c
 
             nativeCharStart = nativeChar;
 
-            /* Make a copy of the nativeCharLen as this call will replace it with the number of chars used. */
-            nativeCharWithEndCharLen = nativeCharLen + 1;
-            iconv_value = wrapper_iconv(conv_desc, &multiByteCharsStart, &multiByteCharsLenStart, &nativeChar, &nativeCharWithEndCharLen);
+            /* Make a copy of nativeCharLen & multiByteCharsLen (Iconv will decrement inBytesLeft and increment outBytesLeft). */
+            inBytesLeft = multiByteCharsLen + 1;
+            outBytesLeft = nativeCharLen + 1;
+            iconv_value = wrapper_iconv(conv_desc, &multiByteCharsStart, &inBytesLeft, &nativeCharStart, &outBytesLeft);
             /* Handle failures. */
             if (iconv_value == (size_t)-1) {
                 /* See "man 3 iconv" for an explanation. */
-                switch (errno) {
+                err = errno;
+                free(nativeChar);
+                switch (err) {
                 case EILSEQ:
-                    wrapper_iconv_close(conv_desc);
-                    free(nativeCharStart);
                     errorTemplate = "Invalid multibyte sequence.";
                     errorTemplateLen = strlen(errorTemplate) + 1;
+#ifdef HPUX
+                    if (*outputBufferMB) {
+                        free(*outputBufferMB);
+                    }
+#endif
                     *outputBufferMB = malloc(errorTemplateLen);
                     if (*outputBufferMB) {
                        snprintf(*outputBufferMB, errorTemplateLen, "%s", errorTemplate);
                     } else {
                         /* Out of memory. *outputBufferMB already NULL. */
                     }
-                    return -1;
-                    break;
-                case EINVAL:
+#ifdef HPUX
+                    /* This can happen when multiByteCharsLen was increased to workaround an Iconv bug.
+                     *  Keep the error in the output buffer and try again using the original input string size. */
+                    if (isIconvHpuxFixEnabledLocal) {
+                        multiByteCharsLen = strlen(multiByteChars);
+                        isIconvHpuxFixEnabledLocal = FALSE;
+                        continue;
+                    }
+#endif
                     wrapper_iconv_close(conv_desc);
-                    free(nativeCharStart);
+                    return -1;
+
+                case EINVAL:
                     errorTemplate = "Incomplete multibyte sequence.";
                     errorTemplateLen = strlen(errorTemplate) + 1;
+#ifdef HPUX
+                    if (*outputBufferMB) {
+                        free(*outputBufferMB);
+                    }
+#endif
                     *outputBufferMB = malloc(errorTemplateLen);
                     if (*outputBufferMB) {
                        snprintf(*outputBufferMB, errorTemplateLen, "%s", errorTemplate);
                     } else {
                         /* Out of memory. *outputBufferMB already NULL. */
                     }
+#ifdef HPUX
+                    /* This can happen when multiByteCharsLen was increased to workaround an Iconv bug.
+                     *  Keep the error in the output buffer and try again using the original input string size. */
+                    if (isIconvHpuxFixEnabledLocal) {
+                        multiByteCharsLen = strlen(multiByteChars);
+                        isIconvHpuxFixEnabledLocal = FALSE;
+                        continue;
+                    }
+#endif
+                    wrapper_iconv_close(conv_desc);
                     return -1;
 
                 case E2BIG:
                     /* The output buffer was too small, extend it and redo.
-                     *  iconv decrements multiByteCharsLenStart by the number of converted input bytes.
+                     *  iconv decrements inBytesLeft by the number of converted input bytes.
                      *  The remaining bytes to convert may not correspond exactly to the additional size
                      *  required in the output buffer, but it is a good value to minimize the number of
                      *  conversions while ensuring not to extend too much the output buffer. */
-                    if (multiByteCharsLenStart > 0) {
-                        /* Testing that multiByteCharsLenStart is >0 should not be needed, but it's a
+                    if (inBytesLeft > 0) {
+                        /* Testing that inBytesLeft is >0 should not be needed, but it's a
                          *  sanity check to make sure we never fall into an infinite loop. */
-                        nativeCharLen += multiByteCharsLenStart;
-                        redoIConv = TRUE;
+#ifdef HPUX
+                        /* This can happen when multiByteCharsLen was increased to workaround an Iconv bug.
+                         *  Try again using the original input string size. */
+                        if (isIconvHpuxFixEnabledLocal && ((inBytesLeft == 1) || nativeCharLen > (strlen(multiByteChars) * 4))) {
+                            multiByteCharsLen = strlen(multiByteChars);
+                            isIconvHpuxFixEnabledLocal = FALSE;
+                        }
+#endif
+                        nativeCharLen += inBytesLeft;
+                        continue;
                     }
-                    break;
+                    wrapper_iconv_close(conv_desc);
+                    return -1;
 
                 default:
-                    wrapper_iconv_close(conv_desc);
-                    free(nativeCharStart);
+#ifdef HPUX
+                    if (isIconvHpuxFixEnabled && !isIconvHpuxFixEnabledLocal && (err == 0)) {
+                        /* We got an error on the first loop, stored it in the output buffer and tried again without the HPUX fix.
+                         *  If we get the Iconv bug (with errno=0) this time, then report the original error and return. */
+                        wrapper_iconv_close(conv_desc);
+                        return -1;
+                    }
+                    if (*outputBufferMB) {
+                        free(*outputBufferMB);
+                    }
+#endif
                     errorTemplate = "Unexpected iconv error: %d";
                     errorTemplateLen = strlen(errorTemplate) + 10 + 1;
                     *outputBufferMB = malloc(errorTemplateLen);
                     if (*outputBufferMB) {
-                        snprintf(*outputBufferMB, errorTemplateLen, errorTemplate, errno);
+                        snprintf(*outputBufferMB, errorTemplateLen, errorTemplate, err);
                     } else {
                         /* Out of memory. *outputBufferMB already NULL. */
                     }
+#ifdef HPUX
+                    /* This can happen when multiByteCharsLen was increased to workaround an Iconv bug.
+                     *  Keep the error in the output buffer and try again using the original input string size. */
+                    if (isIconvHpuxFixEnabledLocal && (err != 0)) {
+                        multiByteCharsLen = strlen(multiByteChars);
+                        isIconvHpuxFixEnabledLocal = FALSE;
+                        continue;
+                    }
+#endif
+                    wrapper_iconv_close(conv_desc);
                     return -1;
                 }
             }
-        } while (redoIConv);
+            break;
+        } while (TRUE);
+#ifdef HPUX
+        if (*outputBufferMB) {
+            free(*outputBufferMB);
+            *outputBufferMB = NULL;
+        }
+#endif
 
         /* finish iconv */
         if (wrapper_iconv_close(conv_desc)) {
-            free(nativeCharStart);
+            err = errno;
+            free(nativeChar);
             errorTemplate = "Cleanup failure in iconv: %d";
             errorTemplateLen = strlen(errorTemplate) + 10 + 1;
             *outputBufferMB = malloc(errorTemplateLen);
             if (*outputBufferMB) {
-                snprintf(*outputBufferMB, errorTemplateLen, errorTemplate, errno);
+                snprintf(*outputBufferMB, errorTemplateLen, errorTemplate, err);
             } else {
                 /* Out of memory. *outputBufferMB already NULL. */
             }
@@ -1771,15 +1851,15 @@ int converterMBToMB(const char *multiByteChars, const char *multiByteEncoding, c
     } else {
         /* The source chars do not need to be converted.  Copy them to make a consistant API. */
         nativeCharLen = strlen(multiByteChars);
-        nativeCharStart = malloc(sizeof(char) * (nativeCharLen + 1));
-        if (nativeCharStart) {
-            snprintf(nativeCharStart, nativeCharLen + 1, "%s", multiByteChars);
+        nativeChar = malloc(sizeof(char) * (nativeCharLen + 1));
+        if (nativeChar) {
+            snprintf(nativeChar, nativeCharLen + 1, "%s", multiByteChars);
         } else {
             /* Out of memory.  *outputBufferMB already NULL. */
             return -1;
         }
     }
-    *outputBufferMB = nativeCharStart;
+    *outputBufferMB = nativeChar;
 
     return nativeCharLen;
 }

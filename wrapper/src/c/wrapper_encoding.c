@@ -125,7 +125,7 @@ PHashMap buildJvmEncodingsHashMap(int mode) {
     i++; jv[i] = 0; e1[i] = TEXT("UnicodeLittle");         e2[i] = TEXT("x-UTF-16LE-BOM");      NIX_FILL(al, i, TEXT(""));                WIN_FILL(cp, i, 1200);  WIN_FILL(id, i, FALSE); /* NOTE 7, NOTE 13 */
     i++; jv[i] = 0; e1[i] = TEXT("Big5");                  e2[i] = TEXT("Big5");                NIX_FILL(al, i, TEXT(""));                WIN_FILL(cp, i, 950);   WIN_FILL(id, i, FALSE);
     i++; jv[i] = 0; e1[i] = TEXT("Big5_HKSCS");            e2[i] = TEXT("Big5-HKSCS");          NIX_FILL(al, i, TEXT(""));                WIN_FILL(cp, i, 951);   WIN_FILL(id, i, FALSE); /* NOTE 1 */
-    i++; jv[i] = 0; e1[i] = TEXT("EUC_JP");                e2[i] = TEXT("EUC-JP");              NIX_FILL(al, i, TEXT("JISX0208.1983-0")); WIN_FILL(cp, i, 20932); WIN_FILL(id, i, TRUE);  /* NOTE 2 */
+    i++; jv[i] = 0; e1[i] = TEXT("EUC_JP");                e2[i] = TEXT("EUC-JP");              NIX_FILL(al, i, TEXT("eucJP"));           WIN_FILL(cp, i, 20932); WIN_FILL(id, i, TRUE);  /* NOTE 2, NOTE 16 */
     i++; jv[i] = 0; e1[i] = TEXT("EUC_KR");                e2[i] = TEXT("EUC-KR");              NIX_FILL(al, i, TEXT(""));                WIN_FILL(cp, i, 51949); WIN_FILL(id, i, TRUE);
     i++; jv[i] = 0; e1[i] = TEXT("GB18030");               e2[i] = TEXT("GB18030");             NIX_FILL(al, i, TEXT(""));                WIN_FILL(cp, i, 54936); WIN_FILL(id, i, TRUE);
     i++; jv[i] = 0; e1[i] = TEXT("EUC_CN");                e2[i] = TEXT("GB2312");              NIX_FILL(al, i, TEXT(""));                WIN_FILL(cp, i, 51936); WIN_FILL(id, i, TRUE);  /* NOTE 3 */
@@ -325,7 +325,11 @@ PHashMap buildJvmEncodingsHashMap(int mode) {
                 free(key2);
                 key2 = key2Buff;
             }
-            hashMapPutKWVW(hashMap, key1, e1[i]);
+            if (mode == K_ENCODING_V_ALIAS) {
+                hashMapPutKWVW(hashMap, key1, al[i]);
+            } else {
+                hashMapPutKWVW(hashMap, key1, e1[i]);
+            }
             if (_tcscmp(key1, key2) != 0) {
                 if (mode == K_ENCODING_V_ALIAS) {
                     hashMapPutKWVW(hashMap, key2, al[i]);

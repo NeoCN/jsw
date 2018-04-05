@@ -57,7 +57,6 @@ int controlEventQueue[CONTROL_EVENT_QUEUE_SIZE];
 int controlEventQueueLastReadIndex = 0;
 int controlEventQueueLastWriteIndex = 0;
 
-
 /** Flag to keep track of whether StdOut has been redirected. */
 int redirectedStdOut = FALSE;
 
@@ -178,7 +177,7 @@ jstring JNU_NewStringFromNativeMB(JNIEnv *env, const char *str) {
 #endif
                     _tprintf(TEXT("WrapperJNI Warn: Unexpected conversion error: %s\n"), getLastErrorText()); fflush(NULL);
                 } else {
-                    _tprintf(errorW); fflush(NULL);
+                    _tprintf(TEXT("%s\n"), errorW); fflush(NULL);
                 }
                 if (errorW) {
                     free(errorW);
@@ -237,7 +236,7 @@ jstring JNU_NewStringFromNativeW(JNIEnv *env, const TCHAR *strW) {
                 if (converterMBToWide(msgMB, NULL, &errorW, FALSE)) {
                     _tprintf(TEXT("WrapperJNI Warn: Failed to convert string \"%s\": %s\n"), strW, getLastErrorText()); fflush(NULL);
                 } else {
-                    _tprintf(errorW); fflush(NULL);
+                    _tprintf(TEXT("%s\n"), errorW); fflush(NULL);
                 }
                 if (errorW) {
                     free(errorW);
@@ -486,6 +485,9 @@ int initCommon(JNIEnv *env, jclass jClassWrapperManager) {
     int errfd;
     int mode;
     int options;
+#ifdef HPUX
+    TCHAR* fixIconvHpuxPropValue = NULL;
+#endif
 
 #ifdef WIN32
     mode = _S_IWRITE;
@@ -495,6 +497,14 @@ int initCommon(JNIEnv *env, jclass jClassWrapperManager) {
     options = O_WRONLY | O_APPEND | O_CREAT;
 #endif
     initUTF8Strings(env);
+
+#ifdef HPUX
+    if (!getSystemProperty(env, TEXT("wrapper.fix_iconv_hpux"), &fixIconvHpuxPropValue, FALSE)) {
+        if (fixIconvHpuxPropValue && (strcmpIgnoreCase(fixIconvHpuxPropValue, TEXT("ALWAYS")) == 0)) {
+            toggleIconvHpuxFix(TRUE);
+        }
+    }
+#endif
 
     if (getSystemProperty(env, TEXT("wrapper.java.errfile"), &errfile, FALSE)) {
         /* Failed */
