@@ -594,6 +594,14 @@ extern int converterWideToMB(const TCHAR *wideChars, char **outputBufferMB, int 
  */
 extern int converterMBToMB(const char *multiByteChars, int inputEncoding, char **outputBufferMB, int outputEncoding);
 #else 
+
+#ifdef HPUX
+/**
+ * Turns on or off a fix used in converterMBToMB()
+ */
+void toggleIconvHpuxFix(int value);
+#endif
+
 /**
  * Converts a native multibyte string into a specific multibyte encoded string.
  *

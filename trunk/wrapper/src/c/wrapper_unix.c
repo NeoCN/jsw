@@ -2128,6 +2128,8 @@ int main(int argc, char **argv) {
         setSimpleLogLevels();
         /* Print out the string so the caller sees it as its translated output. */
         _tprintf(TEXT("%s"), argv[2]);
+        /* Reset silent mode as some queued messages may be printed. */
+        setSilentLogLevels();
         appExit(0, argc, argv);
         return 0; /* For compiler. */
     } else if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("c")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-console"))) {

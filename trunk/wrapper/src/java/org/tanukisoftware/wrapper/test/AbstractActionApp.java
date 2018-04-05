@@ -96,7 +96,7 @@ public abstract class AbstractActionApp
      * Constructors
      *-------------------------------------------------------------*/
     protected AbstractActionApp() {
-        m_runner = new Thread( Main.getRes().getString( "WrapperActionTest_Runner" ) )
+        m_runner = new Thread( "WrapperActionTest_Runner" )
         {
             public void run()
             {

@@ -674,8 +674,10 @@ void wrapperLoadLoggingProperties(int preload) {
     /* Load log file format */
     setLogfileFormat(getStringProperty(properties, TEXT("wrapper.logfile.format"), LOG_FORMAT_LOGFILE_DEFAULT));
 
-    /* Load log file log level */
-    setLogfileLevel(getStringProperty(properties, TEXT("wrapper.logfile.loglevel"), TEXT("INFO")));
+    /* Load log file log level (stay in silent mode on a translate call) */
+    if (strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate"))) {
+        setLogfileLevel(getStringProperty(properties, TEXT("wrapper.logfile.loglevel"), TEXT("INFO")));
+    }
 
     /* Load max log filesize log level */
     setLogfileMaxFileSize(getStringProperty(properties, TEXT("wrapper.logfile.maxsize"), TEXT("0")));
@@ -700,7 +702,10 @@ void wrapperLoadLoggingProperties(int preload) {
     /* Load console format */
     setConsoleLogFormat(getStringProperty(properties, TEXT("wrapper.console.format"), LOG_FORMAT_CONSOLE_DEFAULT));
 
-    setConsoleLogLevel(getStringProperty(properties, TEXT("wrapper.console.loglevel"), TEXT("INFO")));
+    /* Load console log level (stay in silent mode on a translate call) */
+    if (strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate"))) {
+        setConsoleLogLevel(getStringProperty(properties, TEXT("wrapper.console.loglevel"), TEXT("INFO")));
+    }
 
 #ifdef WIN32
     /* check if the current instance of the Wrapper is running under Cygwin */
@@ -721,8 +726,10 @@ void wrapperLoadLoggingProperties(int preload) {
     setConsoleWarnToStdErr(getBooleanProperty(properties, TEXT("wrapper.console.warn_to_stderr"), FALSE));
 
 
-    /* Load syslog log level */
-    setSyslogLevel(getStringProperty(properties, TEXT("wrapper.syslog.loglevel"), TEXT("NONE")));
+    /* Load syslog log level (stay in silent mode on a translate call) */
+    if (strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate"))) {
+        setSyslogLevel(getStringProperty(properties, TEXT("wrapper.syslog.loglevel"), TEXT("NONE")));
+    }
     
     /* Load syslog split messages flag. */
     setSyslogSplitMessages(getBooleanProperty(properties, TEXT("wrapper.syslog.split_messages"), FALSE));
@@ -811,6 +818,15 @@ void getConfiguredErrorExitCode(int silent) {
  */
 int wrapperPreLoadConfigurationProperties(int *logLevelOnOverwriteProperties, int *exitOnOverwriteProperties) {
     int returnVal = FALSE;
+#ifdef HPUX
+    const TCHAR* fix_iconv_hpux;
+
+    fix_iconv_hpux = getStringProperty(properties, TEXT("wrapper.fix_iconv_hpux"), NULL);
+    if (fix_iconv_hpux && (strcmpIgnoreCase(fix_iconv_hpux, TEXT("ALWAYS")) == 0)) {
+        /* If Iconv should be fixed, enable it as soon as possible to get the correct conversion when reloading the configuration. */
+        toggleIconvHpuxFix(TRUE);
+    }
+#endif
 #ifdef WIN32
     /* For the community edition, always try to display the system errors in English. */
     setLogSysLangId((SUBLANG_ENGLISH_US << 10) + LANG_ENGLISH);
@@ -821,11 +837,6 @@ int wrapperPreLoadConfigurationProperties(int *logLevelOnOverwriteProperties, in
     
     /* Load log file */
     wrapperLoadLoggingProperties(TRUE);
-
-    /* As soon as the logging is loaded see if we are in a translate call.  If so we need to reset the log levels to silent mode. */
-    if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate"))) {
-        setSilentLogLevels();
-    }
     
     wrapperAddDefaultProperties(properties);
     if (wrapperData->workingDir && wrapperData->originalWorkingDir) {
@@ -4125,6 +4136,7 @@ void printBytes(const char * s) {
     int len = __min(strlen(s), MAX_LOG_SIZE/3);
     int i;
     
+    buffer[0] = 0;
     pBuffer = buffer;
     for (i = 0; i < len; i++) {
         _sntprintf(pBuffer, 4, TEXT("%02x "), (unsigned char)s[i]);
@@ -7149,6 +7161,9 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
 #ifndef WIN32
     TCHAR localeEncodingBuff[ENCODING_BUFFER_SIZE];
 #endif
+#ifdef HPUX
+    const TCHAR* fix_iconv_hpux;
+#endif
 
     setLogPropertyWarnings(properties, strings != NULL);
     index = 0;
@@ -7263,6 +7278,21 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         index++;
     }
 
+#ifdef HPUX
+    fix_iconv_hpux = getStringProperty(properties, TEXT("wrapper.fix_iconv_hpux"), NULL);
+    if (fix_iconv_hpux) {
+        if (strings) {
+            strings[index] = malloc(sizeof(TCHAR) * (25 + _tcslen(fix_iconv_hpux) + 1));
+            if (!strings[index]) {
+                outOfMemory(TEXT("WBJCAI"), 9);
+                return -1;
+            }
+            _sntprintf(strings[index], 25 + _tcslen(fix_iconv_hpux) + 1, TEXT("-Dwrapper.fix_iconv_hpux=%s"), fix_iconv_hpux);
+        }
+        index++;
+    }
+#endif
+
     /* Initial JVM memory */
     initMemory = getIntProperty(properties, TEXT("wrapper.java.initmemory"), 0);
     if (initMemory > 0) {
@@ -7270,7 +7300,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
             initMemory = __max(initMemory, 1); /* 1 <= n */
             strings[index] = malloc(sizeof(TCHAR) * (5 + 10 + 1));  /* Allow up to 10 digits. */
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 9);
+                outOfMemory(TEXT("WBJCAI"), 10);
                 return -1;
             }
             _sntprintf(strings[index], 5 + 10 + 1, TEXT("-Xms%dm"), initMemory);
@@ -7288,7 +7318,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
             maxMemory = __max(maxMemory, initMemory);  /* initMemory <= n */
             strings[index] = malloc(sizeof(TCHAR) * (5 + 10 + 1));  /* Allow up to 10 digits. */
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 11);
+                outOfMemory(TEXT("WBJCAI"), 12);
                 return -1;
             }
             _sntprintf(strings[index], 5 + 10 + 1, TEXT("-Xmx%dm"), maxMemory);
