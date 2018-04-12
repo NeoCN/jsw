@@ -17,12 +17,13 @@ Java Service Wrapper Revision History.
   using a default encoding that did not match the system encoding. This
   resulted in unreadable JVM outputs.
 * Add the ability to parse any encoding specified in the JVM arguments (via
-  file.encoding, sun.stdout.encoding or sun.stderr.encoding) and reads the JVM
+  file.encoding, sun.stdout.encoding or sun.stderr.encoding) and read the JVM
   output using the same encoding.
 * Deprecate wrapper.lang.encoding in favor of wrapper.lang.unix.encoding and
-  add wrapper.lang.windows.encoding. Windows and Unix use different syntax for
-  the encoding, so having a dedicated property for each platform helps setting
-  the encoding used by the Wrapper in a cross-platform way. The specified value
+  add wrapper.lang.<platform>.encoding to specify an encoding per platform.
+  While Unix systems often use the same syntax for encodings, Windows uses code
+  pages instead of names. The new created set of properties helps setting the
+  encoding used by the Wrapper in a cross-platform way. The specified value
   will be both used to encode the JVM output and the Wrapper log output.
 * Improve portability of wrapper.lang.unix.encoding. If its value doesn't match
   any encoding of the locales installed on the system, the Wrapper will search
@@ -33,7 +34,7 @@ Java Service Wrapper Revision History.
   the encoding of the JVM has to be different from the Wrapper output encoding.
   Otherwise wrapper.lang.[windows|unix].encoding is preferred.
 * Improve the way the encoding is passed to the JVM on the different platforms:
-  - On windows, since version 3.5.8 (Profesional and Standard Editions),
+  - On Windows, since version 3.5.8 (Professional and Standard Editions),
     file.encoding was added to the JVM arguments to ensure that the Wrapper
     always reads the JVM output using a suitable encoding for its own language
     regardless of the OS language. However it forced the Java application to
@@ -68,9 +69,9 @@ Java Service Wrapper Revision History.
   than those provided by default (German and Japanese).
 * Fix wrong exit code (0) returned in case the Wrapper would fail to launch a
   JVM.
-* Allow wrapper.exit_code.error to apply at a earlier stage if the Wrapper has
-  to stop while loading the configuration (for example when duplicate
-  properties are found and properties.on_overwrite.exit is set to TRUE).
+* Allow wrapper.exit_code.error to be used at an earlier stage if the Wrapper
+  has to stop while loading the configuration (for example when duplicate
+  properties are found with #properties.on_overwrite.exit being set to TRUE).
 * Allow the CPU affinity of the Wrapper process to be changed when the
   configuration is reloaded.
 * Add wrapper.java.version.min and wrapper.java.version.max to control the
@@ -79,11 +80,11 @@ Java Service Wrapper Revision History.
 * Fix wrapper.console.title being ignored with wrapperw.exe and
   wrapper.ntservice.console set to TRUE.
 * Add four customization options (properties-default, property-file-default,
-  properties-default, property-file-default) to include configuration
-  properties into the Wrapper binaries (Windows). The properties specified with
-  the 'default' options can be overriden from the configuration file or the
+  properties-final, property-file-final) to include configuration properties
+  into the Wrapper binaries (Windows). The properties specified with the
+  'default' options can be overridden from the configuration file or the
   command line, whereas those specified with the 'final' options are marked as
-  final and cannot be overriden.
+  final and cannot be overridden.
 * Add a new property, wrapper.properties.dump.format, to print various kinds of
   information when dumping configuration properties. Note that the default
   formatting changes from 'NAME=VALUE' to 'SOURCE | FINAL | NAME | VALUE'.
@@ -93,10 +94,10 @@ Java Service Wrapper Revision History.
   properties or environment variables dumps, etc. without starting the Java
   application.
 * If wrapper.timezone is set, -Duser.timezone will be added to the Java command
-  line to synchronize the time between the Java appliation and the Wrapper. It
+  line to synchronize the time between the Java application and the Wrapper. It
   is possible to pass a different timezone using one of the
-  wrapper.java.additional.<n> property, in which case the Wrapper will not add
-  its own timezone to the Java command line.
+  wrapper.java.additional.<n> properties, in which case the Wrapper will not
+  add its own timezone to the Java command line.
 * Fix incorrect Linux distribution detection in the shell script resulting in a
   daemon installation failure when update-rc.d was not present on the system.
 * No longer use IBM Advanced Toolchain when building the Wrapper for Linux
