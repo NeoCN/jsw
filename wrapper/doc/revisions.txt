@@ -1,5 +1,7 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.5.36
+
 3.5.35
 * Fix a bug where the icon of the hidden console allocated by wrapperw
   reappeared in the taskbar whenever the Java application opened a full screen
@@ -98,8 +100,9 @@ Java Service Wrapper Revision History.
   is possible to pass a different timezone using one of the
   wrapper.java.additional.<n> properties, in which case the Wrapper will not
   add its own timezone to the Java command line.
-* Fix incorrect Linux distribution detection in the shell script resulting in a
-  daemon installation failure when update-rc.d was not present on the system.
+* Improve Linux distribution detection in the shell script by checking that
+  update-rc.d is present on the system before installing the daemon. This
+  corrects an installation failure on Amazon Linux AMI.
 * No longer use IBM Advanced Toolchain when building the Wrapper for Linux
   PPC-LE. Advanced Toolchain was introduced in v. 3.5.34, but since then some
   users reported that the Wrapper binaries could not be executed on their
