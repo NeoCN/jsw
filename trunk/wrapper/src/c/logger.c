@@ -3879,6 +3879,7 @@ int doesFtellCauseMemoryLeak() {
  */
 void checkAndRollLogs(const TCHAR *nowDate, size_t printBufferSize) {
     size_t position;
+    int result;
 #if defined(WIN32) && !defined(WIN64)
     struct _stat64i32 fileStat;
 #else
@@ -3898,10 +3899,11 @@ void checkAndRollLogs(const TCHAR *nowDate, size_t printBufferSize) {
          *  use ftell to make sure that the buffered data is also included. */
         if (logfileFP != NULL && !doesFtellCauseMemoryLeak()) {
             /* File is open */
-            if ((position = ftell(logfileFP)) < 0) {
+            if ((result = ftell(logfileFP)) < 0) {
                 _tprintf(TEXT("Unable to get the current logfile size with ftell: %s\n"), getLastErrorText());
                 return;
             }
+            position = (size_t)result;
         } else {
             /* File is not open or we can't use ftell because of memory leak issue */
             generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, nowDate, NULL);

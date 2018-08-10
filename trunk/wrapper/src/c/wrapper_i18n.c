@@ -858,7 +858,7 @@ int _texecvp(TCHAR* arg, TCHAR **cmd) {
                 return -1;
             }
         }
-        cCmd[size] = '\0';
+        cCmd[size] = NULL;
 
         req = wcstombs(NULL, arg, 0);
         if (req == (size_t)-1) {
@@ -953,7 +953,7 @@ int _texecve(TCHAR* arg, TCHAR **cmd, TCHAR** env) {
                 return -1;
             }
         }
-        cCmd[sizeCmd] = '\0';
+        cCmd[sizeCmd] = NULL;
         for (i = 0; env[i] != NULL; i++) {
             ;
         }
@@ -997,7 +997,7 @@ int _texecve(TCHAR* arg, TCHAR **cmd, TCHAR** env) {
                 return -1;
             }
         }
-        cEnv[sizeEnv] = '\0';
+        cEnv[sizeEnv] = NULL;
 
         req  = wcstombs(NULL, arg, 0);
         if (req == (size_t)-1) {

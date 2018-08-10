@@ -31,10 +31,14 @@
 #define _WRAPPER_JVMINFO_H
 #include "wrapper_i18n.h"
 
-#define JVM_MAKER_UNKNOWN  0
-#define JVM_MAKER_ORACLE   1
-#define JVM_MAKER_OPENJDK  2
-#define JVM_MAKER_IBM      3
+#define JVM_MAKER_UNKNOWN   0
+#define JVM_MAKER_ORACLE    1
+#define JVM_MAKER_OPENJDK   2
+#define JVM_MAKER_IBM       3
+
+#define JVM_BITS_UNKNOWN    0
+#define JVM_BITS_32         32
+#define JVM_BITS_64         64
 
 typedef struct JavaVersion JavaVersion;
 struct JavaVersion {
@@ -91,20 +95,6 @@ JavaVersion* getMaxRequiredJavaVersion();
 JavaVersion* parseOutputJavaVersion(TCHAR *javaOutput);
 
 /**
- * Parse the output of 'java -version' and retrieve the major, minor and revision components of the version.
- *  Note: The output will modified by the function.
- *
- * @param output   the output returned by 'java -version'.
- *
- * @return maker   an integer representing the JVM implementation:
- *                  JVM_MAKER_UNKNOWN
- *                  JVM_MAKER_ORACLE
- *                  JVM_MAKER_OPENJDK
- *                  JVM_MAKER_IBM
- */
-int parseOutputJvmMaker(TCHAR* output);
-
-/**
  * Compare two versions of Java.
  *
  * @param version1 version of Java
@@ -117,15 +107,52 @@ int parseOutputJvmMaker(TCHAR* output);
 int compareJavaVersion(JavaVersion *version1, JavaVersion* version2);
 
 /**
+ * Parse the output of 'java -version' and retrieve the maker (implementation) of the JVM.
+ *
+ * @param output   the output returned by 'java -version' (or only the line of the output containing the maker).
+ *
+ * @return an integer representing the JVM implementation:
+ *              JVM_MAKER_UNKNOWN
+ *              JVM_MAKER_ORACLE
+ *              JVM_MAKER_OPENJDK
+ *              JVM_MAKER_IBM
+ */
+int parseOutputJvmMaker(TCHAR* output);
+
+/**
  * Get the name of a JVM maker.
  *
  * @param maker an integer representing the JVM implementation:
- *               JVM_MAKER_UNKNOWN
- *               JVM_MAKER_ORACLE
- *               JVM_MAKER_OPENJDK
- *               JVM_MAKER_IBM
+ *              JVM_MAKER_UNKNOWN
+ *              JVM_MAKER_ORACLE
+ *              JVM_MAKER_OPENJDK
+ *              JVM_MAKER_IBM
  *
  * @return the name of the JVM maker.
  */
-TCHAR* getJvmMakerName(int jvmMaker, TCHAR* buffer);
+const TCHAR* getJvmMakerName(int jvmMaker);
+
+/**
+ * Parse the output of 'java -version' and retrieve the bits of the JVM.
+ *
+ * @param output   the output returned by 'java -version' (or only the line of the output containing the bits).
+ *
+ * @return an integer which indicates the bits of the JVM:
+ *              JVM_BITS_64
+ *              JVM_BITS_32
+ *              JVM_BITS_UNKNOWN
+ */
+int parseOutputJvmBits(TCHAR* output);
+
+/**
+ * Get a string representing the bits of the JVM.
+ *
+ * @param bits an integer which indicates the bits of the JVM:
+ *              JVM_BITS_64
+ *              JVM_BITS_32
+ *              JVM_BITS_UNKNOWN
+ *
+ * @return the string representing the bits of the JVM.
+ */
+const TCHAR* getJvmBitsName(int jvmBits);
 #endif

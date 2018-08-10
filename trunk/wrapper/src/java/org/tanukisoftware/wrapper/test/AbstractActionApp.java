@@ -404,7 +404,6 @@ public abstract class AbstractActionApp
                 {
                     public void run()
                     {
-                        System.out.println();
                         System.out.println( Main.getRes().getString( "Start prompting for actions." ) );
                         try
                         {

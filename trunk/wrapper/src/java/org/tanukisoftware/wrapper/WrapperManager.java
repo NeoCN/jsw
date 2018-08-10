@@ -1184,6 +1184,7 @@ public final class WrapperManager
      * Native Methods
      *-------------------------------------------------------------*/
     private static native void nativeInit( boolean debug );
+    private static native void nativeDispose( boolean debug );
     private static native String nativeGetLibraryVersion();
     private static native int nativeGetJavaPID();
     private static native boolean nativeIsProfessionalEdition();
@@ -4234,6 +4235,9 @@ public final class WrapperManager
             catch ( InterruptedException e )
             {
             }
+            
+            // Dispose the Native resources
+            nativeDispose( m_debug );
         }
     }
     

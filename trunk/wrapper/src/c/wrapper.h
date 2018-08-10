@@ -268,13 +268,15 @@ struct WrapperConfig {
     TCHAR   *configFile;            /* Name of the configuration file */
     int     commandLogLevel;        /* The log level to use when logging the java command. */
     int     printJVMVersion;        /* tells the Wrapper to create a temp JVM to query the version, before starting the java application */
-    JavaVersion *javaVersion;       /* Java version used for the current or next JVM instance to be launched. */
+    JavaVersion *javaVersion;       /* Java version of the current or next JVM instance to be launched. */
     JavaVersion *javaVersionMin;    /* The minimum version of Java required for the Wrapper to launch a JVM. */
     JavaVersion *javaVersionMax;    /* The maximum version of Java required for the Wrapper to launch a JVM. */
-    int     jvmMaker;               /* JVM implementation (Oracle, IBM, etc.) used for the current or next JVM instance to be launched. */
+    int     jvmBits;                /* JVM bits of the current or next JVM instance to be launched. */
+    int     jvmMaker;               /* JVM implementation (Oracle, IBM, etc.) of the current or next JVM instance to be launched. */
     int     jvmDefaultLogLevel;     /* The default log level used for JVM outputs. */
     int     jvmSource;              /* The source used for JVM outputs. */
 #ifdef WIN32
+    TCHAR   *registry_java_home;    /* Path to the Java Home when the command is located to the registry, or NULL otherwise. */
     TCHAR   *jvmVersionCommand;     /* Command used to launch the JVM and request its version */
     TCHAR   *jvmCommand;            /* Command used to launch the JVM */
 #else /* UNIX */
@@ -539,6 +541,16 @@ extern WrapperConfig *wrapperData;
 extern Properties    *properties;
 
 extern TCHAR wrapperClasspathSeparator;
+
+/**
+ * Return TRUE if the this is a prompt call made from the script (like -translate or -jvm_bits).
+ */
+int isPromptCall();
+
+/**
+ * Attempt to set the console title if it exists and is accessible.
+ */
+extern void wrapperSetConsoleTitle();
 
 /* Protocol Functions */
 /**

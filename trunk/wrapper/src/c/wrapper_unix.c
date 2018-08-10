@@ -985,17 +985,7 @@ int wrapperInitializeRun() {
         retval = -1;
     }
 
-    /* Attempt to set the console title if it exists and is accessable.
-     *  This works on all UNIX versions, but only Linux resets it
-     *  correctly when the wrapper process terminates. */
-#if defined(LINUX)
-    if (wrapperData->consoleTitle) {
-        if (wrapperData->isConsole) {
-            /* The console should be visible. */
-            _tprintf(TEXT("%c]0;%s%c"), TEXT('\033'), wrapperData->consoleTitle, TEXT('\007'));
-        }
-    }
-#endif
+    wrapperSetConsoleTitle();
 
     if (wrapperData->useSystemTime) {
         /* We are going to be using system time so there is no reason to start up a timer thread. */
@@ -2065,7 +2055,7 @@ int main(int argc, char **argv) {
         return 1; /* For compiler. */
     }
     if (!localeSet) {
-        if (strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate")) != 0) {
+        if (!isPromptCall()) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Unable to set the locale to '%s'.  Please make sure $LC_* and $LANG are correct."), (envLang ? envLang : TEXT("<NULL>")));
         }
 #if defined(UNICODE)
@@ -2075,7 +2065,7 @@ int main(int argc, char **argv) {
 #endif
     }
     wrapperLoadHostName();
-    if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate"))) {
+    if (isPromptCall()) {
         /* We want to disable all log output when a translation request is made. */
         setSilentLogLevels();
     }
@@ -2132,6 +2122,14 @@ int main(int argc, char **argv) {
         setSilentLogLevels();
         appExit(0, argc, argv);
         return 0; /* For compiler. */
+    } else if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("-jvm_bits"))) {
+        /* Generate the command used to get the Java version but don't stop on failure. */
+        if (!wrapperBuildJavaVersionCommand()) {
+            /* Get the Java version before building the command line. */
+            wrapperLaunchJavaVersion();
+        }
+        appExit(wrapperData->jvmBits, argc, argv);
+        return 0; /* For compiler. */
     } else if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("c")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-console"))) {
         /* Run as a console application */
 
@@ -2176,7 +2174,8 @@ int main(int argc, char **argv) {
                      *  it did not exist.  Show the usage. */
                     wrapperUsage(argv[0]);
                 }
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  The Wrapper will stop."));
+                /* There might have been some queued messages logged on configuration load. Queue the following message to make it appear last. */
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  The Wrapper will stop."));
                 appExit(wrapperData->errorExitCode, argc, argv);
                 return 1; /* For compiler. */
             }

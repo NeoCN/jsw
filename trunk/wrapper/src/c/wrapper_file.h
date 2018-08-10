@@ -29,7 +29,7 @@
 /**
  * Callback declaration which can be passed to calls to configFileReader.
  */
-typedef int (*ConfigFileReader_Callback)(void *param, const TCHAR *fileName, int lineNumber, TCHAR *config, int exitOnOverwrite, int logLevelOnOverwrite);
+typedef int (*ConfigFileReader_Callback)(void *param, const TCHAR *fileName, int lineNumber, int depth, TCHAR *config, int exitOnOverwrite, int logLevelOnOverwrite);
 
 /* Structure used by configFileReader to read files. */
 typedef struct ConfigFileReader ConfigFileReader;
@@ -63,6 +63,7 @@ extern void wrapperFileTests();
 #define CONFIG_FILE_READER_SUCCESS   101
 #define CONFIG_FILE_READER_FAIL      102
 #define CONFIG_FILE_READER_HARD_FAIL 103
+#define CONFIG_FILE_READER_OPEN_FAIL 104
 
 /**
  * Reads configuration lines from the file `filename' and calls `callback' with the line and

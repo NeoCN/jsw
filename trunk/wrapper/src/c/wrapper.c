@@ -233,8 +233,8 @@ struct tm wrapperGetBuildTime() {
  *  creating a "set.XXX=NNN" property in the configuration file.
  */
 void wrapperAddDefaultProperties(Properties *props) {
-    size_t bufferLen;
-    TCHAR* buffer, *confDirTemp;
+    TCHAR buffer[11]; /* should be large enough to contain the pid and lang (increase the buffer size if more variables are needed) */
+    TCHAR* confDirTemp;
 #ifdef WIN32
     int work, pos2;
     TCHAR pathSep = TEXT('\\');
@@ -242,16 +242,13 @@ void wrapperAddDefaultProperties(Properties *props) {
     TCHAR pathSep = TEXT('/');
 #endif
     int pos;
-
-    /* IMPORTANT - If any new values are added here, this work buffer length may need to be calculated differently. */
-    bufferLen = 1;
-    bufferLen = __max(bufferLen, _tcslen(TEXT("set.WRAPPER_LANG=")) + 3 + 1);
-    bufferLen = __max(bufferLen, _tcslen(TEXT("set.WRAPPER_PID=")) + 10 + 1); /* 32-bit PID would be max of 10 characters */
-    bufferLen = __max(bufferLen, _tcslen(TEXT("set.WRAPPER_BITS=")) + _tcslen(wrapperBits) + 1);
-    bufferLen = __max(bufferLen, _tcslen(TEXT("set.WRAPPER_ARCH=")) + _tcslen(wrapperArch) + 1);
-    bufferLen = __max(bufferLen, _tcslen(TEXT("set.WRAPPER_OS=")) + _tcslen(wrapperOS) + 1);
-    bufferLen = __max(bufferLen, _tcslen(TEXT("set.WRAPPER_HOSTNAME=")) + _tcslen(wrapperData->hostName) + 1);
-    bufferLen = __max(bufferLen, _tcslen(TEXT("set.WRAPPER_HOST_NAME=")) + _tcslen(wrapperData->hostName) + 1);
+#ifdef WIN32
+    const TCHAR* fileSeparator = TEXT("\\");
+    const TCHAR* pathSeparator = TEXT(";");
+#else
+    const TCHAR* fileSeparator = TEXT("/");
+    const TCHAR* pathSeparator = TEXT(":");
+#endif
 
     if (wrapperData->confDir == NULL) {
         if (_tcsrchr(wrapperData->argConfFile, pathSep) != NULL) {
@@ -332,42 +329,23 @@ void wrapperAddDefaultProperties(Properties *props) {
         free(confDirTemp);
     }
 
-    buffer = malloc(sizeof(TCHAR) * bufferLen);
-    if (!buffer) {
-        outOfMemory(TEXT("WADP"), 1);
-        return;
-    }
-
-    _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_LANG=en"));
-    addPropertyPair(props, NULL, 0, buffer, TRUE, FALSE, TRUE);
-
-    _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_PID=%d"), wrapperData->wrapperPID);
-    addPropertyPair(props, NULL, 0, buffer, TRUE, FALSE, TRUE);
-
-    _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_BITS=%s"), wrapperBits);
-    addPropertyPair(props, NULL, 0, buffer, TRUE, FALSE, TRUE);
-
-    _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_ARCH=%s"), wrapperArch);
-    addPropertyPair(props, NULL, 0, buffer, TRUE, FALSE, TRUE);
-
-    _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_OS=%s"), wrapperOS);
-    addPropertyPair(props, NULL, 0, buffer, TRUE, FALSE, TRUE);
-
-    _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_HOSTNAME=%s"), wrapperData->hostName);
-    addPropertyPair(props, NULL, 0, buffer, TRUE, FALSE, TRUE);
-
-    _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_HOST_NAME=%s"), wrapperData->hostName);
-    addPropertyPair(props, NULL, 0, buffer, TRUE, FALSE, TRUE);
-
+    _sntprintf(buffer, 3, TEXT("en"));
+    setInternalVarProperty(props, TEXT("WRAPPER_LANG"), buffer, TRUE);
+    _sntprintf(buffer, 11, TEXT("%d"), wrapperData->wrapperPID);
+    setInternalVarProperty(props, TEXT("WRAPPER_PID"), buffer, TRUE);
+    setInternalVarProperty(props, TEXT("WRAPPER_BITS"), wrapperBits, TRUE);
+    setInternalVarProperty(props, TEXT("WRAPPER_ARCH"), wrapperArch, TRUE);
+    setInternalVarProperty(props, TEXT("WRAPPER_OS"), wrapperOS, TRUE);
+    setInternalVarProperty(props, TEXT("WRAPPER_VERSION"), wrapperVersionRoot, TRUE);
+    setInternalVarProperty(props, TEXT("WRAPPER_EDITION"), TEXT("Community"), TRUE);
+    setInternalVarProperty(props, TEXT("WRAPPER_HOSTNAME"), wrapperData->hostName, TRUE);
+    setInternalVarProperty(props, TEXT("WRAPPER_HOST_NAME"), wrapperData->hostName, TRUE);
+    setInternalVarProperty(props, TEXT("WRAPPER_FILE_SEPARATOR"), fileSeparator, TRUE);
+    setInternalVarProperty(props, TEXT("WRAPPER_PATH_SEPARATOR"), pathSeparator, TRUE);
 #ifdef WIN32
-    addPropertyPair(props, NULL, 0, TEXT("set.WRAPPER_FILE_SEPARATOR=\\"), TRUE, FALSE, TRUE);
-    addPropertyPair(props, NULL, 0, TEXT("set.WRAPPER_PATH_SEPARATOR=;"), TRUE, FALSE, TRUE);
-#else
-    addPropertyPair(props, NULL, 0, TEXT("set.WRAPPER_FILE_SEPARATOR=/"), TRUE, FALSE, TRUE);
-    addPropertyPair(props, NULL, 0, TEXT("set.WRAPPER_PATH_SEPARATOR=:"), TRUE, FALSE, TRUE);
+    /* Do not change the value of this variable as this would cause a memory leak on each JVM restart (see setEnvInner()). */
+    setInternalVarProperty(properties, TEXT("WRAPPER_JAVA_HOME"), wrapperData->registry_java_home, FALSE);
 #endif
-
-    free(buffer);
 }
 
 /**
@@ -385,6 +363,32 @@ int showHostIds(int logLevel) {
     return FALSE;
 }
 
+
+/**
+ * Attempt to set the console title if it exists and is accessible.
+ */
+void wrapperSetConsoleTitle() {
+#ifdef WIN32
+    if (wrapperData->consoleTitle) {
+        if (wrapperProcessHasVisibleConsole()) {
+            /* The console should be visible. */
+            if (!SetConsoleTitle(wrapperData->consoleTitle)) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                    TEXT("Attempt to set the console title failed: %s"), getLastErrorText());
+            }
+        }
+    }
+#elif LINUX
+    /*  This works on all UNIX versions, but only Linux resets it
+     *  correctly when the wrapper process terminates. */
+    if (wrapperData->consoleTitle) {
+        if (wrapperData->isConsole) {
+            /* The console should be visible. */
+            _tprintf(TEXT("%c]0;%s%c"), TEXT('\033'), wrapperData->consoleTitle, TEXT('\007'));
+        }
+    }
+#endif
+}
 
 /**
  * Loads the current environment into a table so we can debug it later.
@@ -623,6 +627,14 @@ int isCygwin() {
 }
 #endif
 
+/**
+ * Return TRUE if the this is a prompt call made from the script (like --translate or --jvm_bits).
+ */
+int isPromptCall() {
+    return ((strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate")) == 0) ||
+            (strcmpIgnoreCase(wrapperData->argCommand, TEXT("-jvm_bits")) == 0));
+}
+
 void wrapperLoadLoggingProperties(int preload) {
     const TCHAR *logfilePath;
     int logfileRollMode;
@@ -675,7 +687,7 @@ void wrapperLoadLoggingProperties(int preload) {
     setLogfileFormat(getStringProperty(properties, TEXT("wrapper.logfile.format"), LOG_FORMAT_LOGFILE_DEFAULT));
 
     /* Load log file log level (stay in silent mode on a translate call) */
-    if (strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate"))) {
+    if (!isPromptCall()) {
         setLogfileLevel(getStringProperty(properties, TEXT("wrapper.logfile.loglevel"), TEXT("INFO")));
     }
 
@@ -703,7 +715,7 @@ void wrapperLoadLoggingProperties(int preload) {
     setConsoleLogFormat(getStringProperty(properties, TEXT("wrapper.console.format"), LOG_FORMAT_CONSOLE_DEFAULT));
 
     /* Load console log level (stay in silent mode on a translate call) */
-    if (strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate"))) {
+    if (!isPromptCall()) {
         setConsoleLogLevel(getStringProperty(properties, TEXT("wrapper.console.loglevel"), TEXT("INFO")));
     }
 
@@ -727,7 +739,7 @@ void wrapperLoadLoggingProperties(int preload) {
 
 
     /* Load syslog log level (stay in silent mode on a translate call) */
-    if (strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate"))) {
+    if (!isPromptCall()) {
         setSyslogLevel(getStringProperty(properties, TEXT("wrapper.syslog.loglevel"), TEXT("NONE")));
     }
     
@@ -927,6 +939,8 @@ int wrapperLoadConfigurationProperties(int preload) {
     mode_t defaultUMask;
 #endif
     const TCHAR* prop;
+    int confFileRequired = TRUE;
+    int loadResult;
 
     if (preloadFailed) {
         /* The preload has failed with a FATAL error that will not be reported again on the second load. Exit. */
@@ -1017,14 +1031,12 @@ int wrapperLoadConfigurationProperties(int preload) {
     
     setLogPropertyWarnings(properties, !preload);
     
-    /* Not sure we need to call again wrapperAddDefaultProperties() here. The function was already called on preload.
-    Use properties->logLevelOnOverwrite to see the concerned properties */
     wrapperAddDefaultProperties(properties);
 
     /* The argument prior to the argBase will be the configuration file, followed
      *  by 0 or more command line properties.  The command line properties need to be
      *  loaded first, followed by the configuration file. */
-    if (strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate")) != 0) {
+    if (!isPromptCall()) {
         for (i = 0; i < wrapperData->argCount; i++) {
             if (addPropertyPair(properties, NULL, 0, wrapperData->argValues[i], TRUE, TRUE, FALSE)) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
@@ -1038,22 +1050,24 @@ int wrapperLoadConfigurationProperties(int preload) {
     /* Now load the configuration file.
      *  When this happens, the working directory MUST be set to the original working dir. */
 #ifdef WIN32
-    if (loadProperties(properties, wrapperData->configFile, preload, wrapperData->originalWorkingDir, FALSE)) {
+    loadResult = loadProperties(properties, wrapperData->configFile, preload, wrapperData->originalWorkingDir, FALSE);
 #else
-    if (loadProperties(properties, wrapperData->configFile, (preload | wrapperData->daemonize), wrapperData->originalWorkingDir, FALSE)) {
+    loadResult = loadProperties(properties, wrapperData->configFile, (preload | wrapperData->daemonize), wrapperData->originalWorkingDir, FALSE);
 #endif
-        /* File not found. */
-        /* If this was a default file name then we don't want to show this as
-         *  an error here.  It will be handled by the caller. */
-        /* Debug is not yet available as the config file is not yet loaded. */
-        if ((!preload) && (!wrapperData->argConfFileDefault)) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Failed to load configuration: %s"), wrapperData->configFile);
+    if (loadResult != CONFIG_FILE_READER_SUCCESS) {
+        if (confFileRequired || (loadResult != CONFIG_FILE_READER_OPEN_FAIL)) {
+            /* If this was a default file name then we don't want to show this as
+             *  an error here.  It will be handled by the caller. */
+            /* Debug is not yet available as the config file is not yet loaded. */
+            if ((!preload) && (!wrapperData->argConfFileDefault)) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Failed to load configuration: %s"), wrapperData->configFile);
+            }
+            return TRUE;
         }
-        return TRUE;
+    } else {
+        /* Config file found. */
+        wrapperData->argConfFileFound = TRUE;
     }
-
-    /* Config file found. */
-    wrapperData->argConfFileFound = TRUE;
 
     /* The properties have just been loaded. */
     if (preload == TRUE) {
@@ -2980,8 +2994,10 @@ int wrapperInitialize() {
     wrapperData->pingTimedOut = FALSE;
     wrapperData->shutdownActionPropertyName = NULL;
     wrapperData->javaVersion = NULL;
+    wrapperData->jvmBits = JVM_BITS_UNKNOWN;
     wrapperData->jvmMaker = JVM_MAKER_UNKNOWN;
 #ifdef WIN32
+    wrapperData->registry_java_home = NULL;
     if (!(tickMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
         printf("Failed to create tick mutex. %s\n", getLastErrorText());
         return 1;
@@ -3439,6 +3455,29 @@ void wrapperUsage(TCHAR *appName) {
     free(confFileBase);
 }
 
+int wrapperSetDefaultConfFile(TCHAR **argv) {
+    TCHAR *argConfFileBase;
+
+    argConfFileBase = malloc(sizeof(TCHAR) * (_tcslen(argv[0]) + 1));
+    if (!argConfFileBase) {
+        outOfMemory(TEXT("WSDCF"), 1);
+        return FALSE;
+    }
+    wrapperGetFileBase(argv[0], argConfFileBase);
+
+    /* The following malloc is only called once, but is never freed. */
+    wrapperData->argConfFile = malloc((_tcslen(argConfFileBase) + 5 + 1) * sizeof(TCHAR));
+    if (!wrapperData->argConfFile) {
+        outOfMemory(TEXT("WSDCF"), 2);
+        free(argConfFileBase);
+        return FALSE;
+    }
+    _sntprintf(wrapperData->argConfFile, _tcslen(argConfFileBase) + 5 + 1, TEXT("%s.conf"), argConfFileBase);
+
+    free(argConfFileBase);
+    return TRUE;
+}
+
 /**
  * Parse the main arguments.
  *
@@ -3446,7 +3485,6 @@ void wrapperUsage(TCHAR *appName) {
  *  already have been logged.
  */
 int wrapperParseArguments(int argc, TCHAR **argv) {
-    TCHAR *argConfFileBase;
     TCHAR *c;
     int delimiter, wrapperArgCount;
     wrapperData->javaArgValueCount = 0;
@@ -3503,6 +3541,13 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
                         wrapperData->argValues = &argv[4];
                     }
                     return TRUE;
+                } else if (_tcscmp(wrapperData->argCommand, TEXT("-jvm_bits")) == 0) {
+                    wrapperData->argConfFile = argv[2];
+                    wrapperData->argCount = wrapperArgCount - 3;
+                    wrapperData->argValues = &argv[3];
+                    
+                    /* If no configuration file is specified, we will go to case 'Syntax 3'. */
+                    return TRUE;
                 }
                 /* Syntax 1 */
                 /* A command and conf file were specified. */
@@ -3512,23 +3557,7 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
             } else {
                 /* Syntax 3 */
                 /* Only a command was specified.  Assume a default config file name. */
-                    argConfFileBase = malloc(sizeof(TCHAR) * (_tcslen(argv[0]) + 1));
-                    if (!argConfFileBase) {
-                        outOfMemory(TEXT("WPA"), 1);
-                        return FALSE;
-                    }
-                    wrapperGetFileBase(argv[0], argConfFileBase);
-
-                    /* The following malloc is only called once, but is never freed. */
-                    wrapperData->argConfFile = malloc((_tcslen(argConfFileBase) + 5 + 1) * sizeof(TCHAR));
-                    if (!wrapperData->argConfFile) {
-                        outOfMemory(TEXT("WPA"), 2);
-                        free(argConfFileBase);
-                        return FALSE;
-                    }
-                    _sntprintf(wrapperData->argConfFile, _tcslen(argConfFileBase) + 5 + 1, TEXT("%s.conf"), argConfFileBase);
-
-                    free(argConfFileBase);
+                wrapperSetDefaultConfFile(argv);
 
                 wrapperData->argConfFileDefault = TRUE;
                 wrapperData->argCount = wrapperArgCount - 2;
@@ -3548,23 +3577,7 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
         /* A config file was not specified.  Assume a default config file name. */
         wrapperData->argCommand = TEXT("c");
         wrapperData->argCommandArg = NULL;
-            argConfFileBase = malloc(sizeof(TCHAR) * (_tcslen(argv[0]) + 1));
-            if (!argConfFileBase) {
-                outOfMemory(TEXT("WPA"), 3);
-                return FALSE;
-            }
-            wrapperGetFileBase(argv[0], argConfFileBase);
-
-            /* The following malloc is only called once, but is never freed. */
-            wrapperData->argConfFile = malloc((_tcslen(argConfFileBase) + 5 + 1) * sizeof(TCHAR));
-            if (!wrapperData->argConfFile) {
-                outOfMemory(TEXT("WPA"), 4);
-                free(argConfFileBase);
-                return FALSE;
-            }
-            _sntprintf(wrapperData->argConfFile, _tcslen(argConfFileBase) + 5 + 1, TEXT("%s.conf"), argConfFileBase);
-
-            free(argConfFileBase);
+        wrapperSetDefaultConfFile(argv);
         wrapperData->argConfFileDefault = TRUE;
         wrapperData->argCount = wrapperArgCount - 1;
             wrapperData->argValues = &argv[1];
@@ -3999,7 +4012,7 @@ int wrapperConfirmJavaVersion() {
     if (wrapperData->javaVersionMin) {
         disposeJavaVersion(wrapperData->javaVersionMin);
     }
-    wrapperData->javaVersionMin = getJavaVersionProperty(TEXT("wrapper.java.version.min"), TEXT("1.4"), minVersion1, NULL, 0);
+    wrapperData->javaVersionMin = getJavaVersionProperty(TEXT("wrapper.java.version.min"), minVersion1->displayName, minVersion1, NULL, 0);
     if (!wrapperData->javaVersionMin) {
         /* Invalid configuration. A FATAL error has been logged. */
         result = FALSE;
@@ -4028,7 +4041,8 @@ int wrapperConfirmJavaVersion() {
                 /* We previously failed to parse the Java version currently used, so if wrapper.java.version.min or wrapper.java.version.max
                  *  are not set to their defaults, we should stop. Otherwise continue to not risk blocking the Wrapper for certain JVMs. */
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, 
-                    TEXT("Cannot confirm the version of Java. Usage of wrapper.java.version.min and\n wrapper.java.version.max will prevent the Wrapper from continuing."));
+                    TEXT("Cannot confirm the version of Java. Usage of %s\n  and %s will prevent the Wrapper from continuing."),
+                    TEXT("wrapper.java.version.min"), TEXT("wrapper.java.version.max"));
                 result = FALSE;
             }
             disposeJavaVersion(maxVersion);
@@ -4050,41 +4064,54 @@ int wrapperConfirmJavaVersion() {
 }
 
 static int javaVersionCurrentParseLine = 0;
-
-#define JAVA_VERSION_PARSE_LINE 1   /* The line at which the version of Java can be found in the 'java -version' output. */
-#define JVM_MAKER_PARSE_LINE    3   /* The line at which the JVM maker can be found in the 'java -version' output. */
+static int javaVersionParseLine = 1;    /* The line at which the version of Java can be found in the 'java -version' output. */
+static int javaMakerParseLine = 3;      /* The line at which the JVM maker can be found in the 'java -version' output. */
+static int javaBitsParseLine = 3;       /* The line at which the JVM bits can be found in the 'java -version' output. */
 
 void logParseJavaVersionOutput(TCHAR* log) {
-    TCHAR buffer[10];
-    
     if (wrapperData->jvmSource == WRAPPER_SOURCE_JVM_VERSION) {
         javaVersionCurrentParseLine++;
         
         /* Queue the messages to avoid logging it in the middle of the JVM output. */
-        if (javaVersionCurrentParseLine == JAVA_VERSION_PARSE_LINE) {
-            /* Parse the Java version. */
-            if (wrapperData->javaVersion) {
-                disposeJavaVersion(wrapperData->javaVersion);
-            }
-            wrapperData->javaVersion = parseOutputJavaVersion(log);
-            if (!wrapperData->javaVersion) {
-                wrapperData->javaVersion = getMinRequiredJavaVersion();
-                if (wrapperData->javaVersion) {
-                    /* If we fail to get the minimum required version (which should not happen), this would be fatal.
-                     *  We can't return the error now, but we will do it in wrapperConfirmJavaVersion(). */
-                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                        TEXT("Failed to parse the version of Java. Resolving to the lowest supported version (%s)."),
-                        wrapperData->javaVersion->displayName);
-                    wrapperData->javaVersion->isUnknown = TRUE;
-                }
+        if (javaVersionCurrentParseLine == javaVersionParseLine) {
+            
+            if (!_tcsstr(log, TEXT("version \""))) {
+                /* This is not the line containing the version. This can happen when a system message is inserted before the Java output. */
+                javaVersionParseLine++;
+                javaMakerParseLine++;
+                javaBitsParseLine++;
+                return;
             } else {
-                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Java version parsed to: %d.%d.%d"),
-                    wrapperData->javaVersion->major, wrapperData->javaVersion->minor, wrapperData->javaVersion->revision);
+                /* Parse the Java version. */
+                if (wrapperData->javaVersion) {
+                    disposeJavaVersion(wrapperData->javaVersion);
+                }
+                wrapperData->javaVersion = parseOutputJavaVersion(log);
+                if (!wrapperData->javaVersion) {
+                    wrapperData->javaVersion = getMinRequiredJavaVersion();
+                    if (wrapperData->javaVersion) {
+                        /* If we fail to get the minimum required version (which should not happen), this would be fatal.
+                         *  We can't return the error now, but we will do it in wrapperConfirmJavaVersion(). */
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                            TEXT("Failed to parse the version of Java. Resolving to the lowest supported version (%s)."),
+                            wrapperData->javaVersion->displayName);
+                        wrapperData->javaVersion->isUnknown = TRUE;
+                    }
+                } else {
+                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Java version parsed to: %d.%d.%d"),
+                        wrapperData->javaVersion->major, wrapperData->javaVersion->minor, wrapperData->javaVersion->revision);
+                }
             }
-        } else if (javaVersionCurrentParseLine == JVM_MAKER_PARSE_LINE) {
+        }
+        if (javaVersionCurrentParseLine == javaMakerParseLine) {
             /* Parse the JVM maker (JVM implementation). */
             wrapperData->jvmMaker = parseOutputJvmMaker(log);
-            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Java maker parsed to: %s"), getJvmMakerName(wrapperData->jvmMaker, buffer));
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Java maker parsed to: %s"), getJvmMakerName(wrapperData->jvmMaker));
+        }
+        if (javaVersionCurrentParseLine == javaBitsParseLine) {
+            /* Parse the JVM bits. */
+            wrapperData->jvmBits = parseOutputJvmBits(log);
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Java bits parsed to: %s"), getJvmBitsName(wrapperData->jvmBits));
         }
     }
 }
@@ -4139,7 +4166,7 @@ void printBytes(const char * s) {
     buffer[0] = 0;
     pBuffer = buffer;
     for (i = 0; i < len; i++) {
-        _sntprintf(pBuffer, 4, TEXT("%02x "), (unsigned char)s[i]);
+        _sntprintf(pBuffer, 4, TEXT("%02x "), s[i] & 0xff);
         pBuffer +=3;
     }
     buffer[MAX_LOG_SIZE-1] = 0; 
@@ -4262,6 +4289,7 @@ int wrapperReadChildOutput(int maxTimeMS) {
             return FALSE;
         }
         wrapperChildWorkBufferSize = READ_BUFFER_BLOCK_SIZE * 2;
+        wrapperChildWorkBufferLen = 0;
     }
 
     wrapperGetCurrentTime(&timeBuffer);
@@ -4509,7 +4537,7 @@ int wrapperReadChildOutput(int maxTimeMS) {
  * Read the output returned by the 'java -version' command.
  */
 void wrapperReadJavaVersionOutput() {
-    wrapperData->jvmDefaultLogLevel = wrapperData->printJVMVersion ? LEVEL_INFO : LEVEL_NONE;
+    wrapperData->jvmDefaultLogLevel = wrapperData->printJVMVersion ? LEVEL_INFO : LEVEL_DEBUG;
     wrapperData->jvmSource = WRAPPER_SOURCE_JVM_VERSION;
     javaVersionCurrentParseLine = 0;
     
@@ -4525,6 +4553,11 @@ void wrapperReadJavaVersionOutput() {
     
     wrapperData->jvmDefaultLogLevel = LEVEL_INFO;
     wrapperData->jvmSource = WRAPPER_SOURCE_JVM;
+    
+    /* reset the default lines at which the version, maker and bits are assumed to appear. */
+    javaVersionParseLine = 1;
+    javaMakerParseLine = 3;
+    javaBitsParseLine = 3;
     
     /* Some errors may have been queued when parsing the Java output. Print them now. */
     maintainLogger();
@@ -6078,7 +6111,7 @@ int wrapperBuildJavaCommandArrayJavaCommand(TCHAR **strings, int addQuotes, int 
                         TEXT("Loaded java home from registry: %s"), cpPath);
                 }
 
-                addProperty(properties, NULL, 0, TEXT("set.WRAPPER_JAVA_HOME"), cpPath, TRUE, FALSE, FALSE, TRUE);
+                updateStringValue(&wrapperData->registry_java_home, cpPath);
 
                 _tcsncat(cpPath, TEXT("\\bin\\java.exe"), 512);
                 if (wrapperData->isDebugging) {
@@ -6093,6 +6126,8 @@ int wrapperBuildJavaCommandArrayJavaCommand(TCHAR **strings, int addQuotes, int 
                 return -1;
             }
         } else {
+            updateStringValue(&wrapperData->registry_java_home, NULL);
+
             /* To avoid problems on Windows XP systems, the '/' characters must
              *  be replaced by '\' characters in the specified path.
              * prop is supposed to be constant, but allow this change as it is
@@ -6121,6 +6156,7 @@ int wrapperBuildJavaCommandArrayJavaCommand(TCHAR **strings, int addQuotes, int 
                 }
             }
         }
+        setInternalVarProperty(properties, TEXT("WRAPPER_JAVA_HOME"), wrapperData->registry_java_home, FALSE);
 
         if (found) {
             strings[index] = malloc(sizeof(TCHAR) * (_tcslen(cpPath) + 2 + 1));
@@ -6230,21 +6266,21 @@ int wrapperBuildJavaCommandArrayJavaAdditional(TCHAR **strings, int addQuotes, i
                         prop = getStringProperty(properties, propertyNames[i], NULL);
                         propertyValues[i] = (TCHAR*) prop;
                         if (prop == NULL) {
-                            freeStringProperties(propertyNames, propertyValues, propertyIndices);
-                            return -1;
+                            index = -1;
+                            break;
                         }
-                        _sntprintf(paramBuffer2, 128, TEXT("wrapper.java.additional.%lu.stripquotes"), propertyIndices[i]);
                         if (addQuotes) {
                             stripQuote = FALSE;
                         } else {
+                            _sntprintf(paramBuffer2, 128, TEXT("wrapper.java.additional.%lu.stripquotes"), propertyIndices[i]);
                             stripQuote = getBooleanProperty(properties, paramBuffer2, defaultStripQuote);
                         }
                         if (stripQuote) {
                             propStripped = malloc(sizeof(TCHAR) * (_tcslen(prop) + 1));
                             if (!propStripped) {
-                                freeStringProperties(propertyNames, propertyValues, propertyIndices);
                                 outOfMemory(TEXT("WBJCAJA"), 2);
-                                return -1;
+                                index = -1;
+                                break;
                             }
                             wrapperStripQuotes(prop, propStripped);
                         } else {
@@ -6256,22 +6292,22 @@ int wrapperBuildJavaCommandArrayJavaAdditional(TCHAR **strings, int addQuotes, i
                             strings[index] = malloc(sizeof(TCHAR) * len);
                             if (!strings[index]) {
                                 outOfMemory(TEXT("WBJCAJA"), 3);
-                                freeStringProperties(propertyNames, propertyValues, propertyIndices);
                                 if (stripQuote) {
                                     free(propStripped);
                                 }
-                                return -1;
+                                index = -1;
+                                break;
                             }
                             wrapperQuoteValue(propStripped, strings[index], len);
                         } else {
                             strings[index] = malloc(sizeof(TCHAR) * (_tcslen(propStripped) + 1));
                             if (!strings[index]) {
                                 outOfMemory(TEXT("WBJCAJA"), 4);
-                                freeStringProperties(propertyNames, propertyValues, propertyIndices);
                                 if (stripQuote) {
                                     free(propStripped);
                                 }
-                                return -1;
+                                index = -1;
+                                break;
                             }
                             _sntprintf(strings[index], _tcslen(propStripped) + 1, TEXT("%s"), propStripped);
                         }
@@ -6381,7 +6417,7 @@ static int loadParameterFileCallbackParam_AddArg(LoadParameterFileCallbackParam 
 }
 
 /*exitOnOverwrite and logLevelOnOverwrite are not used here but the function must implement the signature of ConfigFileReader_Callback. */
-static int loadParameterFileCallback(void *callbackParam, const TCHAR *fileName, int lineNumber, TCHAR *config, int exitOnOverwrite, int logLevelOnOverwrite) {
+static int loadParameterFileCallback(void *callbackParam, const TCHAR *fileName, int lineNumber, int depth, TCHAR *config, int exitOnOverwrite, int logLevelOnOverwrite) {
     LoadParameterFileCallbackParam *param = (LoadParameterFileCallbackParam *)callbackParam;
     TCHAR *tail_bound;
     TCHAR *arg;
@@ -6460,11 +6496,14 @@ static int loadParameterFileCallback(void *callbackParam, const TCHAR *fileName,
  */
 int wrapperLoadParameterFile(TCHAR **strings, int addQuotes, int detectDebugJVM, int index, TCHAR *parameterName, int isJVMParameter) {
     const TCHAR *parameterFilePath;
+    int parameterFileRequired;
     LoadParameterFileCallbackParam callbackParam;
     int readResult;
     TCHAR prop[256];
 
     parameterFilePath = getFileSafeStringProperty(properties, parameterName, TEXT(""));
+    _sntprintf(prop, 256, TEXT("%s.required"), parameterName);
+    parameterFileRequired = getBooleanProperty(properties, prop, TRUE);
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_NOTICE,
            TEXT("%s=%s"), parameterName, parameterFilePath ? parameterFilePath : TEXT(""));
@@ -6483,8 +6522,10 @@ int wrapperLoadParameterFile(TCHAR **strings, int addQuotes, int detectDebugJVM,
     callbackParam.index = index;
     callbackParam.isJVMParam = isJVMParameter;
 
-    readResult = configFileReader(parameterFilePath, TRUE, loadParameterFileCallback, &callbackParam, FALSE, FALSE, wrapperData->originalWorkingDir, properties->warnedVarMap, properties->logWarnings, properties->logWarningLogLevel);
+    readResult = configFileReader(parameterFilePath, parameterFileRequired, loadParameterFileCallback, &callbackParam, FALSE, FALSE, wrapperData->originalWorkingDir, properties->warnedVarMap, properties->logWarnings, properties->logWarningLogLevel);
     switch (readResult) {
+    case CONFIG_FILE_READER_OPEN_FAIL:
+        return parameterFileRequired ? -1 : index;
     case CONFIG_FILE_READER_SUCCESS:
         return callbackParam.index;
     case CONFIG_FILE_READER_FAIL:
@@ -7113,7 +7154,7 @@ int wrapperBuildJavaCommandArrayAppParameters(TCHAR **strings, int addQuotes, in
  *  Checks the additional java parameters to see if the user has specified a specific system property.
  *   Returns TRUE if already set or there was an error, FALSE if it is safe to set again.
  *
- *  @param propName the name of the system property to search
+ *  @param propName the name of the system property to search (the length should be less than 32 chars)
  *
  *  @return  TRUE if a JVM option was already specified by the user, FALSE otherwise
  */
@@ -7123,14 +7164,39 @@ int isSysPropInJavaArgs(const TCHAR* propName) {
     long unsigned int* propIndices;
     int i;
     int ret = FALSE;
+#ifdef WIN32
+    int j;
+    TCHAR buffer[32];
+    TCHAR* pBuffer;
+#endif
+    TCHAR* propValue;
 
     if (getStringProperties(properties, TEXT("wrapper.java.additional."), TEXT(""), wrapperData->ignoreSequenceGaps, FALSE, &propNames, &propValues, &propIndices)) {
         /* Failed */
         return TRUE;
     }
 
-    for (i = 0; propNames[i] && !ret; i++){
-        if (_tcsstr(propValues[i], propName) == propValues[i]) {
+    for (i = 0; propNames[i] && !ret; i++) {
+        propValue = propValues[i];
+#ifdef WIN32
+        /* Clear any double quotes as they are ignored on Windows.
+         *  On UNIX this is not needed because it is not valid to surround a
+         *  system property with double quotes unless stripquotes has been set
+         *  to TRUE (in which case the double quotes are already stipped). */
+        j = 0;
+        pBuffer = buffer;
+        while (*propValue && (j < 31)) {
+            if (*propValue != TEXT('\"')) {
+                *pBuffer = *propValue;
+                pBuffer++;
+                j++;
+            }
+            propValue++;
+        }
+        *pBuffer = TEXT('\0');
+        propValue = pBuffer;
+#endif
+        if (_tcsstr(propValue, propName) == propValue) {
             ret = TRUE;
         }
     }
@@ -8249,19 +8315,19 @@ int wrapperBuildNTServiceInfo() {
             wrapperData->ntStartupWaitHint = 60;
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 TEXT("The value of %s must be at most %d second(s).  Changing to %d."), TEXT("wrapper.ntservice.startup.waithint"), 60, wrapperData->ntStartupWaitHint);
-        } else if (wrapperData->ntStartupWaitHint < 0) {
+        } else if (wrapperData->ntStartupWaitHint < 2) {
             wrapperData->ntStartupWaitHint = 2;
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                TEXT("The value of %s must be at least %2 second(s).  Changing to %d."), TEXT("wrapper.ntservice.startup.waithint"), 1, wrapperData->ntStartupWaitHint);
+                TEXT("The value of %s must be at least %d second(s).  Changing to %d."), TEXT("wrapper.ntservice.startup.waithint"), 2, wrapperData->ntStartupWaitHint);
         }
         if (wrapperData->ntShutdownWaitHint > 60) {
             wrapperData->ntShutdownWaitHint = 60;
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 TEXT("The value of %s must be at most %d second(s).  Changing to %d."), TEXT("wrapper.ntservice.shutdown.waithint"), 60, wrapperData->ntStartupWaitHint);
-        } else if (wrapperData->ntShutdownWaitHint < 0) {
+        } else if (wrapperData->ntShutdownWaitHint < 2) {
             wrapperData->ntShutdownWaitHint = 2;
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                TEXT("The value of %s must be at least %2 second(s).  Changing to %d."), TEXT("wrapper.ntservice.shutdown.waithint"), 1, wrapperData->ntStartupWaitHint);
+                TEXT("The value of %s must be at least %d second(s).  Changing to %d."), TEXT("wrapper.ntservice.shutdown.waithint"), 2, wrapperData->ntStartupWaitHint);
         }
     }
 
@@ -8999,11 +9065,16 @@ int loadConfiguration() {
 
     /* Load properties controlling the number times the JVM can be restarted. */
     wrapperData->maxFailedInvocations = getIntProperty(properties, TEXT("wrapper.max_failed_invocations"), 5);
-    wrapperData->successfulInvocationTime = getIntProperty(properties, TEXT("wrapper.successful_invocation_time"), 300);
     if (wrapperData->maxFailedInvocations < 1) {
         wrapperData->maxFailedInvocations = 1;
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-            TEXT("The value of %s must be at least %d second(s).  Changing to %d."), TEXT("wrapper.max_failed_invocations"), 1, wrapperData->maxFailedInvocations);
+            TEXT("The value of %s must be at least %d.  Changing to %d."), TEXT("wrapper.max_failed_invocations"), 1, wrapperData->maxFailedInvocations);
+    }
+    wrapperData->successfulInvocationTime = getIntProperty(properties, TEXT("wrapper.successful_invocation_time"), 300);
+    if (wrapperData->successfulInvocationTime < 1) {
+        wrapperData->successfulInvocationTime = 1;
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            TEXT("The value of %s must be at least %d second(s).  Changing to %d."), TEXT("wrapper.successful_invocation_time"), 1, wrapperData->successfulInvocationTime);
     }
 
     /* TRUE if the JVM should be asked to dump its state when it fails to halt on request. */
@@ -9114,15 +9185,6 @@ int loadConfiguration() {
             wrapperData->ntShowWrapperConsole = FALSE; /* Unchanged actually */
         }
     }
-#ifdef WIN32
-    if (!wrapperProcessHasVisibleConsole()) {
-#else
-    if (!wrapperData->isConsole) {
-#endif
-        /* The console is not visible, so we shouldn't waste time logging to it. */
-        setConsoleLogLevelInt(LEVEL_NONE);
-    }
-
 #else /* UNIX */
     /* Configure the Unix daemon information */
     if (wrapperBuildUnixDaemonInfo()) {
@@ -9133,6 +9195,14 @@ int loadConfiguration() {
         return TRUE;
     }
 #endif
+#ifdef WIN32
+    if (!wrapperProcessHasVisibleConsole()) {
+#else
+    if (!wrapperData->isConsole) {
+#endif
+        /* The console is not visible, so we shouldn't waste time logging to it. */
+        setConsoleLogLevelInt(LEVEL_NONE);
+    }
 
     if (_tcscmp(wrapperVersionRoot, getStringProperty(properties, TEXT("wrapper.script.version"), wrapperVersionRoot)) != 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
@@ -9965,7 +10035,7 @@ static void tsJAP_subTestJavaAdditionalParamSuite(int stripQuote, TCHAR *config,
     param.strings = NULL;
     param.index = 0;
     param.isJVMParam = isJVMParam;
-    ret = loadParameterFileCallback((void *)(&param), NULL, 0, config, FALSE, LEVEL_NONE);
+    ret = loadParameterFileCallback((void *)(&param), NULL, 0, 0, config, FALSE, LEVEL_NONE);
     CU_ASSERT_TRUE(ret);
     if (!ret) {
         return;
@@ -9981,7 +10051,7 @@ static void tsJAP_subTestJavaAdditionalParamSuite(int stripQuote, TCHAR *config,
     param.index = 0;
     param.isJVMParam = isJVMParam;
 
-    ret = loadParameterFileCallback((void *)(&param), NULL, 0, config, FALSE, LEVEL_NONE);
+    ret = loadParameterFileCallback((void *)(&param), NULL, 0, 0, config, FALSE, LEVEL_NONE);
     CU_ASSERT_TRUE(ret);
     if (!ret) {
         return;

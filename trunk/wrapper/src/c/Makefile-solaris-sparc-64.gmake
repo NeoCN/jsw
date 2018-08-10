@@ -7,7 +7,7 @@
 # license agreement you entered into with Tanuki Software.
 # http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
 
-COMPILE = /opt/studio12/SUNWspro/bin/cc -m64 -mt -Kpic -O -DSOLARIS -DJSW64 -D_REENTRANT -DUNICODE -D_UNICODE
+COMPILE = /opt/studio12/SUNWspro/bin/cc -m64 -mt -O -DSOLARIS -DJSW64 -D_REENTRANT -DUNICODE -D_UNICODE
 
 INCLUDE=$(JAVA_HOME)/include
 
@@ -33,10 +33,10 @@ init:
 	if test ! -d .deps; then mkdir .deps; fi
 
 wrapper: $(wrapper_SOURCE)
-	$(COMPILE) -lsocket -lpthread -lnsl -lm -lposix4 $(wrapper_SOURCE) -o $(BIN)/wrapper
+	$(COMPILE) -KPIC -lsocket -lpthread -lnsl -lm -lposix4 $(wrapper_SOURCE) -o $(BIN)/wrapper
 
 libwrapper.so: $(libwrapper_so_OBJECTS)
-	${COMPILE} -G -fPIC -lposix4 $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
+	${COMPILE} -Kpic -G -fPIC -lposix4 $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
 
 %.o: %.c
-	${COMPILE} -c ${DEFS} $<
+	${COMPILE} -Kpic -c ${DEFS} $<

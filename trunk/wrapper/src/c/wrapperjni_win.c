@@ -80,16 +80,13 @@ int wrapperLockControlEventQueue() {
      *  This could happen if a signal is encountered while locked. */
     switch (WaitForSingleObject(controlEventQueueMutexHandle, 30000)) {
     case WAIT_ABANDONED:
-        _tprintf(TEXT("WrapperJNI Error: Control Event mutex was abandoned.\n"));
-        fflush(NULL);
+        log_printf(TEXT("WrapperJNI Error: Control Event mutex was abandoned."));
         return -1;
     case WAIT_FAILED:
-        _tprintf(TEXT("WrapperJNI Error: Control Event mutex wait failed.\n"));
-        fflush(NULL);
+        log_printf(TEXT("WrapperJNI Error: Control Event mutex wait failed."));
         return -1;
     case WAIT_TIMEOUT:
-        _tprintf(TEXT("WrapperJNI Error: Control Event mutex wait timed out.\n"));
-        fflush(NULL);
+        log_printf(TEXT("WrapperJNI Error: Control Event mutex wait timed out."));
         return -1;
     default:
         /* Ok */
@@ -104,8 +101,7 @@ int wrapperReleaseControlEventQueue() {
         fflush(NULL);
     #endif
     if (!ReleaseMutex(controlEventQueueMutexHandle)) {
-        _tprintf(TEXT( "WrapperJNI Error: Failed to release Control Event mutex. %s\n"), getLastErrorText());
-        fflush(NULL);
+        log_printf(TEXT( "WrapperJNI Error: Failed to release Control Event mutex. %s"), getLastErrorText());
         return -1;
     }
 
@@ -147,15 +143,13 @@ int wrapperConsoleHandler(int key) {
         event = key;
     }
     if (wrapperJNIDebugging) {
-        _tprintf(TEXT("WrapperJNI Debug: Got Control Signal %d->%d\n"), key, event);
-        flushall();
+        log_printf(TEXT("WrapperJNI Debug: Got Control Signal %d->%d"), key, event);
     }
 
     wrapperJNIHandleSignal(event);
 
     if (wrapperJNIDebugging) {
-        _tprintf(TEXT("WrapperJNI Debug: Handled signal\n"));
-        flushall();
+        log_printf(TEXT("WrapperJNI Debug: Handled signal"));
     }
 
     return TRUE; /* We handled the event. */
@@ -189,9 +183,8 @@ void throwException(JNIEnv *env, const char *className, int jErrorCode, const TC
             exception = (*env)->NewObject(env, exceptionClass, constructor, jErrorCode, jMessage);
 
             if ((*env)->Throw(env, exception)) {
-                _tprintf(TEXT("WrapperJNI Error: Unable to throw exception of class '%s' with message: %s"),
+                log_printf(TEXT("WrapperJNI Error: Unable to throw exception of class '%s' with message: %s"),
                     className, message);
-                flushall();
             }
 
             (*env)->DeleteLocalRef(env, jMessage);
@@ -200,9 +193,8 @@ void throwException(JNIEnv *env, const char *className, int jErrorCode, const TC
 
         (*env)->DeleteLocalRef(env, exceptionClass);
     } else {
-        _tprintf(TEXT("WrapperJNI Error: Unable to load class, '%s' to report exception: %s"),
+        log_printf(TEXT("WrapperJNI Error: Unable to load class, '%s' to report exception: %s"),
             className, message);
-        flushall();
     }
 }
 
@@ -255,8 +247,7 @@ time_t getUserLoginTime(TCHAR *sidText) {
     result = RegOpenKey(HKEY_USERS, NULL, &userKey);
     if (result != ERROR_SUCCESS) {
         FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
-        _tprintf(TEXT("WrapperJNI Error: Error opening registry for HKEY_USERS: %s\n"), getLastErrorText());
-        flushall();
+        log_printf(TEXT("WrapperJNI Error: Error opening registry for HKEY_USERS: %s"), getLastErrorText());
         LocalFree(pBuffer);
         return loginTime;
     }
@@ -277,8 +268,7 @@ time_t getUserLoginTime(TCHAR *sidText) {
     }
     if (result != ERROR_SUCCESS) {
         FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
-        printf("WrapperJNI Error: Unable to enumerate the registry: %d : %s", result, pBuffer);
-        flushall();
+        log_printf(TEXT("WrapperJNI Error: Unable to enumerate the registry: %d : %s"), result, pBuffer);
         LocalFree(pBuffer);
     }
 
@@ -286,8 +276,7 @@ time_t getUserLoginTime(TCHAR *sidText) {
     result = RegCloseKey(userKey);
     if (result != ERROR_SUCCESS) {
         FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
-        printf("WrapperJNI Error: Unable to close the registry: %d : %s", result, pBuffer);
-        flushall();
+        log_printf(TEXT("WrapperJNI Error: Unable to close the registry: %d : %s"), result, pBuffer);
         LocalFree(pBuffer);
     }
     return loginTime;
@@ -332,7 +321,7 @@ int setUserGroups(JNIEnv *env, jclass wrapperUserClass, jobject wrapperUser, HAN
                 for (i = 0; i < tokenGroups->GroupCount; i++) {
                     /* Get the text representation of the sid. */
                     if (ConvertSidToStringSid(tokenGroups->Groups[i].Sid, &sidText) == 0) {
-                        _tprintf(TEXT("WrapperJNI Error: Failed to convert SId to String: %s\n"), getLastErrorText());
+                        log_printf(TEXT("WrapperJNI Error: Failed to convert SId to String: %s"), getLastErrorText());
                         result = TRUE;
                     } else {
                         /* We now have an SID, use it to lookup the account. */
@@ -383,8 +372,7 @@ int setUserGroups(JNIEnv *env, jclass wrapperUserClass, jobject wrapperUser, HAN
                                 } else {
                                     /* This is normal as some accounts do not seem to be mappable. */
                                     /*
-                                    _tprintf(TEXT("WrapperJNI Debug: Unable to locate account for Sid, %s: %s\n"), sidText, getLastErrorText());
-                                    flushall();
+                                    log_printf(TEXT("WrapperJNI Debug: Unable to locate account for Sid, %s: %s"), sidText, getLastErrorText());
                                     */
                                 }
                                 free(domainName);
@@ -397,8 +385,7 @@ int setUserGroups(JNIEnv *env, jclass wrapperUserClass, jobject wrapperUser, HAN
                     }
                 }
             } else {
-                _tprintf(TEXT("WrapperJNI Error: Unable to get token information: %s\n"), getLastErrorText());
-                flushall();
+                log_printf(TEXT("WrapperJNI Error: Unable to get token information: %s"), getLastErrorText());
             }
 
             free(tokenGroups);
@@ -445,7 +432,7 @@ jobject createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean group
                 if (GetTokenInformation(hProcessToken, TokenUser, tokenUser, tokenUserSize, &tokenUserSize)) {
                     /* Get the text representation of the sid. */
                     if (ConvertSidToStringSid(tokenUser->User.Sid, &sidText) == 0) {
-                        _tprintf(TEXT("Failed to convert SId to String: %s\n"), getLastErrorText());
+                        log_printf(TEXT("Failed to convert SId to String: %s"), getLastErrorText());
                     } else {
                         /* We now have an SID, use it to lookup the account. */
                         userNameSize = 0;
@@ -513,10 +500,6 @@ jobject createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean group
                                     }
                                 } else {
                                     /* This is normal as some accounts do not seem to be mappable. */
-                                    /*
-                                    printf(TEXT("WrapperJNI Debug: Unable to locate account for Sid, %s: %s\n"), sidText, getLastErrorText());
-                                    flushall();
-                                    */
                                 }
                                 free(domainName);
                             }
@@ -527,8 +510,7 @@ jobject createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean group
                         LocalFree(sidText);
                     }
                 } else {
-                    _tprintf(TEXT("WrapperJNI Error: Unable to get token information: %s\n"), getLastErrorText());
-                    flushall();
+                    log_printf(TEXT("WrapperJNI Error: Unable to get token information: %s"), getLastErrorText());
                 }
 
                 free(tokenUser);
@@ -536,14 +518,12 @@ jobject createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean group
 
             CloseHandle(hProcessToken);
         } else {
-            _tprintf(TEXT("WrapperJNI Error: Unable to open process token: %s\n"), getLastErrorText());
-            flushall();
+            log_printf(TEXT("WrapperJNI Error: Unable to open process token: %s"), getLastErrorText());
         }
 
         CloseHandle(hProcess);
     } else {
-        _tprintf(TEXT("WrapperJNI Error: Unable to open process: %s\n"), getLastErrorText());
-        flushall();
+        log_printf(TEXT("WrapperJNI Error: Unable to open process: %s"), getLastErrorText());
     }
 
     return wrapperUser;
@@ -552,8 +532,7 @@ jobject createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean group
 HMODULE kernel32Mod;
 void loadDLLProcs() {
     if ((kernel32Mod = GetModuleHandle(TEXT("KERNEL32.DLL"))) == NULL) {
-        _tprintf(TEXT("WrapperJNI Error: Unable to load KERNEL32.DLL: %s\n"), getLastErrorText());
-        flushall();
+        log_printf(TEXT("WrapperJNI Error: Unable to load KERNEL32.DLL: %s"), getLastErrorText());
         return;
     }
 #ifdef UNICODE
@@ -562,8 +541,7 @@ void loadDLLProcs() {
     if ((OptionalProcess32First = GetProcAddress(kernel32Mod, "Process32First")) == NULL) {
 #endif
         if (wrapperJNIDebugging) {
-            _tprintf(TEXT("WrapperJNI Debug: The Process32First function is not available on this version of Windows.\n"));
-            flushall();
+            log_printf(TEXT("WrapperJNI Debug: The Process32First function is not available on this version of Windows."));
         }
     }
 #ifdef UNICODE
@@ -572,26 +550,22 @@ void loadDLLProcs() {
     if ((OptionalProcess32Next = GetProcAddress(kernel32Mod, "Process32Next")) == NULL) {
 #endif
         if (wrapperJNIDebugging) {
-            _tprintf(TEXT("WrapperJNI Debug: The Process32Next function is not available on this version of Windows.\n"));
-            flushall();
+            log_printf(TEXT("WrapperJNI Debug: The Process32Next function is not available on this version of Windows."));
         }
     }
     if ((OptionalThread32First = GetProcAddress(kernel32Mod, "Thread32First")) == NULL) {
         if (wrapperJNIDebugging) {
-            _tprintf(TEXT("WrapperJNI Debug: The Thread32First function is not available on this version of Windows.\n"));
-            flushall();
+            log_printf(TEXT("WrapperJNI Debug: The Thread32First function is not available on this version of Windows."));
         }
     }
     if ((OptionalThread32Next = GetProcAddress(kernel32Mod, "Thread32Next")) == NULL) {
         if (wrapperJNIDebugging) {
-            _tprintf(TEXT("WrapperJNI Debug: The Thread32Next function is not available on this version of Windows.\n"));
-            flushall();
+            log_printf(TEXT("WrapperJNI Debug: The Thread32Next function is not available on this version of Windows."));
         }
     }
     if ((OptionalCreateToolhelp32Snapshot = GetProcAddress(kernel32Mod, "CreateToolhelp32Snapshot")) == NULL) {
         if (wrapperJNIDebugging) {
-            _tprintf(TEXT("WrapperJNI Debug: The CreateToolhelp32Snapshot function is not available on this version of Windows.\n"));
-            flushall();
+            log_printf(TEXT("WrapperJNI Debug: The CreateToolhelp32Snapshot function is not available on this version of Windows."));
         }
     }
 }
@@ -611,38 +585,32 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jC
 
     /* Set the locale so we can display MultiByte characters. */
     _tsetlocale(LC_ALL, TEXT(""));
+    initLog(env);
 
     if (wrapperJNIDebugging) {
         /* This is useful for making sure that the JNI call is working. */
-        _tprintf(TEXT("WrapperJNI Debug: Initializing WrapperManager native library.\n"));
-        flushall();
+        log_printf(TEXT("WrapperJNI Debug: Initializing WrapperManager native library."));
 
         /* Important : For win XP getLastError() is unchanged if the buffer is too small, so if we don't reset the last error first, we may actually test an old pending error. */
         SetLastError(ERROR_SUCCESS);
         usedLen = GetModuleFileName(NULL, szPath, _MAX_PATH);
         if (usedLen == 0) {
-            _tprintf(TEXT("WrapperJNI Debug: Unable to retrieve the Java process file name. %s\n"), getLastErrorText());
-            flushall();
+            log_printf(TEXT("WrapperJNI Debug: Unable to retrieve the Java process file name. %s"), getLastErrorText());
         } else if ((usedLen == _MAX_PATH) || (getLastError() == ERROR_INSUFFICIENT_BUFFER)) {
-            _tprintf(TEXT("WrapperJNI Debug: Unable to retrieve the Java process file name. %s\n"), TEXT("Path too long."));
-            flushall();
+            log_printf(TEXT("WrapperJNI Debug: Unable to retrieve the Java process file name. %s"), TEXT("Path too long."));
         } else {
-            _tprintf(TEXT("WrapperJNI Debug: Java Executable: %s\n"), szPath);
-            flushall();
+            log_printf(TEXT("WrapperJNI Debug: Java Executable: %s"), szPath);
         }
 
         /* Important : For win XP getLastError() is unchanged if the buffer is too small, so if we don't reset the last error first, we may actually test an old pending error. */
         SetLastError(ERROR_SUCCESS);
         usedLen = GetModuleFileName((HINSTANCE)&__ImageBase, szPath, _MAX_PATH);
         if (usedLen == 0) {
-            _tprintf(TEXT("WrapperJNI Debug: Unable to retrieve the native library file name. %s\n"), getLastErrorText());
-            flushall();
+            log_printf(TEXT("WrapperJNI Debug: Unable to retrieve the native library file name. %s"), getLastErrorText());
         } else if ((usedLen == _MAX_PATH) || (getLastError() == ERROR_INSUFFICIENT_BUFFER)) {
-            _tprintf(TEXT("WrapperJNI Debug: Unable to retrieve the native library file name. %s\n"), TEXT("Path too long."));
-            flushall();
+            log_printf(TEXT("WrapperJNI Debug: Unable to retrieve the native library file name. %s"), TEXT("Path too long."));
         } else {
-            _tprintf(TEXT("WrapperJNI Debug: Native Library: %s\n"), szPath);
-            flushall();
+            log_printf(TEXT("WrapperJNI Debug: Native Library: %s"), szPath);
         }
     }
     if (initCommon(env, jClassWrapperManager)) {
@@ -655,32 +623,27 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jC
 #pragma warning(disable : 4996) /* Visual Studio 2013 deprecates GetVersionEx but we still want to use it. */    
     if (GetVersionEx(&osVer)) {
         if (wrapperJNIDebugging) {
-            _tprintf(TEXT("WrapperJNI Debug: Windows version: %ld.%ld.%ld\n"),
+            log_printf(TEXT("WrapperJNI Debug: Windows version: %ld.%ld.%ld"),
                 osVer.dwMajorVersion, osVer.dwMinorVersion, osVer.dwBuildNumber);
-            flushall();
         }
     } else {
-        _tprintf(TEXT("WrapperJNI Error: Unable to retrieve the Windows version information.\n"));
-        flushall();
+        log_printf(TEXT("WrapperJNI Error: Unable to retrieve the Windows version information."));
     }
 #pragma warning(pop)
     loadDLLProcs();
     if (!(controlEventQueueMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
-        _tprintf(TEXT("WrapperJNI Error: Failed to create control event queue mutex. Signals will be ignored. %s\n"), getLastErrorText());
-        flushall();
+        log_printf(TEXT("WrapperJNI Error: Failed to create control event queue mutex. Signals will be ignored. %s"), getLastErrorText());
         controlEventQueueMutexHandle = NULL;
     }
 
     /* Make sure that the handling of CTRL-C signals is enabled for this process. */
     if (!SetConsoleCtrlHandler(NULL, FALSE)) {
-        _tprintf(TEXT("WrapperJNI Error: Attempt to reset control signal handlers failed. %s\n"), getLastErrorText());
-        flushall();
+        log_printf(TEXT("WrapperJNI Error: Attempt to reset control signal handlers failed. %s"), getLastErrorText());
     }
 
     /* Initialize the CTRL-C handler */
     if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)wrapperConsoleHandler, TRUE)) {
-        _tprintf(TEXT("WrapperJNI Error: Attempt to register a control signal handler failed. %s\n"), getLastErrorText());
-        flushall();
+        log_printf(TEXT("WrapperJNI Error: Attempt to register a control signal handler failed. %s"), getLastErrorText());
     }
 
     /* Store the current process Id */
@@ -719,17 +682,14 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetJavaPID(JNIEnv *env, jcl
 JNIEXPORT void JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeRequestThreadDump(JNIEnv *env, jclass clazz) {
     if (wrapperJNIDebugging) {
-        _tprintf(TEXT("WrapperJNI Debug: Sending BREAK event to process group %ld.\n"), javaProcessId);
-        flushall();
+        log_printf(TEXT("WrapperJNI Debug: Sending BREAK event to process group %ld."), javaProcessId);
     }
     if (GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, javaProcessId) == 0) {
         if (getLastError() == 6) {
-            _tprintf(TEXT("WrapperJNI Error: Unable to send BREAK event to JVM process because it does not have a console.\n"));
-            flushall();
+            log_printf(TEXT("WrapperJNI Error: Unable to send BREAK event to JVM process because it does not have a console."));
         } else {
-            _tprintf(TEXT("WrapperJNI Error: Unable to send BREAK event to JVM process: %s\n"),
+            log_printf(TEXT("WrapperJNI Error: Unable to send BREAK event to JVM process: %s"),
                 getLastErrorText());
-            flushall();
         }
     }
 }
@@ -748,8 +708,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetConsoleTitle(JNIEnv *env
         throwOutOfMemoryError(env, TEXT("NSCT1"));
     } else {
         if (wrapperJNIDebugging) {
-            _tprintf(TEXT("WrapperJNI Debug: Setting the console title to: %s\n"), title);
-            flushall();
+            log_printf(TEXT("WrapperJNI Debug: Setting the console title to: %s"), title);
         }
 
         SetConsoleTitle(title);
@@ -769,8 +728,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
     DWORD processId;
 
 #ifdef UVERBOSE
-    _tprintf(TEXT("WrapperJNI Debug: nativeGetUser()\n"));
-    flushall();
+    log_printf(TEXT("WrapperJNI Debug: nativeGetUser()"));
 #endif
 
     /* Get the current processId. */
@@ -796,8 +754,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
     jobject wrapperUser = NULL;
 
 #ifdef IUVERBOSE
-    _tprintf(TEXT("WrapperJNI Debug: nativeGetInteractiveUser()\n"));
-    flushall();
+    log_printf(TEXT("WrapperJNI Debug: nativeGetInteractiveUser()"));
 #endif
 
     /* This function will only work if all required optional functions existed. */
@@ -805,8 +762,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
             (OptionalThread32First == NULL) || (OptionalThread32Next == NULL) ||
             (OptionalCreateToolhelp32Snapshot == NULL)) {
         if (wrapperJNIDebugging) {
-            _tprintf(TEXT("WrapperJNI Debug: getInteractiveUser not supported on this platform.\n"));
-            flushall();
+            log_printf(TEXT("WrapperJNI Debug: getInteractiveUser not supported on this platform."));
         }
         return NULL;
     }
@@ -823,11 +779,10 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
                 /* We are only interrested in the Explorer processes. */
                 if (_tcsicmp(explorerExe, processEntry.szExeFile) == 0) {
 #ifdef IUVERBOSE
-                    _tprintf(TEXT("WrapperJNI Debug: Process size=%ld, cnt=%ld, id=%ld, parentId=%ld, moduleId=%ld, threads=%ld, exe=%s\n"),
+                    log_printf(TEXT("WrapperJNI Debug: Process size=%ld, cnt=%ld, id=%ld, parentId=%ld, moduleId=%ld, threads=%ld, exe=%s"),
                         processEntry.dwSize, processEntry.cntUsage, processEntry.th32ProcessID,
                         processEntry.th32ParentProcessID, processEntry.th32ModuleID, processEntry.cntThreads,
                         processEntry.szExeFile);
-                    flushall();
 #endif
 
                     /* Now look for a thread which is owned by the explorer process. */
@@ -838,8 +793,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
                             /* We are only interrested in threads that belong to the current Explorer process. */
                             if (threadEntry.th32OwnerProcessID == processEntry.th32ProcessID) {
 #ifdef IUVERBOSE
-                                _tprintf(TEXT("WrapperJNI Debug:   Thread Id=%ld\n"), threadEntry.th32ThreadID);
-                                flushall();
+                                log_printf(TEXT("WrapperJNI Debug:   Thread Id=%ld"), threadEntry.th32ThreadID);
 #endif
 
                                 /* We have a thread, now see if we can gain access to its desktop */
@@ -853,8 +807,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
                                     wrapperUser = createWrapperUserForProcess(env, processEntry.th32ProcessID, groups);
                                 } else {
 #ifdef IUVERBOSE
-                                    _tprintf(TEXT("WrapperJNI Debug: GetThreadDesktop failed: %s\n"), getLastErrorText());
-                                    flushall();
+                                    log_printf(TEXT("WrapperJNI Debug: GetThreadDesktop failed: %s"), getLastErrorText());
 #endif
                                 }
 
@@ -866,32 +819,27 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
 
                         if (!foundThread && (GetLastError() != ERROR_NO_MORE_FILES)) {
 #ifdef IUVERBOSE
-                            _tprintf(TEXT("WrapperJNI Debug: Unable to get next thread entry: %s\n"), getLastErrorText());
-                            flushall();
+                            log_printf(TEXT("WrapperJNI Debug: Unable to get next thread entry: %s"), getLastErrorText());
 #endif
                         }
                     } else if (GetLastError() != ERROR_NO_MORE_FILES) {
-                        _tprintf(TEXT("WrapperJNI Debug: Unable to get first thread entry: %s\n"), getLastErrorText());
-                        flushall();
+                        log_printf(TEXT("WrapperJNI Debug: Unable to get first thread entry: %s"), getLastErrorText());
                     }
                 }
             } while (OptionalProcess32Next(snapshot, &processEntry));
 
 #ifdef IUVERBOSE
             if (GetLastError() != ERROR_NO_MORE_FILES) {
-                _tprintf(TEXT("WrapperJNI Debug: Unable to get next process entry: %s\n"), getLastErrorText());
-                flushall();
+                log_printf(TEXT("WrapperJNI Debug: Unable to get next process entry: %s"), getLastErrorText());
             }
 #endif
         } else if (GetLastError() != ERROR_NO_MORE_FILES) {
-            _tprintf(TEXT("WrapperJNI Error: Unable to get first process entry: %s\n"), getLastErrorText());
-            flushall();
+            log_printf(TEXT("WrapperJNI Error: Unable to get first process entry: %s"), getLastErrorText());
         }
 
         CloseHandle(snapshot);
     } else {
-        _tprintf(TEXT("WrapperJNI Error: Toolhelp snapshot failed: %s\n"), getLastErrorText());
-        flushall();
+        log_printf(TEXT("WrapperJNI Error: Toolhelp snapshot failed: %s"), getLastErrorText());
     }
     return wrapperUser;
 }

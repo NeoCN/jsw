@@ -14,4 +14,8 @@
 
 #include "logger_base.h"
 
+void setPrintMessageCallback(int (*callback)(const TCHAR* message));
+
+void log_printf(const TCHAR *lpszFmt, ...);
+
 #endif

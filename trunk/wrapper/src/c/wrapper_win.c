@@ -678,7 +678,7 @@ int wrapperBuildJavaVersionCommand() {
 
     strings = malloc(sizeof(TCHAR*));
     if (!strings) {
-        outOfMemory(TEXT("WBJVC1"), 1);
+        outOfMemory(TEXT("WBJVC"), 1);
         return TRUE;
     }
 
@@ -697,7 +697,7 @@ int wrapperBuildJavaVersionCommand() {
     /* Build the actual command */
     wrapperData->jvmVersionCommand = malloc(sizeof(TCHAR) * commandLen);
     if (!wrapperData->jvmVersionCommand) {
-        outOfMemory(TEXT("WBJC"), 2);
+        outOfMemory(TEXT("WBJVC"), 2);
         wrapperFreeStringArray(strings, 1);
         return TRUE;
     }
@@ -769,7 +769,7 @@ int wrapperBuildJavaCommand() {
     /* Build the actual command */
     wrapperData->jvmCommand = malloc(sizeof(TCHAR) * commandLen2);
     if (!wrapperData->jvmCommand) {
-        outOfMemory(TEXT("WBJC"), 2);
+        outOfMemory(TEXT("WBJC"), 1);
         wrapperFreeStringArray(strings, length);
         return TRUE;
     }
@@ -1695,16 +1695,7 @@ int wrapperInitializeRun() {
         setConsoleDirect(getBooleanProperty(properties, TEXT("wrapper.console.direct"), TRUE));
     }
 
-    /* Attempt to set the console title if it exists and is accessable. */
-    if (wrapperData->consoleTitle) {
-        if (wrapperProcessHasVisibleConsole()) {
-            /* The console should be visible. */
-            if (!SetConsoleTitle(wrapperData->consoleTitle)) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                    TEXT("Attempt to set the console title failed: %s"), getLastErrorText());
-            }
-        }
-    }
+    wrapperSetConsoleTitle();
 
     /* Set the handler to trap console signals.  This must be done after the console
      *  is created or it will not be applied to that console. */
@@ -2166,7 +2157,7 @@ int wrapperLaunchJvm(TCHAR* command, PROCESS_INFORMATION *pprocess_info, int err
         if (err!=NO_ERROR) {
             log_printf(WRAPPER_SOURCE_WRAPPER, errorLevel,
                 TEXT("Unable to execute Java command.  %s"), getLastErrorText());
-            log_printf(WRAPPER_SOURCE_WRAPPER, errorLevel, TEXT("    %s"), wrapperData->jvmCommand);
+            log_printf(WRAPPER_SOURCE_WRAPPER, errorLevel, TEXT("    %s"), command);
             wrapperData->javaProcess = NULL;
 
             if (wrapperData->isAdviserEnabled && (errorLevel == LEVEL_FATAL)) {
@@ -2212,7 +2203,7 @@ int wrapperLaunchJvm(TCHAR* command, PROCESS_INFORMATION *pprocess_info, int err
 
     /* Now check if we have a process handle again for the Swedish WinNT bug */
     if (pprocess_info->hProcess == NULL) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, errorLevel, TEXT("can not execute \"%s\""), wrapperData->jvmCommand);
+        log_printf(WRAPPER_SOURCE_WRAPPER, errorLevel, TEXT("can not execute \"%s\""), command);
         CloseHandle(pprocess_info->hThread);
         return TRUE;
     }
@@ -4346,10 +4337,10 @@ int wrapperInstall() {
                         wrapperData->serviceDisplayName, getLastErrorText());
                 result = 1;
             }
-
-            /* Close the handle to the service control manager database */
-            CloseServiceHandle(schSCManager);
         }
+
+        /* Close the handle to the service control manager database */
+        CloseServiceHandle(schSCManager);
     } else {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to install the %s service - %s"),
                 wrapperData->serviceDisplayName, getLastErrorText());
@@ -4676,19 +4667,125 @@ int wrapperLoadEnvFromRegistry() {
 
 /**
  * Gets the JavaHome absolute path from the windows registry
+ *  using the location of a specific JRE and the key containing the JavaHome path.
  */
-int wrapperGetJavaHomeFromWindowsRegistry(TCHAR *javaHome) {
-    LONG result;
+TCHAR* wrapperGetJavaHomeFromWindowsRegistryUsingJavaHome(HKEY baseHKey, TCHAR* subKey, TCHAR* javahome, int verbose) {
+    HKEY openHKey = NULL;   /* Will receive the handle to the opened registry key */
     LPSTR pBuffer = NULL;
-    const TCHAR *prop;
-    TCHAR *c;
-    TCHAR subKey[512];       /* Registry subkey that jvm creates when is installed */
-    TCHAR *valueKey;
-    TCHAR jreversion[10];    /* Will receive a registry value that has jvm version */
-    HKEY baseHKey;
-    HKEY openHKey = NULL; /* Will receive the handle to the opened registry key */
+    LONG result;
     DWORD valueType;
     DWORD valueSize;
+    TCHAR *value = NULL;
+
+    /* Opens the Registry Key needed to query the JavaHome */
+    result = RegOpenKeyEx(baseHKey, subKey, 0, KEY_QUERY_VALUE, &openHKey);
+    if (result != ERROR_SUCCESS) {
+        if (verbose) {
+            FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                TEXT("Unable to access configured registry location for JAVA_HOME: %s - (%d)"), subKey, errno);
+            LocalFree(pBuffer);
+        }
+        return NULL;
+    }
+
+    /* Queries for the JavaHome */
+    result = RegQueryValueEx(openHKey, javahome, NULL, &valueType, NULL, &valueSize);
+    if (result != ERROR_SUCCESS) {
+        if (verbose) {
+            FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                TEXT("Unable to access configured registry location for JAVA_HOME: %s\\%s - (%d)"), subKey, javahome, errno);
+            LocalFree(pBuffer);
+        }
+        closeRegistryKey(openHKey);
+        return NULL;
+    }
+    if (valueType != REG_SZ) {
+        if (verbose) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                TEXT("Configured JAVA_HOME registry location is not of type REG_SZ: %s\\%s"), subKey, javahome);
+        }
+        closeRegistryKey(openHKey);
+        return NULL;
+    }
+    value = malloc(sizeof(TCHAR) * valueSize);
+    if (!value) {
+        outOfMemory(TEXT("WGJFWRUJH"), 1);
+        closeRegistryKey(openHKey);
+        return NULL;
+    }
+    result = RegQueryValueEx(openHKey, javahome, NULL, &valueType, (LPBYTE)value, &valueSize);
+    if (result != ERROR_SUCCESS) {
+        if (verbose) {
+            FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                TEXT("Unable to access configured registry location  %s\\%s - (%d)"), subKey, javahome, errno);
+            LocalFree(pBuffer);
+        }
+        closeRegistryKey(openHKey);
+        free(value);
+        return NULL;
+    }
+
+    closeRegistryKey(openHKey);
+    
+    return value;
+}
+
+/**
+ * Gets the JavaHome absolute path from the windows registry
+ *  using the base location for JREs and a specific version.
+ */
+TCHAR* wrapperGetJavaHomeFromWindowsRegistryUsingVersion(TCHAR* subKeyJre, TCHAR* jreversion) {
+    TCHAR subKey[512];      /* Registry subkey that jvm creates when is installed */
+
+    _tcsncpy(subKey, subKeyJre, 512);
+    _tcsncat(subKey, TEXT("\\"), 512);
+    _tcsncat(subKey, jreversion, 512);
+
+    return wrapperGetJavaHomeFromWindowsRegistryUsingJavaHome(HKEY_LOCAL_MACHINE, subKey, TEXT("JavaHome"), FALSE);
+}
+
+/**
+ * Gets the JavaHome absolute path from the windows registry
+ *  using the base location for JREs and the 'CurrentVersion'.
+ */
+TCHAR* wrapperGetJavaHomeFromWindowsRegistryUsingCurrentVersion(TCHAR* subKeyJre) {
+    HKEY openHKey = NULL;   /* Will receive the handle to the opened registry key */
+    TCHAR jreversion[10];   /* Will receive a registry value that has jvm version */
+    LONG result;
+    DWORD valueType;
+    DWORD valueSize;
+
+    /* Opens the Registry Key needed to query the jvm version */
+    result = RegOpenKeyEx(HKEY_LOCAL_MACHINE, subKeyJre, 0, KEY_QUERY_VALUE, &openHKey);
+    if (result != ERROR_SUCCESS) {
+        return NULL;
+    }
+
+    /* Queries for the jvm version */
+    valueSize = sizeof(jreversion);
+    result = RegQueryValueEx(openHKey, TEXT("CurrentVersion"), NULL, &valueType, (LPBYTE)jreversion, &valueSize);
+    if (result != ERROR_SUCCESS) {
+        closeRegistryKey(openHKey);
+        return NULL;
+    }
+
+    closeRegistryKey(openHKey);
+    
+    return wrapperGetJavaHomeFromWindowsRegistryUsingVersion(subKeyJre, jreversion);
+}
+
+/**
+ * Gets the JavaHome absolute path from the windows registry
+ */
+int wrapperGetJavaHomeFromWindowsRegistry(TCHAR *javaHome) {
+    const TCHAR *prop;
+    TCHAR *c;
+    TCHAR subKey[512];  /* Registry subkey that jvm creates when is installed */
+    TCHAR *valueKey;
+    HKEY baseHKey;
     TCHAR *value;
 
     prop = getStringProperty(properties, TEXT("wrapper.registry.java_home"), NULL);
@@ -4730,125 +4827,23 @@ int wrapperGetJavaHomeFromWindowsRegistry(TCHAR *javaHome) {
 
         /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("subKey=%s valueKey=%s"), subKey, valueKey); */
 
-        /*
-         * Opens the Registry Key needed to query the jvm version
-         */
-        result = RegOpenKeyEx(baseHKey, subKey, 0, KEY_QUERY_VALUE, &openHKey);
-        if (result != ERROR_SUCCESS) {
-            FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                TEXT("Unable to access configured registry location for JAVA_HOME: %s - (%d)"), subKey, errno);
-            LocalFree(pBuffer);
-            return 0;
-        }
-
-        result = RegQueryValueEx(openHKey, valueKey, NULL, &valueType, NULL, &valueSize);
-        if (result != ERROR_SUCCESS) {
-            FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                TEXT("Unable to access configured registry location for JAVA_HOME: %s - (%d)"), prop, errno);
-            LocalFree(pBuffer);
-            closeRegistryKey(openHKey);
-            return 0;
-        }
-        if (valueType != REG_SZ) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                TEXT("Configured JAVA_HOME registry location is not of type REG_SZ: %s"), prop);
-            closeRegistryKey(openHKey);
-            return 0;
-        }
-        value = malloc(sizeof(TCHAR) * valueSize);
-        if (!value) {
-            outOfMemory(TEXT("WGJFWR"), 1);
-            closeRegistryKey(openHKey);
-            return 0;
-        }
-        result = RegQueryValueEx(openHKey, valueKey, NULL, &valueType, (LPBYTE)value, &valueSize);
-        if (result != ERROR_SUCCESS) {
-            FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                TEXT("Unable to access configured registry location %s - (%d)"), prop, errno);
-            LocalFree(pBuffer);
-            free(value);
-            closeRegistryKey(openHKey);
-            return 0;
-        }
-
-        closeRegistryKey(openHKey);
-
-        /* Returns the JavaHome path */
-        _tcsncpy(javaHome, value, 512);
-
-        free(value);
-        return 1;
+        value = wrapperGetJavaHomeFromWindowsRegistryUsingJavaHome(baseHKey, subKey, valueKey, TRUE);
     } else {
-        /* Look for the java_home in the default location. */
-
-        /* SubKey containing the jvm version */
-        _tcsncpy(subKey, TEXT("SOFTWARE\\JavaSoft\\Java Runtime Environment"), 512);
-
-        /*
-         * Opens the Registry Key needed to query the jvm version
-         */
-        result = RegOpenKeyEx(HKEY_LOCAL_MACHINE, subKey, 0, KEY_QUERY_VALUE, &openHKey);
-        if (result != ERROR_SUCCESS) {
-            /* Not found.  continue. */
-            return 0;
-        }
-
-        /*
-         * Queries for the jvm version
-         */
-
-        valueSize = sizeof(jreversion);
-        result = RegQueryValueEx(openHKey, TEXT("CurrentVersion"), NULL, &valueType, (LPBYTE)jreversion, &valueSize);
-        if (result != ERROR_SUCCESS) {
-            closeRegistryKey(openHKey);
-            return 0;
-        }
-
-        closeRegistryKey(openHKey);
-
-        /* adds the jvm version to the subkey */
-        _tcsncat(subKey, TEXT("\\"), 512);
-        _tcsncat(subKey, jreversion, 512);
-
-        /*
-         * Opens the Registry Key needed to query the JavaHome
-         */
-        result = RegOpenKeyEx(HKEY_LOCAL_MACHINE, subKey, 0, KEY_QUERY_VALUE, &openHKey);
-        if (result != ERROR_SUCCESS) {
-            return 0;
-        }
-
-        /*
-         * Queries for the JavaHome
-         */
-        result = RegQueryValueEx(openHKey, TEXT("JavaHome"), NULL, &valueType, NULL, &valueSize);
-        if (result != ERROR_SUCCESS) {
-            closeRegistryKey(openHKey);
-            return 0;
-        }
-        value = malloc(sizeof(TCHAR) * valueSize);
+        /* Look for the java_home in the default location (it is different for Java 9+ compared to older versions). */
+        /* There can be a 'CurrentVersion' in each location, but give priority to recent JREs by first trying to search in the new location. */
+        value = wrapperGetJavaHomeFromWindowsRegistryUsingCurrentVersion(TEXT("SOFTWARE\\JavaSoft\\JRE"));
         if (!value) {
-            outOfMemory(TEXT("WGJFWR"), 2);
-            closeRegistryKey(openHKey);
-            return 0;
+            value = wrapperGetJavaHomeFromWindowsRegistryUsingCurrentVersion(TEXT("SOFTWARE\\JavaSoft\\Java Runtime Environment"));
         }
-        result = RegQueryValueEx(openHKey, TEXT("JavaHome"), NULL, &valueType, (LPBYTE)value, &valueSize);
-        if (result != ERROR_SUCCESS) {
-            closeRegistryKey(openHKey);
-            return 0;
-        }
-
-        closeRegistryKey(openHKey);
-
+    }
+    if (value) {
         /* Returns the JavaHome path */
         _tcsncpy(javaHome, value, 512);
         free(value);
 
         return 1;
     }
+    return 0;
 }
 
 TCHAR *getNTServiceStatusName(int status) {
@@ -6964,7 +6959,17 @@ void _tmain(int argc, TCHAR **argv) {
         _umask(wrapperData->umask);
 
         /* Perform the specified command */
-        if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("su")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-setup"))) {
+        if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("-jvm_bits"))) {
+            if (!wrapperInitChildPipe()) {
+                /* Generate the command used to get the Java version but don't stop on failure. */
+                if (!wrapperBuildJavaVersionCommand()) {
+                    /* Get the Java version before building the command line. */
+                    wrapperLaunchJavaVersion();
+                }
+            }
+            appExit(wrapperData->jvmBits);
+            return; /* For compiler. */
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("su")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-setup"))) {
             /* Setup the Wrapper */
             
             /* Always auto close the log file to keep the output in synch. */

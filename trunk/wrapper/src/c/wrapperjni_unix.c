@@ -53,8 +53,7 @@ int wrapperLockControlEventQueue() {
      *  This could happen if a signal is encountered while locked. */
     while (pthread_mutex_trylock(&controlEventQueueMutex) == EBUSY) {
         if (count >= 3000) {
-            _tprintf(TEXT("WrapperJNI Error: Timed out waiting for control event queue lock.\n"));
-            fflush(NULL);
+            log_printf(TEXT("WrapperJNI Error: Timed out waiting for control event queue lock."));
             return -1;
         }
         wrapperSleep(10);
@@ -64,8 +63,7 @@ int wrapperLockControlEventQueue() {
     if (count > 0) {
         if (wrapperJNIDebugging) {
             /* This is useful for making sure that the JNI call is working. */
-            _tprintf(TEXT("WrapperJNI Debug: wrapperLockControlEventQueue looped %d times before lock.\n"), count);
-            fflush(NULL);
+            log_printf(TEXT("WrapperJNI Debug: wrapperLockControlEventQueue looped %d times before lock."), count);
         }
     }
     return 0;
@@ -73,8 +71,7 @@ int wrapperLockControlEventQueue() {
 
 int wrapperReleaseControlEventQueue() {
     if (pthread_mutex_unlock(&controlEventQueueMutex)) {
-        _tprintf(TEXT("WrapperJNI Error: Failed to unlock the event queue mutex.\n"));
-        fflush(NULL);
+        log_printf(TEXT("WrapperJNI Error: Failed to unlock the event queue mutex."));
     }
     return 0;
 }
@@ -152,11 +149,11 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jC
         free(retLocale);
     }
 #endif
+    initLog(env);
 
     if (wrapperJNIDebugging) {
         /* This is useful for making sure that the JNI call is working. */
-        _tprintf(TEXT("WrapperJNI Debug: Inside native WrapperManager initialization method\n"));
-        fflush(NULL);
+        log_printf(TEXT("WrapperJNI Debug: Inside native WrapperManager initialization method"));
     }
 
     /* Set handlers for signals */
@@ -198,9 +195,9 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeRedirectPipes(JNIEnv *evn, 
         }
         
         if (!redirectedStdOut) {
-            _tprintf(TEXT("WrapperJNI: Redirecting %s to /dev/null\n"), TEXT("StdOut")); fflush(NULL);
+            log_printf(TEXT("WrapperJNI: Redirecting %s to /dev/null"), TEXT("StdOut"));
             if (dup2(fd, STDOUT_FILENO) == -1) {
-                _tprintf(TEXT("WrapperJNI: Failed to redirect %s to /dev/null  (Err: %s)\n"), TEXT("StdOut"), getLastErrorText()); fflush(NULL);
+                log_printf(TEXT("WrapperJNI: Failed to redirect %s to /dev/null  (Err: %s)"), TEXT("StdOut"), getLastErrorText());
             } else {
                 redirectedStdOut = TRUE;
             }
@@ -232,14 +229,12 @@ JNIEXPORT void JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeRequestThreadDump(
         JNIEnv *env, jclass clazz) {
     if (wrapperJNIDebugging) {
-        _tprintf(TEXT("WrapperJNI Debug: Sending SIGQUIT event to process group %d.\n"),
+        log_printf(TEXT("WrapperJNI Debug: Sending SIGQUIT event to process group %d."),
             (int)wrapperProcessId);
-        fflush(NULL);
     }
     if (kill(wrapperProcessId, SIGQUIT) < 0) {
-        _tprintf(TEXT("WrapperJNI Error: Unable to send SIGQUIT to JVM process: %s\n"),
+        log_printf(TEXT("WrapperJNI Error: Unable to send SIGQUIT to JVM process: %s"),
             getLastErrorText());
-        fflush(NULL);
     }
 }
 
@@ -251,8 +246,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeRequestThreadDump(
 JNIEXPORT void JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetConsoleTitle(JNIEnv *env, jclass clazz, jstring jstringTitle) {
     if (wrapperJNIDebugging) {
-        _tprintf(TEXT("WrapperJNI Debug: Setting the console title not supported on UNIX platforms.\n"));
-        fflush(NULL);
+        log_printf(TEXT("WrapperJNI Debug: Setting the console title not supported on UNIX platforms."));
     }
 }
 

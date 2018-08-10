@@ -177,10 +177,9 @@
         </condition>
         
         <!-- Java version. -->
-        <property name="javac.target.version" value="1.4"/>
         <condition property="javac.target.warn" value="true">
             <not>
-                <equals arg1="${java.specification.version}" arg2="1.4"/>
+                <equals arg1="${java.specification.version}" arg2="${javac.target.version}"/>
             </not>
         </condition>
         <condition property="src.java.missing" value="true">
@@ -205,7 +204,7 @@
         <condition property="pre-release.disable" value="true">
             <and>
                 <not>
-                    <equals arg1="${java.specification.version}" arg2="1.4"/>
+                    <equals arg1="${java.specification.version}" arg2="${javac.target.version}"/>
                 </not>
                 <not>
                     <isset property="disable.java.version.check"/>
@@ -425,7 +424,7 @@
             </not>
         </condition>
     </target>
-    <target name="init-bits-warning" unless="bits">
+    <target name="init-bits-check" unless="bits">
         <echo message="**********************************************************************"/>
         <echo message="* The &quot;bits&quot; system property has not been set."/>
         <echo message="* Most likely you are running a copy of Ant located on your path."/>
@@ -433,7 +432,7 @@
         <echo message="**********************************************************************"/>
         <fail message="The &quot;bits&quot; system property has not been set."/>
     </target>
-    <target name="init-bits-mismatch-warning" if="bits-mismatch">
+    <target name="init-bits-mismatch-check" if="bits-mismatch">
         <echo message="**********************************************************************"/>
         <echo message="* A ${bits}-bit build was requested, but this is a ${sun.arch.data.model}-bit JVM."/>
         <echo message="**********************************************************************"/>
@@ -444,7 +443,7 @@
     <!-- Initialize build.                                                   -->
     <!-- =================================================================== -->
     <target name="init"
-        depends="init-windows, init-unix, init-bits-warning, init-bits-mismatch-warning">
+        depends="init-windows, init-unix, init-bits-check, init-bits-mismatch-check">
         
         <tstamp/>
         <filter token="version"           value="${version}"       />
@@ -1161,7 +1160,7 @@ wrapper.filter.action.999=NONE]]></replacevalue>
         <echo/>
         <echo>**********************************************************</echo>
         <echo>* Pre-release distributions can only be generated using  *</echo>
-        <echo>* Java 1.4 JVMs to guarantee that the resulting jars     *</echo>
+        <echo>* Java ${javac.target.version} JVMs to guarantee that the resulting jars     *</echo>
         <echo>* will run on all platforms.                             *</echo>
         <echo>* This is a ${java.specification.version} JVM.                                     *</echo>
         <echo>**********************************************************</echo>
