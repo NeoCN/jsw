@@ -189,7 +189,7 @@ int configFileReader_Read(ConfigFileReader *reader,
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Configuration file not found: %s"), filename);
 #endif
         }
-        return CONFIG_FILE_READER_FAIL;
+        return CONFIG_FILE_READER_OPEN_FAIL;
     }
 
     if (reader->debugIncludes) {
@@ -281,8 +281,8 @@ int configFileReader_Read(ConfigFileReader *reader,
     }
 
     if (depth == 0) {
-        /* At least log with LEVEL_DEBUG to help support. */
-        reader->logLevelOnOverwrite = LEVEL_DEBUG;
+        /* Default to AUTO (= -1). */
+        reader->logLevelOnOverwrite = -1;
     }
     
     /* Read all of the configurations */
@@ -395,7 +395,7 @@ int configFileReader_Read(ConfigFileReader *reader,
                 if (trimmedBuffer[0] != TEXT('#')) {
                     /*_tprintf(TEXT("%s\n"), trimmedBuffer);*/
 
-                    if (!(*reader->callback)(reader->callbackParam, filename, lineNumber, trimmedBuffer, reader->exitOnOverwrite, reader->logLevelOnOverwrite)) {
+                    if (!(*reader->callback)(reader->callbackParam, filename, lineNumber, depth, trimmedBuffer, reader->exitOnOverwrite, reader->logLevelOnOverwrite)) {
                         readResult = CONFIG_FILE_READER_HARD_FAIL;
                         break;
                     }
@@ -489,7 +489,7 @@ int configFileReader_Read(ConfigFileReader *reader,
                                 readResult = configFileReader_Read(reader, absoluteBuffer, includeRequired, depth + 1, filename, lineNumber, originalWorkingDir, warnedVarMap, logWarnings, logWarningLogLevel);
                                 if (readResult == CONFIG_FILE_READER_SUCCESS) {
                                     /* Ok continue. */
-                                } else if ((readResult == CONFIG_FILE_READER_FAIL) || (readResult == CONFIG_FILE_READER_HARD_FAIL)) {
+                                } else if ((readResult == CONFIG_FILE_READER_FAIL) || (readResult == CONFIG_FILE_READER_HARD_FAIL) || (readResult == CONFIG_FILE_READER_OPEN_FAIL)) {
                                     /* Failed. */
                                     if (includeRequired) {
                                         /* Include file was required, but we failed to read it. */
@@ -545,16 +545,20 @@ int configFileReader_Read(ConfigFileReader *reader,
                             }
                         } else if (_tcsstr(trimmedBuffer, TEXT("#properties.on_overwrite.loglevel=")) == trimmedBuffer) {
                             trimmedBuffer += 34;
-                            logLevelOnOverwrite = getLogLevelForName(trimmedBuffer);
-                            if (logLevelOnOverwrite >= LEVEL_NONE ) {
-                                /* At least log with LEVEL_DEBUG to help support. */
-                                reader->logLevelOnOverwrite = LEVEL_DEBUG;
-                            } else if (logLevelOnOverwrite != LEVEL_UNKNOWN) {
-                                reader->logLevelOnOverwrite = logLevelOnOverwrite;
-                            } else if (!reader->preload) {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                                    TEXT("Encountered an invalid value for directive #properties.on_overwrite.loglevel=%s (line %d).  Ignoring this directive."),
-                                    trimmedBuffer, lineNumber);
+                            if (_tcsicmp(trimmedBuffer, TEXT("AUTO")) == 0) {
+                                reader->logLevelOnOverwrite = -1;
+                            } else {
+                                logLevelOnOverwrite = getLogLevelForName(trimmedBuffer);
+                                if (logLevelOnOverwrite >= LEVEL_NONE ) {
+                                    /* At least log with LEVEL_DEBUG to help support. */
+                                    reader->logLevelOnOverwrite = LEVEL_DEBUG;
+                                } else if (logLevelOnOverwrite != LEVEL_UNKNOWN) {
+                                    reader->logLevelOnOverwrite = logLevelOnOverwrite;
+                                } else if (!reader->preload) {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                                        TEXT("Encountered an invalid value for directive #properties.on_overwrite.loglevel=%s (line %d).  Ignoring this directive."),
+                                        trimmedBuffer, lineNumber);
+                                }
                             }
                         } else if (strcmpIgnoreCase(trimmedBuffer, TEXT("#properties.debug")) == 0) {
                             reader->logLevelOnOverwrite = LEVEL_STATUS;
@@ -576,7 +580,7 @@ int configFileReader_Read(ConfigFileReader *reader,
      *  (we want to keep these values after preload for logging potential problems on properties defined in the command line)
      *  This is needed if directives are set at the end of the file with no properties after. */
     if (reader->preload) {
-        if (!(*reader->callback)(reader->callbackParam, NULL, -1, NULL, reader->exitOnOverwrite, reader->logLevelOnOverwrite)) {
+        if (!(*reader->callback)(reader->callbackParam, NULL, -1, depth, NULL, reader->exitOnOverwrite, reader->logLevelOnOverwrite)) {
             readResult = CONFIG_FILE_READER_HARD_FAIL;
         }
     }
@@ -605,6 +609,7 @@ int configFileReader_Read(ConfigFileReader *reader,
  * @param logWarningLogLevel Log level at which any log warnings will be logged.
  *
  * @return CONFIG_FILE_READER_SUCCESS if the file was read successfully,
+ *         CONFIG_FILE_READER_OPEN_FAIL if the file could not be found or opened.
  *         CONFIG_FILE_READER_FAIL if there were any problems at all, or
  *         CONFIG_FILE_READER_HARD_FAIL if the problem should cascaded all the way up.
  */

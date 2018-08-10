@@ -566,10 +566,12 @@ public class Main
             System.out.println( getRes().getString( "TestWrapper:     U: Unexpected Halt (Simulate crash)" ) );
             System.out.println( getRes().getString( "TestWrapper:     V: Access Violation (Actual crash)" ) );
             System.out.println( getRes().getString( "TestWrapper:     G: Make the JVM appear to be hung." ) );
+            System.out.println( "TestWrapper: " );
         }
         catch ( java.io.IOException e )
         {
             System.out.println( getRes().getString( "TestWrapper: Unable to open the action server socket: {0}", e.getMessage() ) );
+            System.out.println( "TestWrapper: " );
             m_actionServer = null;
         }
         

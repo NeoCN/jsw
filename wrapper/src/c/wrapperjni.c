@@ -223,12 +223,12 @@ jstring JNU_NewStringFromNativeW(JNIEnv *env, const TCHAR *strW) {
             _tprintf(TEXT("WrapperJNI Warn: Failed to convert string \"%s\": %s\n"), strW, getLastErrorText()); fflush(NULL);
             return NULL;
         }
-        msgMB = malloc(sizeof(char) * (size + 1));
+        msgMB = malloc(sizeof(char) * size);
         if (!msgMB) {
             throwOutOfMemoryError(env, TEXT("JNSN1"));
             return NULL;
         }
-        WideCharToMultiByte(CP_UTF8, 0, strW, -1, msgMB, size + 1, NULL, NULL);
+        WideCharToMultiByte(CP_UTF8, 0, strW, -1, msgMB, size, NULL, NULL);
 #else
         if (converterWideToMB(strW, &msgMB, MB_UTF8) < 0) {
             if (msgMB) {
@@ -473,6 +473,87 @@ int getSystemProperty(JNIEnv *env, const TCHAR *propertyName, TCHAR **propertyVa
     return result;
 }
 
+static JavaVM *jvm = NULL;
+static jobject outGlobalRef = NULL;
+static jmethodID printlnMethodId = NULL;
+
+int printMessageCallback(const TCHAR* message) {
+    JNIEnv *env;
+    jstring jMsg;
+
+    /* Do not print directly to the standard output because the JVM will interpret it with its own encoding (file.encoding)
+     *  which may differ from the locale encoding (especially on Windows or when setting file.encoding from the java additionals).
+     *  Instead we will create a JString and let the WrapperResources print it.
+     *
+     *  Another possibility would be to change the locale so that its encoding matches with the JVM encoding, or to convert the log
+     *  messages to MB using the JVM encoding (we should however use the equivalent code page or iconv syntax). To do this, we would
+     *  need to either include wrapper_jvminfo.c to the native libary (but it would make it heavier), or pass the equivalent encoding
+     *  in a system property (the conversion would be the opposite as when the Wrapper catches JVM outputs). */
+    if (jvm && outGlobalRef && printlnMethodId) {
+        if ((*jvm)->AttachCurrentThread(jvm, (void **)&env, NULL) == 0) {
+            if ((jMsg = JNU_NewStringFromNativeW(env, message)) != NULL) {
+                (*env)->CallVoidMethod(env, outGlobalRef, printlnMethodId, jMsg);
+                return FALSE;
+            }
+        }
+    }
+    return TRUE;
+}
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeDispose
+ * Signature: (Z)V
+ */
+JNIEXPORT void JNICALL
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeDispose(JNIEnv *env, jclass jClassWrapperManager, jboolean debugging) {
+    if (wrapperJNIDebugging) {
+        /* This is useful for making sure that this is the last JNI call. */
+        log_printf(TEXT("WrapperJNI Debug: Disposing WrapperManager native library."));
+    }
+    (*env)->DeleteGlobalRef(env, outGlobalRef);
+}
+
+/**
+ * Get a pointer to a Java method used to print native messages.
+ *
+ * @return TRUE if there were any problems.
+ */
+int initLog(JNIEnv *env) {
+    jobject outField;
+    jclass systemClass, printStreamClass;
+    jfieldID outFieldId;
+
+    /* Get system class */
+    if ((systemClass = (*env)->FindClass(env, getUTF8Chars(env, "java/lang/System"))) != NULL) {
+        /* Lookup the "out" field */
+        if ((outFieldId = (*env)->GetStaticFieldID(env, systemClass, getUTF8Chars(env, "out"), getUTF8Chars(env, "Ljava/io/PrintStream;"))) != NULL) {
+            /* Get "out" PrintStream instance */
+            if ((outField = (*env)->GetStaticObjectField(env, systemClass, outFieldId)) != NULL) {
+                /* Get PrintStream class */
+                if ((printStreamClass = (*env)->FindClass(env, getUTF8Chars(env, "java/io/PrintStream"))) != NULL) {
+                    /* Lookup println() */
+                    if ((printlnMethodId = (*env)->GetMethodID(env, printStreamClass, getUTF8Chars(env, "println"), getUTF8Chars(env, "(Ljava/lang/String;)V"))) != NULL) {
+                        /* Save a JavaVM* instance to get an environment in our callback method */
+                        if ((*env)->GetJavaVM(env, &jvm) == 0) {
+                            /* Keep a global reference to the out stream for faster reuse. */
+                            if ((outGlobalRef = (*env)->NewGlobalRef(env, outField)) != NULL) {
+                                /* Register a callback method to print our messages */
+                                setPrintMessageCallback(printMessageCallback);
+                                return FALSE;
+                            }
+                        }
+                    }
+                    (*env)->DeleteLocalRef(env, printStreamClass);
+                }
+                (*env)->DeleteLocalRef(env, outField);
+            }
+        }
+        (*env)->DeleteLocalRef(env, systemClass);
+    }
+    return TRUE;
+}
+
 /**
  * Do common initializaion.
  *
@@ -524,7 +605,7 @@ int initCommon(JNIEnv *env, jclass jClassWrapperManager) {
         return TRUE;
     }
     if (outfile) {
-        _tprintf(TEXT("WrapperJNI: Redirecting %s to file %s...\n"), TEXT("StdOut"), outfile); fflush(NULL);
+        log_printf(TEXT("WrapperJNI: Redirecting %s to file %s..."), TEXT("StdOut"), outfile);
         if (((outfd = _topen(outfile, options, mode)) == -1) || (dup2(outfd, STDOUT_FILENO) == -1)) {
             throwThrowable(env, utf8javaIOIOException, TEXT("Failed to redirect %s to file %s  (Err: %s)"), TEXT("StdOut"), outfile, getLastErrorText());
             return TRUE;
@@ -655,7 +736,7 @@ void throwThrowable(JNIEnv *env, char *throwableClassName, const TCHAR *lpszFmt,
             if ((jMessageBuffer = JNU_NewStringFromNativeW(env, messageBuffer)) != NULL) {
                 if ((jThrowable = (*env)->NewObject(env, jThrowableClass, constructor, jMessageBuffer)) != NULL) {
                     if ((*env)->Throw(env, jThrowable)) {
-                        _tprintf(TEXT("WrapperJNI Error: Unable to throw %s with message: %s"), throwableClassName, messageBuffer); fflush(NULL);
+                        log_printf(TEXT("WrapperJNI Error: Unable to throw %s with message: %s"), throwableClassName, messageBuffer);
                     }
                     (*env)->DeleteLocalRef(env, jThrowable);
                 }
@@ -676,8 +757,7 @@ void throwThrowable(JNIEnv *env, char *throwableClassName, const TCHAR *lpszFmt,
 void throwOutOfMemoryError(JNIEnv *env, const TCHAR* locationCode) {
     throwThrowable(env, (char*)utf8ClassJavaLangOutOfMemoryError, TEXT("Out of memory (%s)"), locationCode);
 
-    _tprintf(TEXT("WrapperJNI Error: Out of memory (%s)\n"), locationCode);
-    fflush(NULL);
+    log_printf(TEXT("WrapperJNI Error: Out of memory (%s)"), locationCode);
 }
 
 void throwJNIError(JNIEnv *env, const TCHAR *message) {
@@ -692,8 +772,7 @@ void throwJNIError(JNIEnv *env, const TCHAR *message) {
             if ((jMessage = JNU_NewStringFromNativeW(env, message)) != NULL) {
                 if ((exception = (*env)->NewObject(env, exceptionClass, constructor, jMessage)) != NULL) {
                     if ((*env)->Throw(env, exception)) {
-                        _tprintf(TEXT("WrapperJNI Error: Unable to throw WrapperJNIError with message: %s"), message);
-                        fflush(NULL);
+                        log_printf(TEXT("WrapperJNI Error: Unable to throw WrapperJNIError with message: %s"), message);
                     }
                     (*env)->DeleteLocalRef(env, exception);
                 }
@@ -709,13 +788,11 @@ void throwJNIError(JNIEnv *env, const TCHAR *message) {
 void wrapperJNIHandleSignal(int signal) {
     if (wrapperLockControlEventQueue()) {
         /* Failed.  Should have been reported. */
-        _tprintf(TEXT("WrapperJNI Error: Signal %d trapped, but ignored.\n"), signal);
-        fflush(NULL);
+        log_printf(TEXT("WrapperJNI Error: Signal %d trapped, but ignored."), signal);
         return;
     }
 #ifdef _DEBUG
-    _tprintf(TEXT(" Queue Write 1 R:%d W:%d E:%d\n"), controlEventQueueLastReadIndex, controlEventQueueLastWriteIndex, signal);
-    fflush(NULL);
+    log_printf(TEXT(" Queue Write 1 R:%d W:%d E:%d"), controlEventQueueLastReadIndex, controlEventQueueLastWriteIndex, signal);
 #endif
     controlEventQueueLastWriteIndex++;
     if (controlEventQueueLastWriteIndex >= CONTROL_EVENT_QUEUE_SIZE) {
@@ -723,8 +800,7 @@ void wrapperJNIHandleSignal(int signal) {
     }
     controlEventQueue[controlEventQueueLastWriteIndex] = signal;
 #ifdef _DEBUG
-    _tprintf(TEXT(" Queue Write 2 R:%d W:%d\n"), controlEventQueueLastReadIndex, controlEventQueueLastWriteIndex);
-    fflush(NULL);
+    log_printf(TEXT(" Queue Write 2 R:%d W:%d"), controlEventQueueLastReadIndex, controlEventQueueLastWriteIndex);
 #endif
 
     if (wrapperReleaseControlEventQueue()) {

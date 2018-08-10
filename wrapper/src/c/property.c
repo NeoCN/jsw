@@ -125,6 +125,19 @@ Property* getInnerProperty(Properties *properties, const TCHAR *propertyName, in
     return NULL;
 }
 
+void addInnerProperty(Properties *properties, Property *newProperty) {
+    newProperty->previous = properties->last;
+    if (properties->last == NULL) {
+        /* This will be the first property. */
+        properties->first = newProperty;
+    } else {
+        /* Point the old last property to the new last property. */
+        properties->last->next = newProperty;
+    }
+    properties->last = newProperty;
+    newProperty->next = NULL;
+}
+
 void insertInnerProperty(Properties *properties, Property *newProperty) {
     Property *property;
     int cmp;
@@ -154,16 +167,7 @@ void insertInnerProperty(Properties *properties, Property *newProperty) {
     }
 
     /* The new property needs to be added at the end */
-    newProperty->previous = properties->last;
-    if (properties->last == NULL) {
-        /* This will be the first property. */
-        properties->first = newProperty;
-    } else {
-        /* Point the old last property to the new last property. */
-        properties->last->next = newProperty;
-    }
-    properties->last = newProperty;
-    newProperty->next = NULL;
+    addInnerProperty(properties, newProperty);
 }
 
 Property* createInnerProperty() {
@@ -182,6 +186,8 @@ Property* createInnerProperty() {
     property->lineNumber = 0;
     property->definitions = 1;
     property->isGenerated = FALSE;
+    property->isVariable = FALSE;
+    property->lastDefinitionDepth = -1;
 
     return property;
 }
@@ -450,7 +456,7 @@ void setInnerProperty(Properties *properties, Property *property, const TCHAR *p
     } else {
         buffer = malloc(MAX_PROPERTY_VALUE_LENGTH * sizeof(TCHAR));
         if (buffer) {
-            evaluateEnvironmentVariables(propertyValue, buffer, MAX_PROPERTY_VALUE_LENGTH, warnUndefinedVars, properties->warnedVarMap, properties->logWarningLogLevel);
+                evaluateEnvironmentVariables(propertyValue, buffer, MAX_PROPERTY_VALUE_LENGTH, warnUndefinedVars, properties->warnedVarMap, properties->logWarningLogLevel);
 
             property->value = malloc(sizeof(TCHAR) * (_tcslen(buffer) + 1));
             if (!property->value) {
@@ -513,8 +519,7 @@ static TCHAR* checkPropertySyntax(TCHAR* buffer) {
     return NULL;
 }
 
-static int loadPropertiesCallback(void *callbackParam, const TCHAR *fileName, int lineNumber, TCHAR *config, int exitOnOverwrite, int logLevelOnOverwrite)
-{
+static int loadPropertiesCallback(void *callbackParam, const TCHAR *fileName, int lineNumber, int depth, TCHAR *config, int exitOnOverwrite, int logLevelOnOverwrite) {
     Properties *properties = (Properties *)callbackParam;
     TCHAR *d;
 
@@ -532,7 +537,7 @@ static int loadPropertiesCallback(void *callbackParam, const TCHAR *fileName, in
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
                    TEXT("Include file reference missing leading '#': %s"), config);
     } else if ((d = checkPropertySyntax(config))) {
-        addProperty(properties, fileName, lineNumber, config, d, FALSE, FALSE, TRUE, FALSE);
+        addProperty(properties, fileName, lineNumber, depth, config, d, FALSE, FALSE, TRUE, FALSE);
     }
 
     return TRUE;
@@ -549,7 +554,10 @@ static int loadPropertiesCallback(void *callbackParam, const TCHAR *fileName, in
  * @param fileRequired TRUE if the file specified by filename is required, FALSE if a missing
  *                     file will silently fail.
  *
- * @return TRUE if there were any problems, FALSE if successful.
+ * @return CONFIG_FILE_READER_SUCCESS if the file was read successfully,
+ *         CONFIG_FILE_READER_OPEN_FAIL if the file could not be found or opened.
+ *         CONFIG_FILE_READER_FAIL if there were any problems at all, or
+ *         CONFIG_FILE_READER_HARD_FAIL if the problem should cascaded all the way up.
  */
 int loadProperties(Properties *properties,
                    const TCHAR* filename,
@@ -564,7 +572,6 @@ int loadProperties(Properties *properties,
     #endif
     time_t now;
     struct tm *nowTM;
-    int loadResult;
     
 #ifdef WIN32
     _ftime(&timebNow);
@@ -576,19 +583,7 @@ int loadProperties(Properties *properties,
     nowTM = localtime(&now);
     memcpy(&loadPropertiesTM, nowTM, sizeof(struct tm));
     
-    loadResult = configFileReader(filename, fileRequired, loadPropertiesCallback, properties, TRUE, preload, originalWorkingDir, properties->warnedVarMap, properties->logWarnings, properties->logWarningLogLevel);
-
-    /* Any failure is a failure in the root. */
-    switch (loadResult) {
-    case CONFIG_FILE_READER_SUCCESS:
-        return FALSE;
-    case CONFIG_FILE_READER_FAIL:
-    case CONFIG_FILE_READER_HARD_FAIL:
-        return TRUE;
-    default:
-        _tprintf(TEXT("Unexpected load error %d\n"), loadResult);
-        return TRUE;
-    }
+    return configFileReader(filename, fileRequired, loadPropertiesCallback, properties, TRUE, preload, originalWorkingDir, properties->warnedVarMap, properties->logWarnings, properties->logWarningLogLevel);
 }
 
 /**
@@ -596,7 +591,7 @@ int loadProperties(Properties *properties,
  *
  * @param properties 
  *
- * @return log level 
+ * @return log level, or -1 if AUTO
  */
 int GetLogLevelOnOverwrite(Properties *properties) {
     /* Should be at least LEVEL_FATAL if exitOnOverwrite is set to TRUE */
@@ -660,7 +655,7 @@ void disposeProperties(Properties *properties) {
         if (properties->warnedVarMap) {
             freeHashMap(properties->warnedVarMap);
         }
-    
+        
         /* Dispose the Properties structure */
         free(properties);
         properties = NULL;
@@ -671,7 +666,6 @@ void disposeProperties(Properties *properties) {
  * This method cleans the environment at shutdown.
  */
 void disposeEnvironment() {
-
     EnvSrc *current, *previous;
 
     if (baseEnvSrc) {
@@ -684,8 +678,27 @@ void disposeEnvironment() {
         }
         baseEnvSrc = NULL;
     }
-    
+}
 
+void disconnectProperty(Properties *properties, Property *property) {
+    Property *next;
+    Property *previous;
+
+    next = property->next;
+    previous = property->previous;
+
+    if (next == NULL) {
+        /* This was the last property */
+        properties->last = previous;
+    } else {
+        next->previous = property->previous;
+    }
+    if (previous ==  NULL) {
+        /* This was the first property */
+        properties->first = next;
+    } else {
+        previous->next = property->next;
+    }
 }
 
 /**
@@ -696,30 +709,14 @@ void disposeEnvironment() {
  */
 int removeProperty(Properties *properties, const TCHAR *propertyName) {
     Property *property;
-    Property *next;
-    Property *previous;
 
     /* Look up the property */
     property = getInnerProperty(properties, propertyName, FALSE);
     if (property == NULL) {
         /* The property did not exist, so nothing to do. */
     } else {
-        next = property->next;
-        previous = property->previous;
-
         /* Disconnect the property */
-        if (next == NULL) {
-            /* This was the last property */
-            properties->last = previous;
-        } else {
-            next->previous = property->previous;
-        }
-        if (previous ==  NULL) {
-            /* This was the first property */
-            properties->first = next;
-        } else {
-            previous->next = property->next;
-        }
+        disconnectProperty(properties, property);
 
         /* Now that property is disconnected, if can be disposed. */
         disposeInnerProperty(property);
@@ -758,11 +755,17 @@ int setEnvInner(const TCHAR *name, const TCHAR *value) {
 
     /* Get the current environment variable value so we can avoid allocating and
      *  setting the variable if it has not changed its value. */
+#ifdef _DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("setEnvInner '%s=%s'."), name, value);
+#endif
     oldVal = _tgetenv(name);
     if (value == NULL) {
         /*_tprintf("clear %s=\n", name);*/
         /* Only clear the variable if it is actually set to avoid unnecessary leaks. */
         if (oldVal != NULL) {
+#ifdef _DEBUG
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("setEnvInner (CLEAR) '%s=%s'."), name, value);
+#endif
 #ifdef WIN32
  #if defined(WRAPPER_USE_PUTENV_S)
             if (_tputenv_s(name, TEXT("")) == EINVAL) {
@@ -810,6 +813,9 @@ int setEnvInner(const TCHAR *name, const TCHAR *value) {
     } else {
         /*_tprintf("set %s=%s\n", name, value);*/
         if ((oldVal == NULL) || (_tcscmp(oldVal, value) != 0)) {
+#ifdef _DEBUG
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("setEnvInner (SET) '%s=%s'."), name, value);
+#endif
 #ifdef WIN32
  #if defined(WRAPPER_USE_PUTENV_S)
             if (_tputenv_s(name, value) == EINVAL) {
@@ -1233,6 +1239,7 @@ TCHAR* getDisplayValue(TCHAR *value, int hidden) {
  * @param properties Properties structure to add to.
  * @param filename Name of the file from which the property was loaded.  NULL, if not from a file.
  * @param lineNum Line number of the property declaration in the file.  Ignored if filename is NULL.
+ * @param depth Depth of the configuration file where the property was declared.  Ignored if filename is NULL.
  * @param propertyName Name of the new Property.
  * @param propertyValue Initial property value.
  * @param finalValue TRUE if the property should be set as static.
@@ -1243,11 +1250,12 @@ TCHAR* getDisplayValue(TCHAR *value, int hidden) {
  *
  * @return The newly created Property, or NULL if there was a reported error.
  */
-Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum, const TCHAR *propertyName, const TCHAR *propertyValue, int finalValue, int quotable, int escapable, int internal) {
+Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum, int depth, const TCHAR *propertyName, const TCHAR *propertyValue, int finalValue, int quotable, int escapable, int internal) {
     int setValue;
     Property *property;
     TCHAR *oldVal;
     TCHAR *propertyNameTrim;
+    const TCHAR *propertyValueNotNull;
     TCHAR *propertyValueTrim;
     TCHAR *propertyExpandedValue;
     int logLevelOnOverwrite;
@@ -1256,6 +1264,8 @@ Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum
     TCHAR *dispValue2;
     int overwriteWarnId;
     int isShownAsInternal;
+    
+    propertyValueNotNull = propertyValue ? propertyValue : TEXT("<NULL>");
 
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("addProperty(properties, %s, '%s', '%s', %d, %d, %d, %d)"),
@@ -1268,13 +1278,13 @@ Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum
         return NULL;
     }
     trim(propertyName, propertyNameTrim);
-    propertyValueTrim = malloc(sizeof(TCHAR) * ( _tcslen(propertyValue) + 1));
+    propertyValueTrim = malloc(sizeof(TCHAR) * ( _tcslen(propertyValueNotNull) + 1));
     if (!propertyValueTrim) {
         outOfMemory(TEXT("AP"), 4);
         free(propertyNameTrim);
         return NULL;
     }
-    trim(propertyValue, propertyValueTrim);
+    trim(propertyValueNotNull, propertyValueTrim);
 
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  trimmed name='%s', value='%s'"),
@@ -1305,10 +1315,10 @@ Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum
         _tcsncpy(property->name, propertyNameTrim, _tcslen(propertyNameTrim) + 1);
 
         /* Insert this property at the correct location.  Value will still be null. */
-        insertInnerProperty(properties, property);
+            insertInnerProperty(properties, property);
     } else {
         /* The property was already set.  Only change it if non final and non internal */
-        if (property->internal || property->finalValue) {
+        if (property->finalValue || (property->internal && !internal)) {
             setValue = FALSE;
         }
         property->definitions++;
@@ -1317,6 +1327,24 @@ Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum
         if (properties->debugProperties) {
             /* Preload was already done so the logging system is ready. */
             logLevelOnOverwrite = GetLogLevelOnOverwrite(properties);
+            
+            if (logLevelOnOverwrite == -1) {
+                /* Log level on overwite is AUTO. */
+                if ((property->lastDefinitionDepth >= depth) || (property->internal && property->finalValue)) {
+                    logLevelOnOverwrite = LEVEL_WARN;
+                } else {
+                    logLevelOnOverwrite = LEVEL_DEBUG;
+                }
+            }
+            if (property->isVariable) {
+                if (internal) {
+                    /* Never show a warning when the property is overriden internally. */
+                    logLevelOnOverwrite = LEVEL_NONE;
+                } else if (property->internal && (logLevelOnOverwrite < LEVEL_WARN)) {
+                    /* Always show a warning when the user is overriding an internal variable. */
+                    logLevelOnOverwrite = LEVEL_WARN;
+                }
+            }
             
             if ((getLowLogLevel() <= logLevelOnOverwrite) && (logLevelOnOverwrite != LEVEL_NONE)) {
                 overwriteWarnId = 0;
@@ -1431,8 +1459,11 @@ Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum
         /* Store the quotable flag. */
         property->quotable = quotable;
         
-        /* Store the internal flab. */
+        /* Store the internal flag. */
         property->internal = internal;
+        
+        /* Store the include depth. */
+        property->lastDefinitionDepth = depth;
 
         /* Prepare the property by expanding any environment variables that are defined. */
         prepareProperty(properties, property, FALSE);
@@ -1450,19 +1481,25 @@ Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum
         /* Store the line number. */
         property->lineNumber = lineNum;
 
-        /* See if this is a special property */
+        /* See if this is a variable definition */
         if ((_tcslen(property->name) > 12) && (_tcsstr(property->name, TEXT("set.default.")) == property->name)) {
             /* This property is an environment variable definition that should only
              *  be set if the environment variable does not already exist.  Get the
              *  value back out of the property as it may have had environment
              *  replacements. */
+            
+            property->isVariable = TRUE;
+            
             oldVal = _tgetenv(property->name + 12);
             if (oldVal == NULL) {
+                /* Only set the variable if the new value is not NULL. */
+                if (propertyValue) {
 #ifdef _DEBUG
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("set default env('%s', '%s')"),
-                    property->name + 12, property->value);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("set default env('%s', '%s')"),
+                        property->name + 12, property->value);
 #endif
-                setEnv(property->name + 12, property->value, (internal ? ENV_SOURCE_APPLICATION : ENV_SOURCE_CONFIG));
+                    setEnv(property->name + 12, property->value, (internal ? ENV_SOURCE_APPLICATION : ENV_SOURCE_CONFIG));
+                }
             } else {
 #ifdef _DEBUG
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT(
@@ -1477,11 +1514,30 @@ Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum
             /* This property is an environment variable definition.  Get the
              *  value back out of the property as it may have had environment
              *  replacements. */
+            
+            property->isVariable = TRUE;
+            
+            if (propertyValue) {
+                /* Set the variable if the new value is not NULL. */
 #ifdef _DEBUG
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("set env('%s', '%s')"),
-                property->name + 4, property->value);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("set env('%s', '%s')"),
+                    property->name + 4, property->value);
 #endif
-            setEnv(property->name + 4, property->value, (internal ? ENV_SOURCE_APPLICATION : ENV_SOURCE_CONFIG));
+                setEnv(property->name + 4, property->value, (internal ? ENV_SOURCE_APPLICATION : ENV_SOURCE_CONFIG));
+            } else {
+                oldVal = _tgetenv(property->name + 4);
+                if (oldVal) {
+                /* Clear the variable if the new value is NULL and the environment was not NULL. */
+#ifdef _DEBUG
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("set env('%s', '<NULL>')"),
+                        property->name + 4);
+#endif
+                    setEnv(property->name + 4, NULL, (internal ? ENV_SOURCE_APPLICATION : ENV_SOURCE_CONFIG));
+#if !defined(WIN32) && defined(UNICODE)
+                    free(oldVal);
+#endif
+                }
+            }
         }
     }
     free(propertyValueTrim);
@@ -1516,11 +1572,32 @@ int addPropertyPair(Properties *properties, const TCHAR* filename, int lineNum, 
     _tcsncpy(buffer, propertyNameValue, MAX_PROPERTY_NAME_VALUE_LENGTH);
 
     if ((d = checkPropertySyntax(buffer))) {
-        if (addProperty(properties, filename, lineNum, buffer, d, finalValue, quotable, FALSE, internal) != NULL) {
+        if (addProperty(properties, filename, lineNum, 0, buffer, d, finalValue, quotable, FALSE, internal) != NULL) {
             return 0;
         }
     }
     return 1;
+}
+
+void setInternalVarProperty(Properties *properties, const TCHAR *varName, const TCHAR *varValue, int finalValue) {
+    Property *property;
+    TCHAR* propertyName;
+    
+    propertyName = malloc(sizeof(TCHAR) * (4 + _tcslen(varName) + 1));
+    if (!propertyName) {
+        outOfMemory(TEXT("SIVP"), 1);
+        return;
+    }
+    _sntprintf(propertyName, 4 + _tcslen(varName) + 1, TEXT("set.%s"), varName);
+    
+    property = getInnerProperty(properties, propertyName, FALSE);
+    if ((property == NULL) && (varValue == NULL) && (hashMapGetKWVW(properties->warnedVarMap, varName) == NULL)) {
+        /* Do not warn about this variable */
+        hashMapPutKWVW(properties->warnedVarMap, varName, TEXT("INTERNAL"));
+    }
+    /* Always add the variable as a property to prevent user from overriding it and to get the correct warning, but pass a NULL value if the variable should not be set or cleared. */
+    addProperty(properties, NULL, 0, 0, propertyName, varValue, finalValue, FALSE, FALSE, TRUE);
+    free(propertyName);
 }
 
 const TCHAR* getStringProperty(Properties *properties, const TCHAR *propertyName, const TCHAR *defaultValue) {
@@ -1528,7 +1605,7 @@ const TCHAR* getStringProperty(Properties *properties, const TCHAR *propertyName
     property = getInnerProperty(properties, propertyName, TRUE);
     if (property == NULL) {
         if (defaultValue != NULL) {
-            property = addProperty(properties, NULL, 0, propertyName, defaultValue, FALSE, FALSE, FALSE, FALSE);
+            property = addProperty(properties, NULL, 0, 0, propertyName, defaultValue, FALSE, FALSE, FALSE, FALSE);
             if (property) {
                 property->isGenerated = TRUE;
                 return property->value;
@@ -1552,7 +1629,7 @@ const TCHAR* getFileSafeStringProperty(Properties *properties, const TCHAR *prop
     property = getInnerProperty(properties, propertyName, TRUE);
     if (property == NULL) {
         if (defaultValue != NULL) {
-            property = addProperty(properties, NULL, 0, propertyName, defaultValue, FALSE, FALSE, FALSE, FALSE);
+            property = addProperty(properties, NULL, 0, 0, propertyName, defaultValue, FALSE, FALSE, FALSE, FALSE);
             if (property) {
                 property->isGenerated = TRUE;
             }
@@ -1837,7 +1914,7 @@ int getIntProperty(Properties *properties, const TCHAR *propertyName, int defaul
     property = getInnerProperty(properties, propertyName, TRUE);
     if (property == NULL) {
         _sntprintf(buffer, 16, TEXT("%d"), defaultValue);
-        property = addProperty(properties, NULL, 0, propertyName, buffer, FALSE, FALSE, FALSE, FALSE);
+        property = addProperty(properties, NULL, 0, 0, propertyName, buffer, FALSE, FALSE, FALSE, FALSE);
         if (property) {
             property->isGenerated = TRUE;
         }
@@ -1888,7 +1965,7 @@ int getBooleanProperty(Properties *properties, const TCHAR *propertyName, int de
 
     property = getInnerProperty(properties, propertyName, TRUE);
     if (property == NULL) {
-        property = addProperty(properties, NULL, 0, propertyName, defaultValueS, FALSE, FALSE, FALSE, FALSE);
+        property = addProperty(properties, NULL, 0, 0, propertyName, defaultValueS, FALSE, FALSE, FALSE, FALSE);
         if (property) {
             property->isGenerated = TRUE;
         }

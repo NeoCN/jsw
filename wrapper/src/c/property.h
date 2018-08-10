@@ -75,8 +75,10 @@ struct Property {
     int quotable;                       /* TRUE if quotes can be optionally added around the value. */
     int internal;                       /* TRUE if the Property is internal. */
     int isGenerated;                    /* TRUE if the property did not exist in the configuration and was generated using a default value. */
+    int isVariable;                     /* TRUE if the property the definition of a variable (starting with 'set.'). */
     Property *next;                     /* Pointer to the next Property in a linked list */
-    Property *previous;                 /* Pointer to the next Property in a linked list */
+    Property *previous;                 /* Pointer to the previous Property in a linked list */
+    int lastDefinitionDepth;            /* Depth of the configuration file in which the property was previously defined, or -1 if not yet defined. */
 };
 
 typedef struct Properties Properties;
@@ -155,7 +157,10 @@ extern TCHAR* generateRandValue(const TCHAR* format);
  * @param fileRequired TRUE if the file specified by filename is required, FALSE if a missing
  *                     file will silently fail.
  *
- * @return TRUE if there were any problems, FALSE if successful.
+ * @return CONFIG_FILE_READER_SUCCESS if the file was read successfully,
+ *         CONFIG_FILE_READER_OPEN_FAIL if the file could not be found or opened.
+ *         CONFIG_FILE_READER_FAIL if there were any problems at all, or
+ *         CONFIG_FILE_READER_HARD_FAIL if the problem should cascaded all the way up.
  */
 extern int loadProperties(Properties *properties,
                           const TCHAR* filename,
@@ -216,6 +221,7 @@ extern int isEscapedProperty(const TCHAR *propertyName);
  * @param properties Properties structure to add to.
  * @param filename Name of the file from which the property was loaded.  NULL, if not from a file.
  * @param lineNum Line number of the property declaration in the file.  Ignored if filename is NULL.
+ * @param depth Depth of the configuration file where the property was declared.  Ignored if filename is NULL.
  * @param propertyName Name of the new Property.
  * @param propertyValue Initial property value.
  * @param finalValue TRUE if the property should be set as static.
@@ -226,7 +232,7 @@ extern int isEscapedProperty(const TCHAR *propertyName);
  *
  * @return The newly created Property, or NULL if there was a reported error.
  */
-extern Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum, const TCHAR *propertyName, const TCHAR *propertyValue, int finalValue, int quotable, int escapable, int internal);
+extern Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum, int depth, const TCHAR *propertyName, const TCHAR *propertyValue, int finalValue, int quotable, int escapable, int internal);
 
 /**
  * Takes a name/value pair in the form <name>=<value> and attempts to add
@@ -243,6 +249,8 @@ extern Property* addProperty(Properties *properties, const TCHAR* filename, int 
  * Returns 0 if successful, otherwise 1
  */
 extern int addPropertyPair(Properties *properties, const TCHAR* filename, int lineNum, const TCHAR *propertyNameValue, int finalValue, int quotable, int internal);
+
+extern void setInternalVarProperty(Properties *properties, const TCHAR *varName, const TCHAR *varValue, int finalValue);
 
 extern const TCHAR* getStringProperty(Properties *properties, const TCHAR *propertyName, const TCHAR *defaultValue);
 

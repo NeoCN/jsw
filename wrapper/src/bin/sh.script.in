@@ -16,7 +16,7 @@
 
 #-----------------------------------------------------------------------------
 # These settings can be modified to fit the needs of your application
-# Optimized for use with version 3.5.36-a of the Wrapper.
+# Optimized for use with version 3.5.36 of the Wrapper.
 
 # IMPORTANT - Please always stop and uninstall an application before making
 #             any changes to this file.  Failure to do so could remove the
@@ -628,7 +628,24 @@ detectWrapperBinary() {
 #  and look for the 32-bit binary.  If that doesn't exist either then
 #  look for the default.
 WRAPPER_TEST_CMD=""
-detectWrapperBinary "$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-$DIST_BITS"
+
+BIN_BITS=$DIST_BITS
+if [ ! "$BIN_BITS" = "32" ] ; then
+    # On a 64-bit platform, both Wrapper 32-Bit and 64-Bit can be used.
+    #  Send a request to the Wrapper to know which JVM was configured.
+    WRAPPER_CMD_ORIG=$WRAPPER_CMD
+    detectWrapperBinary "$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-$BIN_BITS"
+    if [ ! -z "$WRAPPER_TEST_CMD" ] ; then
+        "$WRAPPER_CMD" --jvm_bits "$WRAPPER_CONF" 2>/dev/null
+        if [ $? = 32 ] ; then
+            # JVM is 32-Bit. Reset and search for 32-Bit Wrapper binaries.
+            WRAPPER_TEST_CMD=""
+            WRAPPER_CMD=$WRAPPER_CMD_ORIG
+            BIN_BITS=32
+        fi
+    fi
+fi
+
 if [ -z "$WRAPPER_TEST_CMD" ] ; then
     detectWrapperBinary "$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-32"
 fi
@@ -638,9 +655,12 @@ fi
     
 
 if [ -z "$WRAPPER_TEST_CMD" ] ; then
+    if [ ! "$BIN_BITS" = "$DIST_BITS" ] ; then
+        eval echo `gettext 'The configured JVM is $BIN_BITS-Bit. Trying to launch a $BIN_BITS-Bit Wrapper binary.'`
+    fi
     eval echo `gettext 'Unable to locate any of the following binaries:'`
-    outputFile "$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-$DIST_BITS"
-    if [ ! "$DIST_BITS" = "32" ] ; then
+    outputFile "$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-$BIN_BITS"
+    if [ ! "$BIN_BITS" = "32" ] ; then
         outputFile "$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-32"
     fi
     outputFile "$WRAPPER_CMD"
@@ -1079,7 +1099,7 @@ launchinternal() {
         prepAdditionalParams "$@"
 
         # The string passed to eval must handles spaces in paths correctly.
-        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.daemonize=TRUE $APPNAMEPROP $ANCHORPROP $IGNOREPROP $STATUSPROP $COMMANDPROP $LOCKPROP wrapper.script.version=3.5.36-a $ADDITIONAL_PARA"
+        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.daemonize=TRUE $APPNAMEPROP $ANCHORPROP $IGNOREPROP $STATUSPROP $COMMANDPROP $LOCKPROP wrapper.script.version=3.5.36 $ADDITIONAL_PARA"
         eval $COMMAND_LINE
     else
         eval echo `gettext '$APP_LONG_NAME is already running.'`
@@ -1102,7 +1122,7 @@ console() {
         prepAdditionalParams "$@"
 
         # The string passed to eval must handles spaces in paths correctly.
-        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" $APPNAMEPROP $ANCHORPROP $STATUSPROP $COMMANDPROP $LOCKPROP wrapper.script.version=3.5.36-a $ADDITIONAL_PARA"
+        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" $APPNAMEPROP $ANCHORPROP $STATUSPROP $COMMANDPROP $LOCKPROP wrapper.script.version=3.5.36 $ADDITIONAL_PARA"
         eval $COMMAND_LINE
         COMMAND_EXIT_CODE=$?
         if [ $COMMAND_EXIT_CODE -ne 0 ] ; then
@@ -1386,8 +1406,17 @@ systemdInstall() {
         echo ""                                 >> "${SYSTEMD_SERVICE_FILE}"
         echo "[Service]"                        >> "${SYSTEMD_SERVICE_FILE}"
         echo "Type=forking"                     >> "${SYSTEMD_SERVICE_FILE}"
-        echo "ExecStart=${REALPATH} start sysd" >> "${SYSTEMD_SERVICE_FILE}"
-        echo "ExecStop=${REALPATH} stop sysd"   >> "${SYSTEMD_SERVICE_FILE}"
+        case "${REALPATH}" in
+            *\ *)
+                # REALPATH contains space
+                echo "ExecStart=/usr/bin/env \"${REALPATH}\" start sysd" >> "${SYSTEMD_SERVICE_FILE}"
+                echo "ExecStop=/usr/bin/env \"${REALPATH}\" stop sysd"   >> "${SYSTEMD_SERVICE_FILE}"
+                ;;
+            *)
+                echo "ExecStart=${REALPATH} start sysd" >> "${SYSTEMD_SERVICE_FILE}"
+                echo "ExecStop=${REALPATH} stop sysd"   >> "${SYSTEMD_SERVICE_FILE}"
+                ;;
+        esac
         if [ "X${RUN_AS_USER}" != "X" ] ; then
           echo "User=${RUN_AS_USER}"            >> "${SYSTEMD_SERVICE_FILE}"
         fi
@@ -1547,7 +1576,7 @@ start() {
     prepAdditionalParams "$@"
 
     # The string passed to eval must handles spaces in paths correctly.
-    COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.daemonize=TRUE $APPNAMEPROP $ANCHORPROP $IGNOREPROP $STATUSPROP $COMMANDPROP $LOCKPROP wrapper.script.version=3.5.36-a $ADDITIONAL_PARA"
+    COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.daemonize=TRUE $APPNAMEPROP $ANCHORPROP $IGNOREPROP $STATUSPROP $COMMANDPROP $LOCKPROP wrapper.script.version=3.5.36 $ADDITIONAL_PARA"
     eval $COMMAND_LINE
     
     startwait

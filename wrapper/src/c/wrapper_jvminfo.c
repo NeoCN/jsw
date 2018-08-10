@@ -226,12 +226,12 @@ JavaVersion* getJavaVersionProperty(TCHAR *propName, TCHAR *defaultValue, JavaVe
     } else if (minVersion && compareJavaVersion(result, minVersion) < 0) {
         if (minVersionName) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                TEXT("The property %s can't specify a version lower than %s (%s)."),
-                propName, minVersionName, minVersion->displayName);
+                TEXT("Encountered an invalid value for configuration property %s=%s.\n  The target version must be greater than or equal to the value of %s (%s)."),
+                propName, result->displayName, minVersionName, minVersion->displayName);
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                TEXT("The property %s can't specify a version lower than %s."),
-                propName, minVersion->displayName);
+                TEXT("Encountered an invalid value for configuration property %s=%s.\n  The target version must be greater than or equal to %s."),
+                propName, result->displayName, minVersion->displayName);
         }
         disposeJavaVersion(result);
         result = NULL;
@@ -374,16 +374,15 @@ int compareJavaVersion(JavaVersion *version1, JavaVersion* version2) {
 }
 
 /**
- * Parse the output of 'java -version' and retrieve the major, minor and revision components of the version.
- *  Note: The output will modified by the function.
+ * Parse the output of 'java -version' and retrieve the maker (implementation) of the JVM.
  *
- * @param output   the output returned by 'java -version'.
+ * @param output   the output returned by 'java -version' (or only the line of the output containing the maker).
  *
- * @return maker   an integer representing the JVM implementation:
- *                  JVM_MAKER_UNKNOWN
- *                  JVM_MAKER_ORACLE
- *                  JVM_MAKER_OPENJDK
- *                  JVM_MAKER_IBM
+ * @return an integer representing the JVM implementation:
+ *              JVM_MAKER_UNKNOWN
+ *              JVM_MAKER_ORACLE
+ *              JVM_MAKER_OPENJDK
+ *              JVM_MAKER_IBM
  */
 int parseOutputJvmMaker(TCHAR* output) {
     if (output) {
@@ -402,30 +401,80 @@ int parseOutputJvmMaker(TCHAR* output) {
  * Get the name of a JVM maker.
  *
  * @param maker an integer representing the JVM implementation:
- *               JVM_MAKER_UNKNOWN
- *               JVM_MAKER_ORACLE
- *               JVM_MAKER_OPENJDK
- *               JVM_MAKER_IBM
+ *              JVM_MAKER_UNKNOWN
+ *              JVM_MAKER_ORACLE
+ *              JVM_MAKER_OPENJDK
+ *              JVM_MAKER_IBM
  *
  * @return the name of the JVM maker.
  */
-TCHAR* getJvmMakerName(int jvmMaker, TCHAR* buffer) {
+const TCHAR* getJvmMakerName(int jvmMaker) {
+    TCHAR *name;
     switch (jvmMaker) {
     case JVM_MAKER_ORACLE:
-        _tcscpy(buffer, TEXT("Oracle"));
+        name = TEXT("Oracle");
         break;
 
     case JVM_MAKER_OPENJDK:
-        _tcscpy(buffer, TEXT("OpenJDK"));
+        name = TEXT("OpenJDK");
         break;
 
     case JVM_MAKER_IBM:
-        _tcscpy(buffer, TEXT("IBM"));
+        name = TEXT("IBM");
         break;
 
     default:
-        _tcscpy(buffer, TEXT("Unknown"));
+        name = TEXT("Unknown");
         break;
     }
-    return buffer;
+    return name;
+}
+
+/**
+ * Parse the output of 'java -version' and retrieve the bits of the JVM.
+ *
+ * @param output   the output returned by 'java -version' (or only the line of the output containing the bits).
+ *
+ * @return an integer which indicates the bits of the JVM:
+ *              JVM_BITS_64
+ *              JVM_BITS_32
+ *              JVM_BITS_UNKNOWN
+ */
+int parseOutputJvmBits(TCHAR* output) {
+    if (output) {
+        if (_tcsstr(output, TEXT("64-Bit"))) {
+            return JVM_BITS_64;
+        } else {
+            return JVM_BITS_32;
+        }
+    }
+    return JVM_BITS_UNKNOWN;
+}
+
+/**
+ * Get a string representing the bits of the JVM.
+ *
+ * @param bits an integer which indicates the bits of the JVM:
+ *              JVM_BITS_64
+ *              JVM_BITS_32
+ *              JVM_BITS_UNKNOWN
+ *
+ * @return the string representing the bits of the JVM.
+ */
+const TCHAR* getJvmBitsName(int jvmBits) {
+    TCHAR *name;
+    switch (jvmBits) {
+    case JVM_BITS_64:
+        name = TEXT("64-Bit");
+        break;
+
+    case JVM_BITS_32:
+        name = TEXT("32-Bit");
+        break;
+
+    default:
+        name = TEXT("Unknown");
+        break;
+    }
+    return name;
 }

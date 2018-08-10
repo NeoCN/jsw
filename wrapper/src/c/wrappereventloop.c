@@ -1245,6 +1245,8 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
                         return;
                     }
                     
+                    wrapperSetConsoleTitle();
+                    
                     /* Dump the reloaded properties */
                     dumpProperties(properties);
                     
@@ -1291,10 +1293,10 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
             }
             
             /* Generate the command used to get the Java version but don't stop on failure. */
-            wrapperBuildJavaVersionCommand();
-            
-            /* Get the Java version before building the command line. */
-            wrapperLaunchJavaVersion();
+            if (!wrapperBuildJavaVersionCommand()) {
+                /* Get the Java version before building the command line. */
+                wrapperLaunchJavaVersion();
+            }
             
             /* Make sure that the Java version is in the range in which the Wrapper is allowed to run. */
             if (!wrapperConfirmJavaVersion()) {
