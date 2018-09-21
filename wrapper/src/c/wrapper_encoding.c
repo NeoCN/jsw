@@ -426,7 +426,7 @@ int checkEncodingJavaVersion(const TCHAR* encoding, int javaVersion, int *pRequi
 /**
  * On most systems, Iconv uses uppercase notations for the encodings, sometimes being case-sensitive.
  *  On HPUX, the lowercase notation is often used (e.g. 'utf8').
- * 　This function will check Iconv support of the given encoding and its uppercase/lowercase notations
+ *  This function will check Iconv support of the given encoding and its uppercase/lowercase notations
  *  to offer more flexibility. It's not a problem to try many times, because we would stop anyway if
  *  no supported encoding can be found.
  *

@@ -190,6 +190,21 @@ FILES_TO_SOURCE=
 # Do not modify anything beyond this point
 #-----------------------------------------------------------------------------
 
+checkIsRoot() {
+    if [ `id | sed 's/^uid=//;s/(.*$//'` != "0" ] ; then
+        IS_ROOT=false
+    else
+        IS_ROOT=true
+    fi
+}
+
+gettext() {
+    "$WRAPPER_CMD" --translate "$1" "$WRAPPER_CONF" 2>/dev/null
+    if [ $? != 0 ] ; then 
+        echo "$1"
+    fi
+}
+
 # check if we are running under Cygwin terminal.
 # Note: on some OS's (for example Solaris, MacOS), -o is not a valid parameter 
 # and it shows an error message. We redirect stderr to null so the error message
@@ -231,6 +246,12 @@ case $0 in
         ;;
     *)
         PWD=`pwd`
+        if [ $? -ne 0 ] ; then
+            # On some systems pwd may fail if one of the parent folder has insufficient permissions.
+            #  Is there a way to access the current location which would allow to print the permissions
+            #  for each folder like we do below?
+            exit 1
+        fi
         SCRIPT="$PWD/$0"
         ;;
 esac
@@ -272,6 +293,57 @@ done
 
 # Get the location of the script.
 REALDIR=`dirname "$REALPATH"`
+
+if [ "X$RUN_AS_USER" != "X" ] ; then
+    CHECK_FOLDER_PERMISSIONS=0
+    if [ $COMMAND = "console" -o $COMMAND = "start" -o $COMMAND = "restart" -o $COMMAND = "condrestart" -o $COMMAND = "install" -o $COMMAND = "installstart" ] ; then
+        checkIsRoot
+        if [ "$IS_ROOT" = "true" ] ; then
+            if [ -f "/sbin/runuser" -a $COMMAND != "console" ] ; then
+                result=`/sbin/runuser - $RUN_AS_USER -c "cd \"${REALDIR}\"" $SU_OPTS 2>/dev/null`
+            else
+                result=`$SU_BIN - $RUN_AS_USER -c "cd \"${REALDIR}\"" $SU_OPTS 2>/dev/null`
+            fi
+            CHECK_FOLDER_PERMISSIONS=$?
+        fi
+    fi
+else
+    # Technically REALDIR should not be required for all commands, but in fact the script will fail below if the Wrapper binaries can't be accessed.
+    #  It is thus better to show a message and print folder permissions now.
+    result=`cd "${REALDIR}" 2>/dev/null`
+    CHECK_FOLDER_PERMISSIONS=$?
+fi
+if [ $CHECK_FOLDER_PERMISSIONS -ne 0 ] ; then
+    if [ "X$RUN_AS_USER" != "X" ] ; then
+        CURRENT_USER=$RUN_AS_USER
+    else
+        CURRENT_USER=`whoami`
+        if [ $? -ne 0 ] ; then
+            CURRENT_USER=$USER
+        fi
+    fi
+    # Unfortunately the following message will not be translated because currently the Wrapper fails to execute correctly when it can't access to the absolute path.
+    eval echo `gettext 'Failed to access the script using an absolute path. Insufficient permissions may prevent the user \"$CURRENT_USER\" from traversing one of the folders. Please check the following permissions:'`
+
+    OIFS=$IFS
+    IFS='/'
+    for DIR in $REALDIR
+    do
+        INT_PATH="${INT_PATH%/}/$DIR"
+        if [ "$DIR" != "." -a "$DIR" != ".." ] ; then
+            ALL_PATHS="${ALL_PATHS} ${INT_PATH}"
+            result=`cd "${INT_PATH}" 2>/dev/null`
+            if [ $? -ne 0 ] ; then
+                # no access to this folder and so to the rest of the path.
+                break
+            fi
+        fi
+    done
+    IFS=$OIFS
+    ls -dal $ALL_PATHS
+    exit 1
+fi
+
 # Normalize the path
 REALDIR=`cd "${REALDIR}"; pwd`
 
@@ -589,14 +661,6 @@ else
     ECHOOPTC="\c"
 fi
 
-
-gettext() {
-    "$WRAPPER_CMD" --translate "$1" "$WRAPPER_CONF" 2>/dev/null
-    if [ $? != 0 ] ; then 
-        echo "$1"
-    fi
-}
-
 outputFile() {
     if [ -f "$1" ]
     then
@@ -628,24 +692,7 @@ detectWrapperBinary() {
 #  and look for the 32-bit binary.  If that doesn't exist either then
 #  look for the default.
 WRAPPER_TEST_CMD=""
-
-BIN_BITS=$DIST_BITS
-if [ ! "$BIN_BITS" = "32" ] ; then
-    # On a 64-bit platform, both Wrapper 32-Bit and 64-Bit can be used.
-    #  Send a request to the Wrapper to know which JVM was configured.
-    WRAPPER_CMD_ORIG=$WRAPPER_CMD
-    detectWrapperBinary "$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-$BIN_BITS"
-    if [ ! -z "$WRAPPER_TEST_CMD" ] ; then
-        "$WRAPPER_CMD" --jvm_bits "$WRAPPER_CONF" 2>/dev/null
-        if [ $? = 32 ] ; then
-            # JVM is 32-Bit. Reset and search for 32-Bit Wrapper binaries.
-            WRAPPER_TEST_CMD=""
-            WRAPPER_CMD=$WRAPPER_CMD_ORIG
-            BIN_BITS=32
-        fi
-    fi
-fi
-
+detectWrapperBinary "$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-$DIST_BITS"
 if [ -z "$WRAPPER_TEST_CMD" ] ; then
     detectWrapperBinary "$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-32"
 fi
@@ -655,12 +702,9 @@ fi
     
 
 if [ -z "$WRAPPER_TEST_CMD" ] ; then
-    if [ ! "$BIN_BITS" = "$DIST_BITS" ] ; then
-        eval echo `gettext 'The configured JVM is $BIN_BITS-Bit. Trying to launch a $BIN_BITS-Bit Wrapper binary.'`
-    fi
     eval echo `gettext 'Unable to locate any of the following binaries:'`
-    outputFile "$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-$BIN_BITS"
-    if [ ! "$BIN_BITS" = "32" ] ; then
+    outputFile "$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-$DIST_BITS"
+    if [ ! "$DIST_BITS" = "32" ] ; then
         outputFile "$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-32"
     fi
     outputFile "$WRAPPER_CMD"
@@ -1192,11 +1236,11 @@ startwait() {
 }
 
 mustBeRootOrExit() {
-    if [ `id | sed 's/^uid=//;s/(.*$//'` != "0" ] ; then
+    checkIsRoot
+    if [ "$IS_ROOT" != "true" ] ; then
         eval echo `gettext 'Must be root to perform this action.'`
         exit 1
     fi
-    IS_ROOT=true
 }
 
 mustBeStoppedOrExit() {
@@ -1409,8 +1453,8 @@ systemdInstall() {
         case "${REALPATH}" in
             *\ *)
                 # REALPATH contains space
-                echo "ExecStart=/usr/bin/env \"${REALPATH}\" start sysd" >> "${SYSTEMD_SERVICE_FILE}"
-                echo "ExecStop=/usr/bin/env \"${REALPATH}\" stop sysd"   >> "${SYSTEMD_SERVICE_FILE}"
+                echo 'ExecStart=/usr/bin/env "'${REALPATH}'" start sysd' >> "${SYSTEMD_SERVICE_FILE}"
+                echo 'ExecStop=/usr/bin/env "'${REALPATH}'" stop sysd'   >> "${SYSTEMD_SERVICE_FILE}"
                 ;;
             *)
                 echo "ExecStart=${REALPATH} start sysd" >> "${SYSTEMD_SERVICE_FILE}"

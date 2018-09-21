@@ -1250,6 +1250,9 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
                     /* Dump the reloaded properties */
                     dumpProperties(properties);
                     
+                    /* Dump the environment variables */
+                    dumpEnvironment();
+                    
 #ifndef WIN32
                     showResourceslimits();
 #endif
@@ -1292,10 +1295,40 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
                 return;
             }
             
-            /* Generate the command used to get the Java version but don't stop on failure. */
-            if (!wrapperBuildJavaVersionCommand()) {
-                /* Get the Java version before building the command line. */
-                wrapperLaunchJavaVersion();
+            /* Generate the command used to get the Java version. */
+            if (wrapperBuildJavaVersionCommand()) {
+                /* There was either an out of memory error or we failed to get the Java command. No need to continue. */
+                wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
+                wrapperData->exitCode = wrapperData->errorExitCode;
+                return;
+            }
+            
+            /* Get the Java version before building the command line but don't stop on failure. */
+            wrapperLaunchJavaVersion();
+            
+            /* There may be some queued message. */
+            maintainLogger();
+            
+            if (!wrapperData->javaVersion) {
+                /* Failed to get the Java Version. Resolve it to the minimum supported.
+                 *  Normally we should not get here because this was already done in logParseJavaVersionOutput().
+                 *  However it was not possible to stop in case getMinRequiredJavaVersion() would fail, so for
+                 *  sanity lets handle this case here. */
+                wrapperData->javaVersion = getMinRequiredJavaVersion();
+                if (wrapperData->javaVersion) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                        TEXT("Failed to retrieve the version of Java. Resolving to the lowest supported version (%s)."),
+                        wrapperData->javaVersion->displayName);
+                    wrapperData->javaVersion->isUnknown = TRUE;
+                } else {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                        TEXT("Failed to resolve the version of Java."),
+                        wrapperData->javaVersion->displayName);
+                    /* Failed. Wrapper shutdown. */
+                    wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
+                    wrapperData->exitCode = wrapperData->errorExitCode;
+                    return;
+                }
             }
             
             /* Make sure that the Java version is in the range in which the Wrapper is allowed to run. */

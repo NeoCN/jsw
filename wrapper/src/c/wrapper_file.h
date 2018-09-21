@@ -79,6 +79,7 @@ extern void wrapperFileTests();
  *                should be suppressed.
  * @param originalWorkingDir Working directory of the binary at the moment it was launched.
  * @param warnedVarMap Map of undefined environment variables for which the user was warned.
+ * @param ignoreVarMap Map of environment variables that should not be expanded.
  * @param logWarnings Flag that controls whether or not warnings will be logged.
  * @param logWarningLogLevel Log level at which any log warnings will be logged.
  *
@@ -94,6 +95,7 @@ extern int configFileReader(const TCHAR *filename,
                             int preload,
                             const TCHAR *originalWorkingDir,
                             PHashMap warnedVarMap,
+                            PHashMap ignoreVarMap,
                             int logWarnings,
                             int logWarningLogLevel);
 

@@ -1140,6 +1140,7 @@ int wrapperBuildJavaVersionCommand() {
         outOfMemory(TEXT("WBJVC1"), 1);
         return TRUE;
     }
+    memset(strings, 0, sizeof(TCHAR *));
     
     if (wrapperBuildJavaCommandArrayJavaCommand(strings, FALSE, FALSE, 0) < 0) {
         wrapperFreeStringArray(strings, 1);
@@ -2024,12 +2025,14 @@ int main(int argc, char **argv) {
     }
 #endif
 
-    if (wrapperInitialize()) {
+    /* Main thread initialized in wrapperInitialize. */
+    /* We want to disable all log output when a translation request is made.
+     *  Do it right after wrapperInitialize() which sets some log levels.
+     *  Use isPromptCallCommand() instead of isPromptCall() because the arguments are not parsed yet. */
+    if (wrapperInitialize((argc > 1) && (argv[1][0] == TEXT('-')) && isPromptCallCommand(&argv[1][1]))) {
         appExit(1, argc, argv);
         return 1; /* For compiler. */
     }
-
-    /* Main thread initialized in wrapperInitialize. */
 
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Wrapper DEBUG build!"));
@@ -2055,9 +2058,7 @@ int main(int argc, char **argv) {
         return 1; /* For compiler. */
     }
     if (!localeSet) {
-        if (!isPromptCall()) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Unable to set the locale to '%s'.  Please make sure $LC_* and $LANG are correct."), (envLang ? envLang : TEXT("<NULL>")));
-        }
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Unable to set the locale to '%s'.  Please make sure $LC_* and $LANG are correct."), (envLang ? envLang : TEXT("<NULL>")));
 #if defined(UNICODE)
         if (envLang) {
             free(envLang);
@@ -2065,10 +2066,6 @@ int main(int argc, char **argv) {
 #endif
     }
     wrapperLoadHostName();
-    if (isPromptCall()) {
-        /* We want to disable all log output when a translation request is made. */
-        setSilentLogLevels();
-    }
     /* At this point, we have a command, confFile, and possibly additional arguments. */
     if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("?")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-help"))) {
         /* User asked for the usage. */

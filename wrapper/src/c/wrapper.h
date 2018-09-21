@@ -330,7 +330,7 @@ struct WrapperConfig {
     int     jStateTimeoutTicksSet;  /* 1 if the current jStateTimeoutTicks is set. */
     TICKS   lastPingTicks;          /* Time that the last ping was sent */
     TICKS   lastLoggedPingTicks;    /* Time that the last logged ping was sent */
-
+    int     environmentLogLevel;    /* Log Level at which the environment variables should be logged. */
     int     isDebugging;            /* TRUE if set in the configuration file */
     int     isAdviserEnabled;       /* TRUE if advice messages should be output. */
     const TCHAR *nativeLibrary;     /* The base name of the native library loaded by the WrapperManager. */
@@ -543,6 +543,18 @@ extern Properties    *properties;
 extern TCHAR wrapperClasspathSeparator;
 
 /**
+ * Dumps the table of environment variables, and their sources.
+ */
+void dumpEnvironment();
+
+/**
+ * Return TRUE if the this is a prompt call made from the script (like --translate or --jvm_bits).
+ *
+ * @param argCommand the first arguement passed when launching the Wrapper
+ */
+int isPromptCallCommand(const TCHAR* argCommand);
+
+/**
  * Return TRUE if the this is a prompt call made from the script (like -translate or -jvm_bits).
  */
 int isPromptCall();
@@ -731,6 +743,7 @@ extern void updateStringValue(TCHAR **ptr, const TCHAR *value);
 
 extern void wrapperInitializeProfileCounters();
 extern void wrapperDumpPageFaultUsage();
+extern void disposeSystemPath();
 extern TCHAR** wrapperGetSystemPath();
 extern int wrapperGetJavaHomeFromWindowsRegistry(TCHAR *javaHome);
 #endif
@@ -745,7 +758,7 @@ extern int wrapperBuildJavaClasspath(TCHAR **classpath);
 extern int wrapperBuildJavaCommandArray(TCHAR ***strings, int *length, int addQuotes, const TCHAR *classpath);
 extern void wrapperFreeStringArray(TCHAR **strings, int length);
 
-extern int wrapperInitialize();
+extern int wrapperInitialize(int silent);
 extern void wrapperDispose();
 
 /**

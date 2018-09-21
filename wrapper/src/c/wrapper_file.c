@@ -134,6 +134,7 @@ int configFileReader_Read(ConfigFileReader *reader,
                           int parentLineNumber,
                           const TCHAR *originalWorkingDir,
                           PHashMap warnedVarMap,
+                          PHashMap ignoreVarMap,
                           int logWarnings,
                           int logWarningLogLevel)
 {
@@ -433,7 +434,7 @@ int configFileReader_Read(ConfigFileReader *reader,
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                                 TEXT("Found #include file in %s: %s"), filename, c);
                         }
-                        evaluateEnvironmentVariables(c, expBuffer, MAX_PROPERTY_NAME_VALUE_LENGTH, logWarnings, warnedVarMap, logWarningLogLevel);
+                        evaluateEnvironmentVariables(c, expBuffer, MAX_PROPERTY_NAME_VALUE_LENGTH, logWarnings, warnedVarMap, logWarningLogLevel, ignoreVarMap);
                         
                         if (reader->debugIncludes && (_tcscmp(c, expBuffer) != 0)) {
                             /* Only show this log if there were any environment variables. */
@@ -486,7 +487,7 @@ int configFileReader_Read(ConfigFileReader *reader,
 #endif
                         if (absoluteBuffer) {
                             if (depth < MAX_INCLUDE_DEPTH) {
-                                readResult = configFileReader_Read(reader, absoluteBuffer, includeRequired, depth + 1, filename, lineNumber, originalWorkingDir, warnedVarMap, logWarnings, logWarningLogLevel);
+                                readResult = configFileReader_Read(reader, absoluteBuffer, includeRequired, depth + 1, filename, lineNumber, originalWorkingDir, warnedVarMap, ignoreVarMap, logWarnings, logWarningLogLevel);
                                 if (readResult == CONFIG_FILE_READER_SUCCESS) {
                                     /* Ok continue. */
                                 } else if ((readResult == CONFIG_FILE_READER_FAIL) || (readResult == CONFIG_FILE_READER_HARD_FAIL) || (readResult == CONFIG_FILE_READER_OPEN_FAIL)) {
@@ -605,6 +606,7 @@ int configFileReader_Read(ConfigFileReader *reader,
  *                should be suppressed.
  * @param originalWorkingDir Working directory of the binary at the moment it was launched.
  * @param warnedVarMap Map of undefined environment variables for which the user was warned.
+ * @param ignoreVarMap Map of environment variables that should not be expanded.
  * @param logWarnings Flag that controls whether or not warnings will be logged.
  * @param logWarningLogLevel Log level at which any log warnings will be logged.
  *
@@ -621,6 +623,7 @@ int configFileReader(const TCHAR *filename,
                      int preload,
                      const TCHAR *originalWorkingDir,
                      PHashMap warnedVarMap,
+                     PHashMap ignoreVarMap,
                      int logWarnings,
                      int logWarningLogLevel) {
     ConfigFileReader reader;
@@ -634,5 +637,5 @@ int configFileReader(const TCHAR *filename,
     reader.exitOnOverwrite = FALSE;
     reader.logLevelOnOverwrite = LEVEL_NONE; /* on preload, don't log anything. */
     
-    return configFileReader_Read(&reader, filename, fileRequired, 0, NULL, 0, originalWorkingDir, warnedVarMap, logWarnings, logWarningLogLevel);
+    return configFileReader_Read(&reader, filename, fileRequired, 0, NULL, 0, originalWorkingDir, warnedVarMap, ignoreVarMap, logWarnings, logWarningLogLevel);
 }

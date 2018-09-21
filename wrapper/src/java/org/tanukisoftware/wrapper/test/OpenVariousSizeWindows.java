@@ -153,7 +153,7 @@ public class OpenVariousSizeWindows
         r.totNumWindows = end - start + 1;
 
         if ( ( start == 0 && end == 0 ) || ( start == 1 && end == 1 ) || ( start == 1 && end == 1 ) ) {
-            System.out.println( Main.getRes().getString( " Create 1 Jframe (it was observed that the first create JFrame can cause the hidden console to reappear).") );
+            System.out.println( Main.getRes().getString( " Create 1 Jframe (it was observed that the first created JFrame can cause the hidden console to reappear).") );
         } else if ( start > 3 ) {
             System.out.println( Main.getRes().getString( " Create {0} JDialog(s) (it was observed that any instance created - not only the first one - can cause the hidden console to reappear).",
                 new Integer( r.totNumWindows ) ) );

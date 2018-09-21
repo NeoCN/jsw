@@ -1805,7 +1805,8 @@ public final class WrapperManager
         
         if ( !WrapperInfo.getVersion().equals( wrapperVersion ) )
         {
-            m_outInfo.println( getRes().getString( "ERROR - The Wrapper jar file currently in use is version \"{0}\"\n        while the version of the Wrapper which launched this JVM is\n        \"{1}\"", WrapperInfo.getVersion(), wrapperVersion ) );
+            m_outInfo.println( getRes().getString( 
+                "ERROR - The version of the Wrapper which launched this JVM is \"{0}\"\n        while the version of the Wrapper jar file currently in use\n        is \"{1}\".", wrapperVersion, WrapperInfo.getVersion() ) );
             m_outInfo.println();
             m_wrapperVersionOk = false;
         } else {

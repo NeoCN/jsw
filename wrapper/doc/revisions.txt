@@ -1,24 +1,28 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 3.5.36
-* Add new properties wrapper.java.additional.<n>.java_version_min and
-  wrapper.java.additional.<n>.java_version_max to allow passing different
+* Add new properties wrapper.java.additional.<n>.java_version.min and
+  wrapper.java.additional.<n>.java_version.max to allow passing different
   options to the JVM depending on the Java version currently used.
 * Allow WRAPPER_JAVA_HOME to be updated on each JVM restart. This variable is
   set when the Java command is located using the Windows registry and cleared
-  when using wrapper.java.command. Previously this variable was final, meaning
+  when using wrapper.java.command. Previously, this variable was final, meaning
   that once it was set it could not be changed, causing potential mismatch with
   the location of the Java command currently used.
 * Ensure that a variable cannot be set by the user if it is also used by the
-  Wrapper internally. Before this was only done for certain variables but not
+  Wrapper internally. Before, this was only done for certain variables but not
   those set after the configuration is loaded (such as the WRAPPER_EVENT_* and
   the WRAPPER_JAVA_HOME variables). For any conflict, a warning message will be
   logged and the value set by the user will be simply ignored.
 * Add new environment variables: WRAPPER_JAVA_VERSION,
   WRAPPER_JAVA_VERSION_MAJOR, WRAPPER_JAVA_VERSION_MINOR and
   WRAPPER_JAVA_VERSION_REVISION. These variables are set after the
-  configuration is loaded when prompting the Java version to the JVM.
+  configuration is loaded when prompting for the Java version to the JVM.
 * Add new environment variables WRAPPER_VERSION and WRAPPER_EDITION.
+* Deprecate wrapper.environment.dump in favor of
+  wrapper.environment.dump.loglevel and generate a new dump each time the
+  configuration is reloaded if wrapper.restart.reload_configuration is set to
+  TRUE.
 * Add new properties wrapper.java.additional_file.required and
   wrapper.app.parameter_file.required.
 * Allow the Wrapper to be launched without specifying a configuration file if
@@ -48,31 +52,28 @@ Java Service Wrapper Revision History.
   messages were inserted before the JVM output.
 * Fix a bug causing the Wrapper to sometimes freeze or crash when launching a
   child process on UNIX systems other than Linux (observed on AIX).
-* Enable performance optimization (-O3 compilation flag) for FreeBSD and HPUX
-  32-bits. Other platforms already had it.
 * Enable the property wrapper.console.title to be reloaded when
-  wrapper.restart.reload_configuration is set to TRUE
+  wrapper.restart.reload_configuration is set to TRUE.
 * Use the '-K PIC' option instead of '-K pic' when compiling the Wrapper 64-bit
   binaries (but not for the native library) on Solaris SPARC. This was required
   as the size of the binaries increased, but should not affect the Wrapper
   behavior.
-* Add a new property wrapper.registry.java_version which makes it possible to
+* Add a new property wrapper.registry.java_version, which makes it possible to
   target a specific version of Java when locating the command from the Windows
-  registy. If this property is not set, the Wrapper will use the CurrentVersion
-  string of the registry. Note that Java 9 and above use a different location
-  in the Windows registry, so by default the Wrapper will first search in this
-  new location to prefer recent JVMs.
+  registry. If this property is not set, the Wrapper will use the
+  CurrentVersion string of the registry. Note that Java 9 and above use a
+  different location in the Windows registry, so by default the Wrapper will
+  first search in this new location to prefer recent JVMs.
 * Fix a bug where a daemon installed with systemd would fail to start if the
   path to the shell script contained spaces.
-* When running the delta pack on a 64-bit OS, the script launching the Wrapper
-  will first send a request to resolve whether the configured JVM is 32-Bit or
-  64-Bit. Then the Wrapper binaries matching the JVM bits will be launched.
-  Before the delta pack always launched the binaries matching the OS bits.
 * Fix encoding issue of the messages logged by the native library if the system
   encoding and the JVM encoding were different. This could especially be
   noticed when using localization on Windows (on UNIX systems, this would only
   occur if 'file.encoding' was manually added to the JVM options).
-* Other small fixes, performance improvements and improved log messages.
+* Add a check to make sure that the absolute path to the UNIX shell script is
+  accessible. If not, the permissions to each intermediate folder will be shown
+  and the script will stop.
+* Other small fixes, performance improvements and corrected log messages.
 
 3.5.35
 * Fix a bug where the icon of the hidden console allocated by wrapperw

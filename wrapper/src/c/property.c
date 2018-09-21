@@ -276,8 +276,9 @@ TCHAR* generateRandValue(const TCHAR* format) {
  * @param warnUndefinedVars Log warnings about missing environment variables.
  * @param warnedUndefVarMap Map of variables which have previously been logged, may be NULL if warnUndefinedVars false.
  * @param warnLogLevel Log level at which any warnings will be logged.
+ * @param ignoreVarMap Map of environment variables that should not be expanded.
  */
-void evaluateEnvironmentVariables(const TCHAR *propertyValue, TCHAR *buffer, int bufferLength, int warnUndefinedVars, PHashMap warnedUndefVarMap, int warnLogLevel) {
+void evaluateEnvironmentVariables(const TCHAR *propertyValue, TCHAR *buffer, int bufferLength, int warnUndefinedVars, PHashMap warnedUndefVarMap, int warnLogLevel, PHashMap ignoreVarMap) {
     const TCHAR *in;
     TCHAR *out;
     TCHAR *envName;
@@ -288,6 +289,7 @@ void evaluateEnvironmentVariables(const TCHAR *propertyValue, TCHAR *buffer, int
     size_t len;
     size_t outLen;
     size_t bufferAvailable;
+    const TCHAR* ignore;
 
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("evaluateEnvironmentVariables(properties, '%s', buffer, %d, %d)"), propertyValue, bufferLength, warnUndefinedVars);
@@ -328,11 +330,22 @@ void evaluateEnvironmentVariables(const TCHAR *propertyValue, TCHAR *buffer, int
                     /* Found a time value. */
                     envValue = generateRandValue(envName + 13);
                 } else {
-                    /* Try looking up the environment variable. */
-                    envValue = _tgetenv(envName);
+                    if (ignoreVarMap) {
+                        /* Can return NULL if missing or "TRUE" or "FALSE". */
+                        ignore = hashMapGetKWVW(ignoreVarMap, envName);
+                    } else {
+                        ignore = NULL;
+                    }
+                    if (!ignore || strcmpIgnoreCase(ignore, TEXT("TRUE")) != 0) {
+                        /* Try looking up the environment variable. */
+                        envValue = _tgetenv(envName);
 #if !defined(WIN32) && defined(UNICODE)
-                    envValueNeedFree = TRUE;
+                        envValueNeedFree = TRUE;
 #endif
+                    } else {
+                        envValue = NULL;
+                        envValueNeedFree = FALSE;
+                    }
                 }
 
                 if (envValue != NULL) {
@@ -456,7 +469,7 @@ void setInnerProperty(Properties *properties, Property *property, const TCHAR *p
     } else {
         buffer = malloc(MAX_PROPERTY_VALUE_LENGTH * sizeof(TCHAR));
         if (buffer) {
-                evaluateEnvironmentVariables(propertyValue, buffer, MAX_PROPERTY_VALUE_LENGTH, warnUndefinedVars, properties->warnedVarMap, properties->logWarningLogLevel);
+                evaluateEnvironmentVariables(propertyValue, buffer, MAX_PROPERTY_VALUE_LENGTH, warnUndefinedVars, properties->warnedVarMap, properties->logWarningLogLevel, properties->ignoreVarMap);
 
             property->value = malloc(sizeof(TCHAR) * (_tcslen(buffer) + 1));
             if (!property->value) {
@@ -583,7 +596,7 @@ int loadProperties(Properties *properties,
     nowTM = localtime(&now);
     memcpy(&loadPropertiesTM, nowTM, sizeof(struct tm));
     
-    return configFileReader(filename, fileRequired, loadPropertiesCallback, properties, TRUE, preload, originalWorkingDir, properties->warnedVarMap, properties->logWarnings, properties->logWarningLogLevel);
+    return configFileReader(filename, fileRequired, loadPropertiesCallback, properties, TRUE, preload, originalWorkingDir, properties->warnedVarMap, properties->ignoreVarMap, properties->logWarnings, properties->logWarningLogLevel);
 }
 
 /**
@@ -619,8 +632,9 @@ Properties* createProperties(int debug, int logLevelOnOverwrite, int exitOnOverw
     properties->first = NULL;
     properties->last = NULL;
     properties->warnedVarMap = newHashMap(8);
+    properties->ignoreVarMap = newHashMap(8);
     properties->dumpFormat = NULL;
-    if (!properties->warnedVarMap) {
+    if ((!properties->warnedVarMap) || (!properties->ignoreVarMap)) {
         disposeProperties(properties);
         return NULL;
     }
@@ -654,6 +668,10 @@ void disposeProperties(Properties *properties) {
         
         if (properties->warnedVarMap) {
             freeHashMap(properties->warnedVarMap);
+        }
+        
+        if (properties->ignoreVarMap) {
+            freeHashMap(properties->ignoreVarMap);
         }
         
         /* Dispose the Properties structure */
@@ -1280,7 +1298,7 @@ Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum
     trim(propertyName, propertyNameTrim);
     propertyValueTrim = malloc(sizeof(TCHAR) * ( _tcslen(propertyValueNotNull) + 1));
     if (!propertyValueTrim) {
-        outOfMemory(TEXT("AP"), 4);
+        outOfMemory(TEXT("AP"), 2);
         free(propertyNameTrim);
         return NULL;
     }
@@ -1328,9 +1346,12 @@ Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum
             /* Preload was already done so the logging system is ready. */
             logLevelOnOverwrite = GetLogLevelOnOverwrite(properties);
             
+            isShownAsInternal = property->internal;
             if (logLevelOnOverwrite == -1) {
-                /* Log level on overwite is AUTO. */
-                if ((property->lastDefinitionDepth >= depth) || (property->internal && property->finalValue)) {
+                /* Log level on overwrite is AUTO. */
+                if (((property->lastDefinitionDepth >= depth) && (!property->finalValue)) ||    /* if the new property is referenced in a file with a lower inclusion depth and not overriding a command property. */
+                    (finalValue && (!setValue)) ||                                              /* if the new property is a command property that can't be set. */
+                    (isShownAsInternal && (!internal))) {                                       /* if there is any attempt to override an internal property. */
                     logLevelOnOverwrite = LEVEL_WARN;
                 } else {
                     logLevelOnOverwrite = LEVEL_DEBUG;
@@ -1348,7 +1369,6 @@ Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum
             
             if ((getLowLogLevel() <= logLevelOnOverwrite) && (logLevelOnOverwrite != LEVEL_NONE)) {
                 overwriteWarnId = 0;
-                isShownAsInternal = property->internal;
                 /* From version 3.5.27, the Wrapper will also log messages if the command line contains duplicated properties or attempts to set an internal environment variable. */
                 if (finalValue) {
                     if (isShownAsInternal) {
@@ -1579,9 +1599,19 @@ int addPropertyPair(Properties *properties, const TCHAR* filename, int lineNum, 
     return 1;
 }
 
-void setInternalVarProperty(Properties *properties, const TCHAR *varName, const TCHAR *varValue, int finalValue) {
-    Property *property;
+void setInternalVarProperty(Properties *properties, const TCHAR *varName, const TCHAR *varValue, int finalValue, int ignore) {
     TCHAR* propertyName;
+    
+    /* A variable that was never set as ignored does not need to be added in the Hashmap.
+     * A variable that was previously set as ignored can be kept in the Hashmap but we need to set the hash value to "FALSE". */
+    if (ignore) {
+        hashMapPutKWVW(properties->ignoreVarMap, varName, TEXT("TRUE"));
+    } else if (hashMapGetKWVW(properties->ignoreVarMap, varName)) {
+        hashMapPutKWVW(properties->ignoreVarMap, varName, TEXT("FALSE"));
+    }
+    
+    /* Do not warn about this variable */
+    hashMapPutKWVW(properties->warnedVarMap, varName, TEXT("INTERNAL"));
     
     propertyName = malloc(sizeof(TCHAR) * (4 + _tcslen(varName) + 1));
     if (!propertyName) {
@@ -1590,11 +1620,6 @@ void setInternalVarProperty(Properties *properties, const TCHAR *varName, const 
     }
     _sntprintf(propertyName, 4 + _tcslen(varName) + 1, TEXT("set.%s"), varName);
     
-    property = getInnerProperty(properties, propertyName, FALSE);
-    if ((property == NULL) && (varValue == NULL) && (hashMapGetKWVW(properties->warnedVarMap, varName) == NULL)) {
-        /* Do not warn about this variable */
-        hashMapPutKWVW(properties->warnedVarMap, varName, TEXT("INTERNAL"));
-    }
     /* Always add the variable as a property to prevent user from overriding it and to get the correct warning, but pass a NULL value if the variable should not be set or cleared. */
     addProperty(properties, NULL, 0, 0, propertyName, varValue, finalValue, FALSE, FALSE, TRUE);
     free(propertyName);
@@ -2432,7 +2457,7 @@ void dumpProperties(Properties *properties) {
             if (dumpFilter > 0) {
                 printBuffer = buildPropertyDumpBuffer(property, properties->dumpFormat, numConstColumns, reqConstTotSize, reqPropNameSize, reqConfPathSize, reqConfNameSize);
                 if (printBuffer) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, properties->dumpLogLevel, printBuffer);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, properties->dumpLogLevel, TEXT("%s"), printBuffer);
                     free(printBuffer);
                 }
             }
