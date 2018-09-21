@@ -442,7 +442,16 @@ const TCHAR* getJvmMakerName(int jvmMaker) {
  */
 int parseOutputJvmBits(TCHAR* output) {
     if (output) {
-        if (_tcsstr(output, TEXT("64-Bit"))) {
+        /* This is experimental and may not work for all JVMs.
+         * For example a IBM JVM will return the following output:
+         *  IBM J9 VM (build 2.3, J2RE 1.5.0 IBM J9 2.3 Linux ppc64-64 j9vmxp6423-20130203 (JIT enabled).
+         * Should we add a check on the Maker? */
+        if (_tcsstr(output, TEXT("64-Bit")) ||
+            _tcsstr(output, TEXT("64-bit")) ||
+            _tcsstr(output, TEXT("64 Bit")) ||
+            _tcsstr(output, TEXT("64 bit")) ||
+            _tcsstr(output, TEXT("ppc64")) ||
+            _tcsstr(output, TEXT("mixed mode"))) {
             return JVM_BITS_64;
         } else {
             return JVM_BITS_32;

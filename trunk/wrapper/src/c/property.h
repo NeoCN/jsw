@@ -76,9 +76,9 @@ struct Property {
     int internal;                       /* TRUE if the Property is internal. */
     int isGenerated;                    /* TRUE if the property did not exist in the configuration and was generated using a default value. */
     int isVariable;                     /* TRUE if the property the definition of a variable (starting with 'set.'). */
+    int lastDefinitionDepth;            /* Depth of the configuration file in which the property was previously defined, or -1 if not yet defined. */
     Property *next;                     /* Pointer to the next Property in a linked list */
     Property *previous;                 /* Pointer to the previous Property in a linked list */
-    int lastDefinitionDepth;            /* Depth of the configuration file in which the property was previously defined, or -1 if not yet defined. */
 };
 
 typedef struct Properties Properties;
@@ -94,6 +94,7 @@ struct Properties {
     Property *first;                    /* Pointer to the first property. */
     Property *last;                     /* Pointer to the last property.  */
     PHashMap warnedVarMap;              /* Map of undefined environment variables for which the user was warned. */
+    PHashMap ignoreVarMap;              /* Map of environment variables that should not be expanded. */
 };
 
 /**
@@ -131,8 +132,9 @@ extern int setEnv(const TCHAR *name, const TCHAR *value, int source);
  * @param warnUndefinedVars Log warnings about missing environment variables.
  * @param warnedUndefVarMap Map of variables which have previously been logged, may be NULL if warnUndefinedVars false.
  * @param warnLogLevel Log level at which any warnings will be logged.
+ * @param ignoreVarMap Map of environment variables that should not be expanded.
  */
-extern void evaluateEnvironmentVariables(const TCHAR *propertyValue, TCHAR *buffer, int bufferLength, int warnUndefinedVars, PHashMap warnedUndefVarMap, int warnLogLevel);
+extern void evaluateEnvironmentVariables(const TCHAR *propertyValue, TCHAR *buffer, int bufferLength, int warnUndefinedVars, PHashMap warnedUndefVarMap, int warnLogLevel, PHashMap ignoreVarMap);
 
 /**
  * This function returns a reference to a static buffer and is NOT thread safe.
@@ -250,7 +252,7 @@ extern Property* addProperty(Properties *properties, const TCHAR* filename, int 
  */
 extern int addPropertyPair(Properties *properties, const TCHAR* filename, int lineNum, const TCHAR *propertyNameValue, int finalValue, int quotable, int internal);
 
-extern void setInternalVarProperty(Properties *properties, const TCHAR *varName, const TCHAR *varValue, int finalValue);
+extern void setInternalVarProperty(Properties *properties, const TCHAR *varName, const TCHAR *varValue, int finalValue, int ignore);
 
 extern const TCHAR* getStringProperty(Properties *properties, const TCHAR *propertyName, const TCHAR *defaultValue);
 

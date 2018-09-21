@@ -330,21 +330,25 @@ void wrapperAddDefaultProperties(Properties *props) {
     }
 
     _sntprintf(buffer, 3, TEXT("en"));
-    setInternalVarProperty(props, TEXT("WRAPPER_LANG"), buffer, TRUE);
+    setInternalVarProperty(props, TEXT("WRAPPER_LANG"), buffer, TRUE, FALSE);
     _sntprintf(buffer, 11, TEXT("%d"), wrapperData->wrapperPID);
-    setInternalVarProperty(props, TEXT("WRAPPER_PID"), buffer, TRUE);
-    setInternalVarProperty(props, TEXT("WRAPPER_BITS"), wrapperBits, TRUE);
-    setInternalVarProperty(props, TEXT("WRAPPER_ARCH"), wrapperArch, TRUE);
-    setInternalVarProperty(props, TEXT("WRAPPER_OS"), wrapperOS, TRUE);
-    setInternalVarProperty(props, TEXT("WRAPPER_VERSION"), wrapperVersionRoot, TRUE);
-    setInternalVarProperty(props, TEXT("WRAPPER_EDITION"), TEXT("Community"), TRUE);
-    setInternalVarProperty(props, TEXT("WRAPPER_HOSTNAME"), wrapperData->hostName, TRUE);
-    setInternalVarProperty(props, TEXT("WRAPPER_HOST_NAME"), wrapperData->hostName, TRUE);
-    setInternalVarProperty(props, TEXT("WRAPPER_FILE_SEPARATOR"), fileSeparator, TRUE);
-    setInternalVarProperty(props, TEXT("WRAPPER_PATH_SEPARATOR"), pathSeparator, TRUE);
+    setInternalVarProperty(props, TEXT("WRAPPER_PID"), buffer, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_BITS"), wrapperBits, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_ARCH"), wrapperArch, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_OS"), wrapperOS, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_VERSION"), wrapperVersionRoot, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_EDITION"), TEXT("Community"), TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_HOSTNAME"), wrapperData->hostName, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_HOST_NAME"), wrapperData->hostName, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_FILE_SEPARATOR"), fileSeparator, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_PATH_SEPARATOR"), pathSeparator, TRUE, FALSE);
 #ifdef WIN32
     /* Do not change the value of this variable as this would cause a memory leak on each JVM restart (see setEnvInner()). */
-    setInternalVarProperty(properties, TEXT("WRAPPER_JAVA_HOME"), wrapperData->registry_java_home, FALSE);
+    if (wrapperData->registry_java_home) {
+        setInternalVarProperty(props, TEXT("WRAPPER_JAVA_HOME"), wrapperData->registry_java_home, FALSE, TRUE);
+    } else {
+        setInternalVarProperty(props, TEXT("WRAPPER_JAVA_HOME"), NULL, FALSE, FALSE);
+    }
 #endif
 }
 
@@ -562,44 +566,55 @@ int wrapperBuildUnixDaemonInfo() {
 }
 #endif
 
+void setEnvironmentLogLevel(int logLevel) {
+    wrapperData->environmentLogLevel = logLevel;
+}
 
 /**
  * Dumps the table of environment variables, and their sources.
- *
- * @param logLevel Level at which to log the output.
  */
-void dumpEnvironment(int logLevel) {
+void dumpEnvironment() {
     EnvSrc *envSrc;
     TCHAR *envVal;
+    int logLevel = wrapperData->environmentLogLevel;
+    const TCHAR* ignore;
 
     log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT(""));
     log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("Environment variables (Source | Name=Value) BEGIN:"));
 
     envSrc = baseEnvSrc;
     while (envSrc) {
-        envVal = _tgetenv(envSrc->name);
+        /* Do not display the variables that are not expanded. */
+        if (properties->ignoreVarMap) {
+            /* Can return NULL if missing or "TRUE" or "FALSE". */
+            ignore = hashMapGetKWVW(properties->ignoreVarMap, envSrc->name);
+        } else {
+            ignore = NULL;
+        }
+        if (!ignore || strcmpIgnoreCase(ignore, TEXT("TRUE")) != 0) {
+            envVal = _tgetenv(envSrc->name);
 
-        log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("  %c%c%c%c%c | %s=%s"),
-            (envSrc->source & ENV_SOURCE_PARENT ? TEXT('P') : TEXT('-')),
+            log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("  %c%c%c%c%c | %s=%s"),
+                (envSrc->source & ENV_SOURCE_PARENT ? TEXT('P') : TEXT('-')),
 #ifdef WIN32
-            (envSrc->source & ENV_SOURCE_REG_SYSTEM ? TEXT('S') : TEXT('-')),
-            (envSrc->source & ENV_SOURCE_REG_ACCOUNT ? TEXT('A') : TEXT('-')),
+                (envSrc->source & ENV_SOURCE_REG_SYSTEM ? TEXT('S') : TEXT('-')),
+                (envSrc->source & ENV_SOURCE_REG_ACCOUNT ? TEXT('A') : TEXT('-')),
 #else
-            TEXT('-'),
-            TEXT('-'),
+                TEXT('-'),
+                TEXT('-'),
 #endif
-            (envSrc->source & ENV_SOURCE_APPLICATION ? TEXT('W') : TEXT('-')),
-            (envSrc->source & ENV_SOURCE_CONFIG ? TEXT('C') : TEXT('-')),
-            envSrc->name,
-            (envVal ? envVal : TEXT("<null>"))
-        );
+                (envSrc->source & ENV_SOURCE_APPLICATION ? TEXT('W') : TEXT('-')),
+                (envSrc->source & ENV_SOURCE_CONFIG ? TEXT('C') : TEXT('-')),
+                envSrc->name,
+                (envVal ? envVal : TEXT("<null>"))
+            );
 
 #if !defined(WIN32) && defined(UNICODE)
-        if (envVal) {
-            free(envVal);
-        }
+            if (envVal) {
+                free(envVal);
+            }
 #endif
-
+        }
         envSrc = envSrc->next;
     }
     log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("Environment variables END:"));
@@ -629,10 +644,23 @@ int isCygwin() {
 
 /**
  * Return TRUE if the this is a prompt call made from the script (like --translate or --jvm_bits).
+ *
+ * @param argCommand the first arguement passed when launching the Wrapper
+ */
+int isPromptCallCommand(const TCHAR* argCommand) {
+    if (!argCommand) {
+        return FALSE;
+    }
+    return ((strcmpIgnoreCase(argCommand, TEXT("-translate")) == 0) ||
+            (strcmpIgnoreCase(argCommand, TEXT("-jvm_bits")) == 0));
+}
+
+/**
+ * Return TRUE if the this is a prompt call made from the script (like --translate or --jvm_bits).
+ *  This function must be called after the arguments have been parsed!
  */
 int isPromptCall() {
-    return ((strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate")) == 0) ||
-            (strcmpIgnoreCase(wrapperData->argCommand, TEXT("-jvm_bits")) == 0));
+    return isPromptCallCommand(wrapperData->argCommand);
 }
 
 void wrapperLoadLoggingProperties(int preload) {
@@ -653,6 +681,8 @@ void wrapperLoadLoggingProperties(int preload) {
     setPropertiesDumpLogLevel(properties, getLogLevelForName(getStringProperty(properties, TEXT("wrapper.properties.dump.loglevel"), TEXT("DEBUG"))));
     
     setPropertiesDumpFormat(properties, getStringProperty(properties, TEXT("wrapper.properties.dump.format"), PROPERTIES_DUMP_FORMAT_DEFAULT));
+    
+    setEnvironmentLogLevel(getLogLevelForName(getStringProperty(properties, TEXT("wrapper.environment.dump.loglevel"), getBooleanProperty(properties, TEXT("wrapper.environment.dump"), FALSE) ? TEXT("INFO") : TEXT("DEBUG"))));
 
     setLogWarningThreshold(getIntProperty(properties, TEXT("wrapper.log.warning.threshold"), 0));
     wrapperData->logLFDelayThreshold = propIntMax(propIntMin(getIntProperty(properties, TEXT("wrapper.log.lf_delay.threshold"), 500), 3600000), 0);
@@ -2944,7 +2974,7 @@ int wrapperLogFormatPrint(const TCHAR format, size_t printSize, TCHAR** pBuffer)
 /**
  * Pre initialize the wrapper.
  */
-int wrapperInitialize() {
+int wrapperInitialize(int silent) {
 #ifdef WIN32
     int maxPathLen = _MAX_PATH;
 #else
@@ -3025,15 +3055,19 @@ int wrapperInitialize() {
     
     logRegisterFormatCallbacks(wrapperLogFormatCount, wrapperLogFormatPrint);
 
-    setLogfilePath(TEXT("wrapper.log"), FALSE);
+    if (silent) {
+        setSilentLogLevels();
+    } else {
+        setLogfileFormat(TEXT("LPTM"));
+        setLogfileLevelInt(LEVEL_DEBUG);
+        setConsoleLogFormat(TEXT("LPM"));
+        setConsoleLogLevelInt(LEVEL_DEBUG);
+        setSyslogLevelInt(LEVEL_NONE);
+    }
+    setLogfilePath(TEXT("wrapper.log"), FALSE); /* Setting the logfile path may cause some output, so always set the levels and formats first. */
     setLogfileRollMode(ROLL_MODE_SIZE);
-    setLogfileFormat(TEXT("LPTM"));
-    setLogfileLevelInt(LEVEL_DEBUG);
     setLogfileAutoClose(FALSE);
-    setConsoleLogFormat(TEXT("LPM"));
-    setConsoleLogLevelInt(LEVEL_DEBUG);
     setConsoleFlush(TRUE);  /* Always flush immediately until the logfile is configured to make sure that problems are in a consistent location. */
-    setSyslogLevelInt(LEVEL_NONE);
 
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Wrapper Initializing...  Minimum logging configured."));
@@ -3260,6 +3294,12 @@ void wrapperDataDispose() {
     disposeJavaVersion(wrapperData->javaVersionMin);
     disposeJavaVersion(wrapperData->javaVersionMax);
     disposeJavaVersion(wrapperData->javaVersion);
+#ifdef WIN32
+    if (wrapperData->registry_java_home) {
+        free(wrapperData->registry_java_home);
+        wrapperData->registry_java_home = NULL;
+    }
+#endif
 
     if (wrapperData) {
         free(wrapperData);
@@ -3286,6 +3326,8 @@ void wrapperDispose() {
     
     /* Make sure that the startup thread has completed. */
     disposeStartup();
+    
+    disposeSystemPath();
 #endif
 
     disposeHashMapJvmEncoding();
@@ -3508,7 +3550,7 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
         }
     }
 
-    wrapperArgCount = delimiter ;
+    wrapperArgCount = delimiter;
     if (wrapperArgCount > 1) {
 
         /* Store the name of the binary.*/
@@ -4033,7 +4075,7 @@ int wrapperConfirmJavaVersion() {
     
     if (result) {
         if (!wrapperData->javaVersion) {
-            /* This should never happen (unless there was an OOM error) as an unknown JVM will be resolved to the lowest supported version and flagged 'unknown'. */
+            /* This should never happen. */
             result = FALSE;
         } else if (wrapperData->javaVersion->isUnknown) {
             maxVersion = getMaxRequiredJavaVersion();
@@ -4091,7 +4133,7 @@ void logParseJavaVersionOutput(TCHAR* log) {
                     wrapperData->javaVersion = getMinRequiredJavaVersion();
                     if (wrapperData->javaVersion) {
                         /* If we fail to get the minimum required version (which should not happen), this would be fatal.
-                         *  We can't return the error now, but we will do it in wrapperConfirmJavaVersion(). */
+                         *  We can't return the error now, but we will do it in main eventloop. */
                         log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                             TEXT("Failed to parse the version of Java. Resolving to the lowest supported version (%s)."),
                             wrapperData->javaVersion->displayName);
@@ -5239,13 +5281,8 @@ int wrapperRunCommonInner() {
     /* Dump the configured properties */
     dumpProperties(properties);
 
-    /* Should we dump the environment variables?
-     * If the the user specifically wants the environment, show it as the status log level, otherwise include it in debug output if enabled. */
-    if (getBooleanProperty(properties, TEXT("wrapper.environment.dump"), FALSE)) {
-        dumpEnvironment(LEVEL_INFO);
-    } else if (wrapperData->isDebugging) {
-        dumpEnvironment(LEVEL_DEBUG);
-    }
+    /* Dump the environment variables */
+    dumpEnvironment();
     
 #ifndef WIN32
     showResourceslimits();
@@ -5887,6 +5924,19 @@ int checkIfBinary(const TCHAR *filename) {
 
 
 #ifndef WIN32
+/**
+ * Searches for an executable file and returns its absolute path if it is found.
+ *  NOTE: This function behaves like Windows it receives a file name without relative path components
+ *  (it first searches in the current directory, then in PATH), and like UNIX otherwise (UNIX terminals
+ *  require to append './' before the executable name when launching it, so there is no fallback to the PATH).
+ *  We may change this in the future.
+ *
+ * @param exe  Path to the binary to search.
+ * @param name Label to use when printing debug output.
+ *
+ * @return The absolute path to the file if it is found and executable,
+ *         otherwise NULL and errno is set to indicate the error.
+ */
 TCHAR* findPathOf(const TCHAR *exe, const TCHAR *name) {
     TCHAR *searchPath;
     TCHAR *beg, *end;
@@ -5894,6 +5944,7 @@ TCHAR* findPathOf(const TCHAR *exe, const TCHAR *name) {
     TCHAR pth[PATH_MAX + 1];
     TCHAR *ret;
     TCHAR resolvedPath[PATH_MAX + 1];
+    int err = ENOENT;
 
     if (exe[0] == TEXT('/')) {
         /* This is an absolute reference. */
@@ -5903,22 +5954,29 @@ TCHAR* findPathOf(const TCHAR *exe, const TCHAR *name) {
                 ret = malloc((_tcslen(pth) + 1) * sizeof(TCHAR));
                 if (!ret) {
                     outOfMemory(TEXT("FPO"), 1);
+                    errno = ENOMEM;
                     return NULL;
                 }
                 _tcsncpy(ret, pth, _tcslen(pth) + 1);
                 if (wrapperData->isDebugging) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Resolved the real path of %s as an absolute reference: %s"), name, ret);
                 }
+                errno = 0;
                 return ret;
+            } else {
+                err = EACCES;
             }
-        } else if (wrapperData->isDebugging) {
+        } else {
+            err = errno;
+        }
+        if (wrapperData->isDebugging) {
             if (_tcslen(resolvedPath)) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the real path of %s as an absolute reference: %s. %s (Problem at: %s)"), name, exe, getLastErrorText(), resolvedPath);
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the real path of %s as an absolute reference: %s. %s"), name, exe, getLastErrorText());
             }
         }
-
+        errno = err;
         return NULL;
     }
 
@@ -5930,15 +5988,23 @@ TCHAR* findPathOf(const TCHAR *exe, const TCHAR *name) {
             ret = malloc((_tcslen(pth) + 1) * sizeof(TCHAR));
             if (!ret) {
                 outOfMemory(TEXT("FPO"), 2);
+                errno = ENOMEM;
                 return NULL;
             }
             _tcsncpy(ret, pth, _tcslen(pth) + 1);
             if (wrapperData->isDebugging) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Resolved the real path of %s as a relative reference: %s"), name, ret);
             }
+            errno = 0;
             return ret;
+        } else {
+            /* Set err, but we may clear it if searching in the PATH. */
+            err = EACCES;
         }
-    } else if (wrapperData->isDebugging) {
+    } else {
+        err = errno;
+    }
+    if (wrapperData->isDebugging) {
         if (_tcslen(resolvedPath)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the real path of %s as a relative reference: %s. %s (Problem at: %s)"), name, exe, getLastErrorText(), resolvedPath);
         } else {
@@ -5948,9 +6014,12 @@ TCHAR* findPathOf(const TCHAR *exe, const TCHAR *name) {
 
     /* The file was not a direct relative reference.   If and only if it does not contain any relative path components, we can search the PATH. */
     if (_tcschr(exe, TEXT('/')) == NULL) {
+        /* On UNIX, if a file is referenced twice in the PATH, the first location where the file has the correct permission will be chosen.
+         *  Any file with insufficient permissions will be considered as not found. Set err to "No such file or directory". */
+        err = ENOENT;
         searchPath = _tgetenv(TEXT("PATH"));
         if (searchPath && (_tcslen(searchPath) <= 0)) {
-#if !defined(WIN32) && defined(UNICODE)
+#if defined(UNICODE)
             free(searchPath);
 #endif
             searchPath = NULL;
@@ -6002,7 +6071,7 @@ TCHAR* findPathOf(const TCHAR *exe, const TCHAR *name) {
                 }
             } while (!stop && !found);
 
-#if !defined(WIN32) && defined(UNICODE)
+#if defined(UNICODE)
             free(searchPath);
 #endif
 
@@ -6010,28 +6079,29 @@ TCHAR* findPathOf(const TCHAR *exe, const TCHAR *name) {
                 ret = malloc((_tcslen(pth) + 1) * sizeof(TCHAR));
                 if (!ret) {
                     outOfMemory(TEXT("FPO"), 3);
+                    errno = ENOMEM;
                     return NULL;
                 }
                 _tcsncpy(ret, pth, _tcslen(pth) + 1);
                 if (wrapperData->isDebugging) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Resolved the real path of %s from system PATH: %s"), name, ret);
                 }
+                errno = 0;
                 return ret;
-            } else {
-                if (wrapperData->isDebugging) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the real path of %s on the system PATH: %s"), name, exe);
-                }
+            } else if (wrapperData->isDebugging) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the real path of %s on the system PATH: %s"), name, exe);
             }
         }
     }
 
     /* Still did not find the file.  So it must not exist. */
+    errno = err;
     return NULL;
 }
 #endif
 
 /**
- * Checks to see if the speicified executable is a regular binary.   This will continue
+ * Checks to see if the specified executable is a regular binary.   This will continue
  *  in either case, but a warning will be logged if the binary is invalid.
  *
  * @param para The binary to check.  On UNIX, the para memory may be freed and reallocated by this call.
@@ -6156,7 +6226,7 @@ int wrapperBuildJavaCommandArrayJavaCommand(TCHAR **strings, int addQuotes, int 
                 }
             }
         }
-        setInternalVarProperty(properties, TEXT("WRAPPER_JAVA_HOME"), wrapperData->registry_java_home, FALSE);
+        setInternalVarProperty(properties, TEXT("WRAPPER_JAVA_HOME"), wrapperData->registry_java_home, FALSE, FALSE);
 
         if (found) {
             strings[index] = malloc(sizeof(TCHAR) * (_tcslen(cpPath) + 2 + 1));
@@ -6397,7 +6467,7 @@ static int loadParameterFileCallbackParam_AddArg(LoadParameterFileCallbackParam 
         
         /* Just in case the string contains and environment variable references, make sure they are all evaluated.
          *  argExpanded needs to be static because there is no way to know how long it will be in advance. */
-        evaluateEnvironmentVariables(argStripped, argExpanded, MAX_PROPERTY_VALUE_LENGTH, properties->logWarnings, properties->warnedVarMap, properties->logWarningLogLevel);
+        evaluateEnvironmentVariables(argStripped, argExpanded, MAX_PROPERTY_VALUE_LENGTH, properties->logWarnings, properties->warnedVarMap, properties->logWarningLogLevel, properties->ignoreVarMap);
         
         /* No longer needed. */
         free(argStripped);
@@ -6522,7 +6592,7 @@ int wrapperLoadParameterFile(TCHAR **strings, int addQuotes, int detectDebugJVM,
     callbackParam.index = index;
     callbackParam.isJVMParam = isJVMParameter;
 
-    readResult = configFileReader(parameterFilePath, parameterFileRequired, loadParameterFileCallback, &callbackParam, FALSE, FALSE, wrapperData->originalWorkingDir, properties->warnedVarMap, properties->logWarnings, properties->logWarningLogLevel);
+    readResult = configFileReader(parameterFilePath, parameterFileRequired, loadParameterFileCallback, &callbackParam, FALSE, FALSE, wrapperData->originalWorkingDir, properties->warnedVarMap, properties->ignoreVarMap, properties->logWarnings, properties->logWarningLogLevel);
     switch (readResult) {
     case CONFIG_FILE_READER_OPEN_FAIL:
         return parameterFileRequired ? -1 : index;
@@ -7194,7 +7264,7 @@ int isSysPropInJavaArgs(const TCHAR* propName) {
             propValue++;
         }
         *pBuffer = TEXT('\0');
-        propValue = pBuffer;
+        propValue = buffer;
 #endif
         if (_tcsstr(propValue, propName) == propValue) {
             ret = TRUE;

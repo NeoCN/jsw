@@ -39,8 +39,8 @@ public class JvmEncoding2 {
         
         if (WrapperManager.isWindows()) {
             if (currentEncoding.equals("MS949")) {
-                /* Korean */
-                System.out.println(Main.getRes().getString("Test output korean characters: \uD55C\uAD6D\uC5B4"));
+                /* Do not translate this message! Korean characters would corrupt the mo file... */
+                System.out.println("Test output korean characters: \uD55C\uAD6D\uC5B4");
                 CreateAndDeleteFile("\uD55C\uAD6D\uC5B4");
                 noTest = false;
             }

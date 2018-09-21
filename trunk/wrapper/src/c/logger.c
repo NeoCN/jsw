@@ -4162,7 +4162,7 @@ void maintainLogger() {
         /* Now see if a log file name was queued, using our local copy. */
         if (logFileCopy) {
 #ifdef _DEBUG
-            _tprintf(TEXT("Sending notification of queued log file name change: %s"), logFileCopy);
+            _tprintf(TEXT("Sending notification of queued log file name change: %s\n"), logFileCopy);
 #endif
             logFileChangedCallback(logFileCopy);
             free(logFileCopy);

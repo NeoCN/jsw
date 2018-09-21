@@ -305,6 +305,18 @@ int buildSystemPath() {
 
     return 0;
 }
+
+void disposeSystemPath() {
+    int i = 0;
+    
+    /* Loop over and free each of the strings in the array */
+    while(systemPath[i] != NULL) {
+        free(systemPath[i]);
+        systemPath[i] = NULL;
+        i++;
+    }
+}
+
 TCHAR** wrapperGetSystemPath() {
     return systemPath;
 }
@@ -681,6 +693,7 @@ int wrapperBuildJavaVersionCommand() {
         outOfMemory(TEXT("WBJVC"), 1);
         return TRUE;
     }
+    memset(strings, 0, sizeof(TCHAR *));
 
     if (wrapperBuildJavaCommandArrayJavaCommand(strings, TRUE, FALSE, 0) < 0) {
         wrapperFreeStringArray(strings, 1);
@@ -4665,13 +4678,29 @@ int wrapperLoadEnvFromRegistry() {
     return FALSE;
 }
 
+const TCHAR* getBaseKeyName(HKEY baseHKey) {
+    if (baseHKey == HKEY_CLASSES_ROOT) {
+        return TEXT("HKEY_CLASSES_ROOT");
+    } else if (baseHKey == HKEY_CURRENT_CONFIG) {
+        return TEXT("HKEY_CURRENT_CONFIG");
+    } else if (baseHKey == HKEY_CURRENT_USER) {
+        return TEXT("HKEY_CURRENT_USER");
+    } else if (baseHKey == HKEY_LOCAL_MACHINE) {
+        return TEXT("HKEY_LOCAL_MACHINE");
+    } else if (baseHKey == HKEY_USERS) {
+        return TEXT("HKEY_USERS");
+    } else {
+        return TEXT("");
+    }
+}
+
 /**
  * Gets the JavaHome absolute path from the windows registry
  *  using the location of a specific JRE and the key containing the JavaHome path.
  */
 TCHAR* wrapperGetJavaHomeFromWindowsRegistryUsingJavaHome(HKEY baseHKey, TCHAR* subKey, TCHAR* javahome, int verbose) {
     HKEY openHKey = NULL;   /* Will receive the handle to the opened registry key */
-    LPSTR pBuffer = NULL;
+    const TCHAR* msg;
     LONG result;
     DWORD valueType;
     DWORD valueSize;
@@ -4680,11 +4709,13 @@ TCHAR* wrapperGetJavaHomeFromWindowsRegistryUsingJavaHome(HKEY baseHKey, TCHAR* 
     /* Opens the Registry Key needed to query the JavaHome */
     result = RegOpenKeyEx(baseHKey, subKey, 0, KEY_QUERY_VALUE, &openHKey);
     if (result != ERROR_SUCCESS) {
+        /* NOTE: on Windows 64-bit, if a 32-bit application tries to access HKLM\SOFTWARE\JavaSoft,
+         *       it's actually redirected to HKLM\SOFTWARE\Wow6432Node\JavaSoft. This can be confusing
+         *       for the user and it may be worth printing a different message for that case. */
         if (verbose) {
-            FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
+            msg = getErrorText(result, NULL);
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                TEXT("Unable to access configured registry location for JAVA_HOME: %s - (%d)"), subKey, errno);
-            LocalFree(pBuffer);
+                TEXT("Unable to access configured registry location \"%s\\%s\": %s"), getBaseKeyName(baseHKey), subKey, msg);
         }
         return NULL;
     }
@@ -4693,10 +4724,9 @@ TCHAR* wrapperGetJavaHomeFromWindowsRegistryUsingJavaHome(HKEY baseHKey, TCHAR* 
     result = RegQueryValueEx(openHKey, javahome, NULL, &valueType, NULL, &valueSize);
     if (result != ERROR_SUCCESS) {
         if (verbose) {
-            FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
+            msg = getErrorText(result, NULL);
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                TEXT("Unable to access configured registry location for JAVA_HOME: %s\\%s - (%d)"), subKey, javahome, errno);
-            LocalFree(pBuffer);
+                TEXT("Unable to access configured registry location \"%s\\%s\\%s\": %s"), getBaseKeyName(baseHKey), subKey, javahome, msg);
         }
         closeRegistryKey(openHKey);
         return NULL;
@@ -4704,7 +4734,7 @@ TCHAR* wrapperGetJavaHomeFromWindowsRegistryUsingJavaHome(HKEY baseHKey, TCHAR* 
     if (valueType != REG_SZ) {
         if (verbose) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                TEXT("Configured JAVA_HOME registry location is not of type REG_SZ: %s\\%s"), subKey, javahome);
+                TEXT("Configured registry location \"%s\\%s\\%s\" is not of type REG_SZ."), getBaseKeyName(baseHKey), subKey, javahome);
         }
         closeRegistryKey(openHKey);
         return NULL;
@@ -4718,10 +4748,9 @@ TCHAR* wrapperGetJavaHomeFromWindowsRegistryUsingJavaHome(HKEY baseHKey, TCHAR* 
     result = RegQueryValueEx(openHKey, javahome, NULL, &valueType, (LPBYTE)value, &valueSize);
     if (result != ERROR_SUCCESS) {
         if (verbose) {
-            FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
+            msg = getErrorText(result, NULL);
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                TEXT("Unable to access configured registry location  %s\\%s - (%d)"), subKey, javahome, errno);
-            LocalFree(pBuffer);
+                TEXT("Unable to access configured registry location \"%s\\%s\\%s\": %s"), getBaseKeyName(baseHKey), subKey, javahome, msg);
         }
         closeRegistryKey(openHKey);
         free(value);
@@ -4795,7 +4824,7 @@ int wrapperGetJavaHomeFromWindowsRegistry(TCHAR *javaHome) {
             baseHKey = HKEY_CLASSES_ROOT;
             _tcsncpy(subKey, prop + 18, 512);
         } else if (_tcsstr(prop, TEXT("HKEY_CURRENT_CONFIG\\")) == prop) {
-            baseHKey = HKEY_CURRENT_USER;
+            baseHKey = HKEY_CURRENT_CONFIG;
             _tcsncpy(subKey, prop + 20, 512);
         } else if (_tcsstr(prop, TEXT("HKEY_CURRENT_USER\\")) == prop) {
             baseHKey = HKEY_CURRENT_USER;
@@ -6789,8 +6818,8 @@ void _tmain(int argc, TCHAR **argv) {
      * the table; */
     SERVICE_TABLE_ENTRY serviceTable[2];
     
-    /*　Enable DEP as soon as possible in the main method.
-     * 　- Use SetProcessDEPPolicy() instead of the /DYNAMICBASE link
+    /* Enable DEP as soon as possible in the main method.
+     *  - Use SetProcessDEPPolicy() instead of the /DYNAMICBASE link
      *    option to allow DEP on WIN XP SP3 (/DYNAMICBASE is from Vista).
      *  - Load it dynamically to allow the Wrapper running normally
      *    (but without DEP) on older versions of Windows. 
@@ -6824,7 +6853,7 @@ void _tmain(int argc, TCHAR **argv) {
         return; /* For clarity. */
     }
 
-    if (wrapperInitialize()) {
+    if (wrapperInitialize((argc > 1) && (argv[1][0] == TEXT('-')) && isPromptCallCommand(&argv[1][1]))) {
         appExit(1);
         return; /* For clarity. */
     }
