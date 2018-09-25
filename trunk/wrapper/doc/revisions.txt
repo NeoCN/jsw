@@ -1,5 +1,7 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.5.37
+
 3.5.36
 * Add new properties wrapper.java.additional.<n>.java_version.min and
   wrapper.java.additional.<n>.java_version.max to allow passing different
