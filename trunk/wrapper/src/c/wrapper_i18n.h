@@ -475,11 +475,19 @@ extern int multiByteToWideChar(const char *multiByteChars, int encoding, TCHAR *
  #define __UTF8     CP_UTF8
 #endif
 
+#define TCHAR_TAB   TEXT('\t')
+
+#define ENCODING_BUFFER_SIZE    32                                              /* ex: x-windows-iso2022jp */
+
 extern TCHAR* toLower(const TCHAR* value);
 
 extern TCHAR* toUpper(const TCHAR* value);
 
 extern void clearNonAlphanumeric(TCHAR* bufferIn, TCHAR* bufferOut);
+
+extern int compareEncodings(TCHAR* encoding1, TCHAR* encoding2, int ignoreCase, int ignorePunctuation);
+
+extern int compareEncodingsSysMode(TCHAR* encoding1, TCHAR* encoding2);
 
 #ifndef WIN32
 /**
@@ -643,7 +651,7 @@ extern int wrapperGetLastError();
  *
  * filename - Filename to be modified.  Could be null.
  */
-extern void wrapperCorrectWindowsPath(TCHAR *filename);
+extern int wrapperCorrectWindowsPath(TCHAR *filename);
 
 /*
  * Corrects a path in place by replacing all '\' characters with '/'
@@ -651,7 +659,7 @@ extern void wrapperCorrectWindowsPath(TCHAR *filename);
  *
  * filename - Filename to be modified.  Could be null.
  */
-extern void wrapperCorrectNixPath(TCHAR *filename);
+extern int wrapperCorrectNixPath(TCHAR *filename);
 #endif
 
 

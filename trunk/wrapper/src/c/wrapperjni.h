@@ -89,15 +89,6 @@ extern char *utf8SigIIStringStringStringStringrV;
 extern char *utf8SigIStringrV;
 #endif
 
-/**
- * Returns a new buffer containing the UTF8 characters for the specified native string.
- *  Note: this function is ok. Just not sure we need to need to pass through a jstring.
- *  We could handle the conversion in native code only.
- *
- * It is the responsibility of the caller to free the returned buffer.
- */
-char *getUTF8Chars(JNIEnv *env, const char *nativeChars);
-
 extern int initLog(JNIEnv *env);
 extern int initCommon();
 

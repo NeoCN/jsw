@@ -207,8 +207,6 @@ typedef unsigned long TICKS;
 #define CTRL_CODE_QUEUE_SIZE 26 /* Can enqueue one less than this count at any time. */
 #endif
 
-#define ENCODING_BUFFER_SIZE    32                                              /* ex: x-windows-iso2022jp */
-
 #define WRAPPER_JAVAIO_BUFFER_SIZE_SYSTEM_DEFAULT 0
 #define WRAPPER_JAVAIO_BUFFER_SIZE_MIN 1024
 #define WRAPPER_JAVAIO_BUFFER_SIZE_MAX (10 * 1024 * 1024)
@@ -272,7 +270,7 @@ struct WrapperConfig {
     JavaVersion *javaVersionMin;    /* The minimum version of Java required for the Wrapper to launch a JVM. */
     JavaVersion *javaVersionMax;    /* The maximum version of Java required for the Wrapper to launch a JVM. */
     int     jvmBits;                /* JVM bits of the current or next JVM instance to be launched. */
-    int     jvmMaker;               /* JVM implementation (Oracle, IBM, etc.) of the current or next JVM instance to be launched. */
+    int     jvmVendor;              /* JVM implementation (Oracle, IBM, etc.) of the current or next JVM instance to be launched. */
     int     jvmDefaultLogLevel;     /* The default log level used for JVM outputs. */
     int     jvmSource;              /* The source used for JVM outputs. */
 #ifdef WIN32
@@ -358,6 +356,7 @@ struct WrapperConfig {
     int     isTestsDisabled;        /* TRUE if the use of tests in the WrapperManager class should be disabled. */
     int     isShutdownHookDisabled; /* TRUE if the use of a shutdown hook by the WrapperManager class should be disabled. */
     int     isForcedShutdownDisabled; /* TRUE if forced shutdowns are disabled. */
+    int     forcedShutdownDelay;    /* minimum amount of time required between two CTRL-C or TERM signals. */
     int     startupDelayConsole;    /* Delay in seconds before starting the first JVM in console mode. */
     int     startupDelayService;    /* Delay in seconds before starting the first JVM in service mode. */
     int     exitCode;               /* Code which the wrapper will exit with */
@@ -873,6 +872,7 @@ BOOL extern isVista();
 BOOL extern isWinXP();
 extern void wrapperMaintainControlCodes();
 int wrapperServiceStatus(int consoleOutput);
+extern int wrapperRemove();
 #define OSBUFSIZE 256
 BOOL GetOSDisplayString(TCHAR** pszOS);
 #else

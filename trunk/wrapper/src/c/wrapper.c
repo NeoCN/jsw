@@ -342,6 +342,11 @@ void wrapperAddDefaultProperties(Properties *props) {
     setInternalVarProperty(props, TEXT("WRAPPER_HOST_NAME"), wrapperData->hostName, TRUE, FALSE);
     setInternalVarProperty(props, TEXT("WRAPPER_FILE_SEPARATOR"), fileSeparator, TRUE, FALSE);
     setInternalVarProperty(props, TEXT("WRAPPER_PATH_SEPARATOR"), pathSeparator, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_JAVA_VERSION"), NULL, FALSE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_JAVA_VERSION_MAJOR"), NULL, FALSE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_JAVA_VERSION_MINOR"), NULL, FALSE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_JAVA_VERSION_REVISION"), NULL, FALSE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_JAVA_VENDOR"), NULL, FALSE, FALSE);
 #ifdef WIN32
     /* Do not change the value of this variable as this would cause a memory leak on each JVM restart (see setEnvInner()). */
     if (wrapperData->registry_java_home) {
@@ -350,6 +355,25 @@ void wrapperAddDefaultProperties(Properties *props) {
         setInternalVarProperty(props, TEXT("WRAPPER_JAVA_HOME"), NULL, FALSE, FALSE);
     }
 #endif
+    /* The following variables are never set as environment variables (no memory leak should happen). */
+    setInternalVarProperty(props, TEXT("WRAPPER_NAME"), NULL, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_DISPLAYNAME"), NULL, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_DESCRIPTION"), NULL, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_EVENT_JVM_PID"), NULL, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_EVENT_JVM_ID"), NULL, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_EVENT_NAME"), NULL, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_EVENT_RAND_N"), NULL, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_EVENT_RAND_NN"), NULL, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_EVENT_RAND_NNN"), NULL, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_EVENT_RAND_NNNN"), NULL, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_EVENT_RAND_NNNNN"), NULL, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_EVENT_RAND_NNNNNN"), NULL, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_EVENT_TIME_YYYYMMDDHHIISS"), NULL, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_EVENT_TIME_YYYYMMDD_HHIISS"), NULL, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_EVENT_TIME_YYYYMMDDHHII"), NULL, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_EVENT_TIME_YYYYMMDDHH"), NULL, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_EVENT_TIME_YYYYMMDD"), NULL, TRUE, FALSE);
+    setInternalVarProperty(props, TEXT("WRAPPER_EVENT_WRAPPER_PID"), NULL, TRUE, FALSE);
 }
 
 /**
@@ -366,7 +390,6 @@ int showHostIds(int logLevel) {
 
     return FALSE;
 }
-
 
 /**
  * Attempt to set the console title if it exists and is accessible.
@@ -643,7 +666,7 @@ int isCygwin() {
 #endif
 
 /**
- * Return TRUE if the this is a prompt call made from the script (like --translate or --jvm_bits).
+ * Return TRUE if the this is a prompt call made from the script (like --translate or --jvm_bits or --request_delta_binary_bits).
  *
  * @param argCommand the first arguement passed when launching the Wrapper
  */
@@ -652,18 +675,19 @@ int isPromptCallCommand(const TCHAR* argCommand) {
         return FALSE;
     }
     return ((strcmpIgnoreCase(argCommand, TEXT("-translate")) == 0) ||
-            (strcmpIgnoreCase(argCommand, TEXT("-jvm_bits")) == 0));
+            (strcmpIgnoreCase(argCommand, TEXT("-jvm_bits")) == 0) ||
+            (strcmpIgnoreCase(argCommand, TEXT("-request_delta_binary_bits")) == 0));
 }
 
 /**
- * Return TRUE if the this is a prompt call made from the script (like --translate or --jvm_bits).
+ * Return TRUE if the this is a prompt call made from the script (like --translate or --jvm_bits or --request_delta_binary_bits).
  *  This function must be called after the arguments have been parsed!
  */
 int isPromptCall() {
     return isPromptCallCommand(wrapperData->argCommand);
 }
 
-void wrapperLoadLoggingProperties(int preload) {
+int wrapperLoadLoggingProperties(int preload) {
     const TCHAR *logfilePath;
     int logfileRollMode;
     int underCygwin = FALSE;
@@ -671,6 +695,8 @@ void wrapperLoadLoggingProperties(int preload) {
 #ifdef WIN32
     int silent;
 #endif
+    int isPurgePatternGenerated = FALSE;
+    const TCHAR* confPurgePattern;
     
     setLoggingIsPreload(preload);
     
@@ -692,7 +718,9 @@ void wrapperLoadLoggingProperties(int preload) {
     }
     
     logfilePath = getFileSafeStringProperty(properties, TEXT("wrapper.logfile"), TEXT("wrapper.log"));
-    setLogfilePath(logfilePath, TRUE);
+    if (setLogfilePath(logfilePath, TRUE, preload)) {
+        return TRUE;
+    }
 
     logfileRollMode = getLogfileRollModeForName(getStringProperty(properties, TEXT("wrapper.logfile.rollmode"), TEXT("SIZE")));
     if (logfileRollMode == ROLL_MODE_UNKNOWN) {
@@ -727,11 +755,12 @@ void wrapperLoadLoggingProperties(int preload) {
     /* Load log files level */
     setLogfileMaxLogFiles(getIntProperty(properties, TEXT("wrapper.logfile.maxfiles"), 0));
 
-    /* Load log file purge pattern */
-    setLogfilePurgePattern(getFileSafeStringProperty(properties, TEXT("wrapper.logfile.purge.pattern"), TEXT("")));
-
     /* Load log file purge sort */
-    setLogfilePurgeSortMode(loggerFileGetSortMode(getStringProperty(properties, TEXT("wrapper.logfile.purge.sort"), TEXT("TIMES"))));
+    setLogfilePurgeSortMode(loggerFileGetSortMode(getStringProperty(properties, TEXT("wrapper.logfile.purge.sort"), TEXT("NAMES_SMART"))));
+
+    /* Load log file purge pattern */
+    confPurgePattern = getFileSafeStringProperty(properties, TEXT("wrapper.logfile.purge.pattern"), TEXT(""));
+    setLogfilePurgePattern(confPurgePattern, &isPurgePatternGenerated);
 
     /* Get the close timeout. */
     wrapperData->logfileCloseTimeout = propIntMax(propIntMin(getIntProperty(properties, TEXT("wrapper.logfile.close.timeout"), getIntProperty(properties, TEXT("wrapper.logfile.inactivity.timeout"), 1)), 3600), -1);
@@ -817,16 +846,24 @@ void wrapperLoadLoggingProperties(int preload) {
 #endif
 
     /* Get the debug status (Property is deprecated but flag is still used) */
-    wrapperData->isDebugging = getBooleanProperty(properties, TEXT("wrapper.debug"), FALSE);
-    if (wrapperData->isDebugging) {
-        /* For backwards compatability */
-        setConsoleLogLevelInt(LEVEL_DEBUG);
-        setLogfileLevelInt(LEVEL_DEBUG);
-    } else {
-        if (getLowLogLevel() <= LEVEL_DEBUG) {
-            wrapperData->isDebugging = TRUE;
+    if (!isPromptCall()) {
+        wrapperData->isDebugging = getBooleanProperty(properties, TEXT("wrapper.debug"), FALSE);
+        if (wrapperData->isDebugging) {
+            /* For backwards compatability */
+            setConsoleLogLevelInt(LEVEL_DEBUG);
+            setLogfileLevelInt(LEVEL_DEBUG);
+        } else {
+            if (getLowLogLevel() <= LEVEL_DEBUG) {
+                wrapperData->isDebugging = TRUE;
+            }
         }
     }
+    
+    if (!preload && (confPurgePattern[0] != 0) && isPurgePatternGenerated) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Ignoring the value of wrapper.logfile.purge.pattern because\n  wrapper.logfile.purge.sort was set to 'NAMES_SMART'."));
+    }
+
+    return FALSE;
 }
 
 /**
@@ -993,62 +1030,66 @@ int wrapperLoadConfigurationProperties(int preload) {
         }
         /* This is the first time, so preserve the full canonical location of the
          *  configuration file. */
+        if (_tcscmp(wrapperData->argConfFile, TEXT("-")) == 0) {
+            wrapperData->configFile = NULL;
+        } else {
 #ifdef WIN32
-        work = GetFullPathName(wrapperData->argConfFile, 0, NULL, NULL);
-        if (!work) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                TEXT("Unable to resolve the full path of the configuration file, %s: %s"),
-                wrapperData->argConfFile, getLastErrorText());
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                TEXT("Current working directory is: %s"), wrapperData->originalWorkingDir);
-            return TRUE;
-        }
-        wrapperData->configFile = malloc(sizeof(TCHAR) * work);
-        if (!wrapperData->configFile) {
-            outOfMemory(TEXT("WLCP"), 1);
-            return TRUE;
-        }
-        if (!GetFullPathName(wrapperData->argConfFile, work, wrapperData->configFile, NULL)) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                TEXT("Unable to resolve the full path of the configuration file, %s: %s"),
-                wrapperData->argConfFile, getLastErrorText());
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT(
-                "Current working directory is: %s"), wrapperData->originalWorkingDir);
-            return TRUE;
-        }
-#else
-        /* The solaris implementation of realpath will return a relative path if a relative
-         *  path is provided.  We always need an absolute path here.  So build up one and
-         *  then use realpath to remove any .. or other relative references. */
-        wrapperData->configFile = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
-        if (!wrapperData->configFile) {
-            outOfMemory(TEXT("WLCP"), 2);
-            return TRUE;
-        }
-        if (_trealpathN(wrapperData->argConfFile, wrapperData->configFile, PATH_MAX + 1) == NULL) {
-            /* Most likely the file does not exist.  The wrapperData->configFile has the first
-             *  file that could not be found.  May not be the config file directly if symbolic
-             *  links are involved. */
-            if (wrapperData->argConfFileDefault) {
-                /* The output buffer is likely to contain undefined data.
-                 * To be on the safe side and in order to report the error
-                 *  below correctly we need to override the data first.*/
-                _sntprintf(wrapperData->configFile, PATH_MAX + 1, TEXT("%s"), wrapperData->argConfFile);
-                /* This was the default config file name.  We know that the working directory
-                 *  could be resolved so the problem must be that the default config file does
-                 *  not exist.  This problem will be reported later and the wrapperData->configFile
-                 *  variable will have the correct full path.
-                 * Fall through for now and the user will get a better error later. */
-            } else {
-                if (!preload) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT(
-                        "Unable to open configuration file: %s (%s)\n  Current working directory: %s"),
-                        wrapperData->argConfFile, getLastErrorText(), wrapperData->originalWorkingDir);
-                }
+            work = GetFullPathName(wrapperData->argConfFile, 0, NULL, NULL);
+            if (!work) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                    TEXT("Unable to resolve the full path of the configuration file, %s: %s"),
+                    wrapperData->argConfFile, getLastErrorText());
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                    TEXT("Current working directory is: %s"), wrapperData->originalWorkingDir);
                 return TRUE;
             }
-        }
+            wrapperData->configFile = malloc(sizeof(TCHAR) * work);
+            if (!wrapperData->configFile) {
+                outOfMemory(TEXT("WLCP"), 1);
+                return TRUE;
+            }
+            if (!GetFullPathName(wrapperData->argConfFile, work, wrapperData->configFile, NULL)) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                    TEXT("Unable to resolve the full path of the configuration file, %s: %s"),
+                    wrapperData->argConfFile, getLastErrorText());
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT(
+                    "Current working directory is: %s"), wrapperData->originalWorkingDir);
+                return TRUE;
+            }
+#else
+            /* The solaris implementation of realpath will return a relative path if a relative
+             *  path is provided.  We always need an absolute path here.  So build up one and
+             *  then use realpath to remove any .. or other relative references. */
+            wrapperData->configFile = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
+            if (!wrapperData->configFile) {
+                outOfMemory(TEXT("WLCP"), 2);
+                return TRUE;
+            }
+            if (_trealpathN(wrapperData->argConfFile, wrapperData->configFile, PATH_MAX + 1) == NULL) {
+                /* Most likely the file does not exist.  The wrapperData->configFile has the first
+                 *  file that could not be found.  May not be the config file directly if symbolic
+                 *  links are involved. */
+                if (wrapperData->argConfFileDefault) {
+                    /* The output buffer is likely to contain undefined data.
+                     * To be on the safe side and in order to report the error
+                     *  below correctly we need to override the data first.*/
+                    _sntprintf(wrapperData->configFile, PATH_MAX + 1, TEXT("%s"), wrapperData->argConfFile);
+                    /* This was the default config file name.  We know that the working directory
+                     *  could be resolved so the problem must be that the default config file does
+                     *  not exist.  This problem will be reported later and the wrapperData->configFile
+                     *  variable will have the correct full path.
+                     * Fall through for now and the user will get a better error later. */
+                } else {
+                    if (!preload) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT(
+                            "Unable to open configuration file: %s (%s)\n  Current working directory: %s"),
+                            wrapperData->argConfFile, getLastErrorText(), wrapperData->originalWorkingDir);
+                    }
+                    return TRUE;
+                }
+            }
 #endif
+        }
     }
 
     /* Create a Properties structure. */
@@ -1077,26 +1118,37 @@ int wrapperLoadConfigurationProperties(int preload) {
         }
     }
 
-    /* Now load the configuration file.
-     *  When this happens, the working directory MUST be set to the original working dir. */
-#ifdef WIN32
-    loadResult = loadProperties(properties, wrapperData->configFile, preload, wrapperData->originalWorkingDir, FALSE);
-#else
-    loadResult = loadProperties(properties, wrapperData->configFile, (preload | wrapperData->daemonize), wrapperData->originalWorkingDir, FALSE);
-#endif
-    if (loadResult != CONFIG_FILE_READER_SUCCESS) {
-        if (confFileRequired || (loadResult != CONFIG_FILE_READER_OPEN_FAIL)) {
-            /* If this was a default file name then we don't want to show this as
-             *  an error here.  It will be handled by the caller. */
-            /* Debug is not yet available as the config file is not yet loaded. */
-            if ((!preload) && (!wrapperData->argConfFileDefault)) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Failed to load configuration: %s"), wrapperData->configFile);
+    if (!wrapperData->configFile) {
+        if (confFileRequired) {
+            if (!preload) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Configuration file is required."));
             }
             return TRUE;
         }
     } else {
-        /* Config file found. */
-        wrapperData->argConfFileFound = TRUE;
+        /* Now load the configuration file.
+         *  When this happens, the working directory MUST be set to the original working dir. */
+#ifdef WIN32
+        loadResult = loadProperties(properties, wrapperData->configFile, preload, wrapperData->originalWorkingDir, FALSE);
+#else
+        loadResult = loadProperties(properties, wrapperData->configFile, (preload | wrapperData->daemonize), wrapperData->originalWorkingDir, FALSE);
+#endif
+        if (loadResult != CONFIG_FILE_READER_SUCCESS) {
+            if (confFileRequired || (loadResult != CONFIG_FILE_READER_OPEN_FAIL)) {
+                /* If this was a default file name then we don't want to show this as
+                 *  an error here.  It will be handled by the caller. */
+                /* Debug is not yet available as the config file is not yet loaded. */
+                if ((!preload) && (!wrapperData->argConfFileDefault)) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Failed to load configuration: %s"), wrapperData->configFile);
+                }
+                if ((!preload) || (loadResult == CONFIG_FILE_READER_OPEN_FAIL)) {
+                    return TRUE;
+                }
+            }
+        } else {
+            /* Config file found. */
+            wrapperData->argConfFileFound = TRUE;
+        }
     }
 
     /* The properties have just been loaded. */
@@ -3025,7 +3077,7 @@ int wrapperInitialize(int silent) {
     wrapperData->shutdownActionPropertyName = NULL;
     wrapperData->javaVersion = NULL;
     wrapperData->jvmBits = JVM_BITS_UNKNOWN;
-    wrapperData->jvmMaker = JVM_MAKER_UNKNOWN;
+    wrapperData->jvmVendor = JVM_VENDOR_UNKNOWN;
 #ifdef WIN32
     wrapperData->registry_java_home = NULL;
     if (!(tickMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
@@ -3064,7 +3116,7 @@ int wrapperInitialize(int silent) {
         setConsoleLogLevelInt(LEVEL_DEBUG);
         setSyslogLevelInt(LEVEL_NONE);
     }
-    setLogfilePath(TEXT("wrapper.log"), FALSE); /* Setting the logfile path may cause some output, so always set the levels and formats first. */
+    setLogfilePath(TEXT("wrapper.log"), FALSE, FALSE); /* Setting the logfile path may cause some output, so always set the levels and formats first. */
     setLogfileRollMode(ROLL_MODE_SIZE);
     setLogfileAutoClose(FALSE);
     setConsoleFlush(TRUE);  /* Always flush immediately until the logfile is configured to make sure that problems are in a consistent location. */
@@ -3484,11 +3536,11 @@ void wrapperUsage(TCHAR *appName) {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -?  --help    print this help message"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -- <args>     mark the end of Wrapper arguments.  All arguments after the\n                '--' will be passed through unmodified to the java application."));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT(""));
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("<configuration file> is the wrapper.conf to use.  Name must be absolute or relative"));
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  to the location of %s"), appName);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("<configuration file> is the conf file to use.  Filename must be absolute or"));
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  relative to the location of %s"), appName);
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT(""));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("[configuration properties] are configuration name-value pairs which override values"));
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  in wrapper.conf.  For example:"));
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  in the Wrapper configuration file.  For example:"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  wrapper.debug=true"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT(""));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  Please note that any file references must be absolute or relative to the location\n  of the Wrapper executable."));
@@ -3583,7 +3635,7 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
                         wrapperData->argValues = &argv[4];
                     }
                     return TRUE;
-                } else if (_tcscmp(wrapperData->argCommand, TEXT("-jvm_bits")) == 0) {
+                } else if ((_tcscmp(wrapperData->argCommand, TEXT("-jvm_bits")) == 0) || (_tcscmp(wrapperData->argCommand, TEXT("-request_delta_binary_bits")) == 0)) {
                     wrapperData->argConfFile = argv[2];
                     wrapperData->argCount = wrapperArgCount - 3;
                     wrapperData->argValues = &argv[3];
@@ -4107,7 +4159,7 @@ int wrapperConfirmJavaVersion() {
 
 static int javaVersionCurrentParseLine = 0;
 static int javaVersionParseLine = 1;    /* The line at which the version of Java can be found in the 'java -version' output. */
-static int javaMakerParseLine = 3;      /* The line at which the JVM maker can be found in the 'java -version' output. */
+static int javaVendorParseLine = 3;     /* The line at which the JVM maker can be found in the 'java -version' output. */
 static int javaBitsParseLine = 3;       /* The line at which the JVM bits can be found in the 'java -version' output. */
 
 void logParseJavaVersionOutput(TCHAR* log) {
@@ -4120,7 +4172,7 @@ void logParseJavaVersionOutput(TCHAR* log) {
             if (!_tcsstr(log, TEXT("version \""))) {
                 /* This is not the line containing the version. This can happen when a system message is inserted before the Java output. */
                 javaVersionParseLine++;
-                javaMakerParseLine++;
+                javaVendorParseLine++;
                 javaBitsParseLine++;
                 return;
             } else {
@@ -4133,7 +4185,7 @@ void logParseJavaVersionOutput(TCHAR* log) {
                     wrapperData->javaVersion = getMinRequiredJavaVersion();
                     if (wrapperData->javaVersion) {
                         /* If we fail to get the minimum required version (which should not happen), this would be fatal.
-                         *  We can't return the error now, but we will do it in main eventloop. */
+                         *  We can't return the error now, but we will do it in the main eventloop. */
                         log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                             TEXT("Failed to parse the version of Java. Resolving to the lowest supported version (%s)."),
                             wrapperData->javaVersion->displayName);
@@ -4145,10 +4197,10 @@ void logParseJavaVersionOutput(TCHAR* log) {
                 }
             }
         }
-        if (javaVersionCurrentParseLine == javaMakerParseLine) {
+        if (javaVersionCurrentParseLine == javaVendorParseLine) {
             /* Parse the JVM maker (JVM implementation). */
-            wrapperData->jvmMaker = parseOutputJvmMaker(log);
-            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Java maker parsed to: %s"), getJvmMakerName(wrapperData->jvmMaker));
+            wrapperData->jvmVendor = parseOutputJvmVendor(log);
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Java vendor parsed to: %s"), getJvmVendorName(wrapperData->jvmVendor));
         }
         if (javaVersionCurrentParseLine == javaBitsParseLine) {
             /* Parse the JVM bits. */
@@ -4598,7 +4650,7 @@ void wrapperReadJavaVersionOutput() {
     
     /* reset the default lines at which the version, maker and bits are assumed to appear. */
     javaVersionParseLine = 1;
-    javaMakerParseLine = 3;
+    javaVendorParseLine = 3;
     javaBitsParseLine = 3;
     
     /* Some errors may have been queued when parsing the Java output. Print them now. */
@@ -5103,6 +5155,7 @@ int wrapperRunCommonInner() {
     const TCHAR *prop;
 #ifdef WIN32
     TCHAR* szOS;
+    DWORD consoleMode;
 #endif
     struct tm timeTM;
     TCHAR* tz1;
@@ -5141,6 +5194,12 @@ int wrapperRunCommonInner() {
 #ifdef WIN32
     if (initializeStartup()) {
         return 1;
+    }
+    
+    if (wrapperData->isConsole && GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &consoleMode) && (consoleMode & ENABLE_QUICK_EDIT_MODE)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER,
+            getLogLevelForName(getStringProperty(properties, TEXT("wrapper.console.quickedit.loglevel"), TEXT("WARN"))),
+            TEXT("Running in a console with QuickEdit Mode. Be careful when selecting text in the\n  console as this may cause to block the Java Application.\n"));
     }
 #endif
 
@@ -8847,7 +8906,9 @@ int loadConfiguration() {
     const TCHAR* val;
     int startupDelay;
 
-    wrapperLoadLoggingProperties(FALSE);
+    if (wrapperLoadLoggingProperties(FALSE)) {
+        return TRUE;
+    }
     
     /* Decide on the error exit code */
     getConfiguredErrorExitCode(FALSE);
@@ -9030,6 +9091,7 @@ int loadConfiguration() {
     
     /* Get the forced shutdown flag status. */
     wrapperData->isForcedShutdownDisabled = getBooleanProperty(properties, TEXT("wrapper.disable_forced_shutdown"), FALSE);
+    wrapperData->forcedShutdownDelay = getIntProperty(properties, TEXT("wrapper.forced_shutdown.delay"), 2);
 
     /* Get the startup delay. */
     startupDelay = getIntProperty(properties, TEXT("wrapper.startup.delay"), 0);

@@ -31,10 +31,10 @@
 #define _WRAPPER_JVMINFO_H
 #include "wrapper_i18n.h"
 
-#define JVM_MAKER_UNKNOWN   0
-#define JVM_MAKER_ORACLE    1
-#define JVM_MAKER_OPENJDK   2
-#define JVM_MAKER_IBM       3
+#define JVM_VENDOR_UNKNOWN  0
+#define JVM_VENDOR_ORACLE   1
+#define JVM_VENDOR_OPENJDK  2
+#define JVM_VENDOR_IBM      3
 
 #define JVM_BITS_UNKNOWN    0
 #define JVM_BITS_32         32
@@ -112,25 +112,25 @@ int compareJavaVersion(JavaVersion *version1, JavaVersion* version2);
  * @param output   the output returned by 'java -version' (or only the line of the output containing the maker).
  *
  * @return an integer representing the JVM implementation:
- *              JVM_MAKER_UNKNOWN
- *              JVM_MAKER_ORACLE
- *              JVM_MAKER_OPENJDK
- *              JVM_MAKER_IBM
+ *              JVM_VENDOR_UNKNOWN
+ *              JVM_VENDOR_ORACLE
+ *              JVM_VENDOR_OPENJDK
+ *              JVM_VENDOR_IBM
  */
-int parseOutputJvmMaker(TCHAR* output);
+int parseOutputJvmVendor(TCHAR* output);
 
 /**
  * Get the name of a JVM maker.
  *
  * @param maker an integer representing the JVM implementation:
- *              JVM_MAKER_UNKNOWN
- *              JVM_MAKER_ORACLE
- *              JVM_MAKER_OPENJDK
- *              JVM_MAKER_IBM
+ *              JVM_VENDOR_UNKNOWN
+ *              JVM_VENDOR_ORACLE
+ *              JVM_VENDOR_OPENJDK
+ *              JVM_VENDOR_IBM
  *
  * @return the name of the JVM maker.
  */
-const TCHAR* getJvmMakerName(int jvmMaker);
+const TCHAR* getJvmVendorName(int jvmVendor);
 
 /**
  * Parse the output of 'java -version' and retrieve the bits of the JVM.

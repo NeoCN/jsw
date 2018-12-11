@@ -53,6 +53,8 @@ int loggerFileGetSortMode(const TCHAR *modeName) {
         return LOGGER_FILE_SORT_MODE_NAMES_ASC;
     } else if (strcmpIgnoreCase(modeName, TEXT("NAMES_DEC")) == 0) {
         return LOGGER_FILE_SORT_MODE_NAMES_DEC;
+    } else if (strcmpIgnoreCase(modeName, TEXT("NAMES_SMART")) == 0) {
+        return LOGGER_FILE_SORT_MODE_NAMES_SMART;
     } else {
         return LOGGER_FILE_SORT_MODE_TIMES;
     }
@@ -194,6 +196,42 @@ int compareFileNames(const TCHAR *file1, const TCHAR *file2) {
     }
 }
 
+int compareFileNamesIndex(const TCHAR *file1, const TCHAR *file2, int startIndex, int stopIndex, int startCountFromEnd, int stopCountFromEnd) {
+    TCHAR *file1_;
+    TCHAR *file2_;
+    int start;
+    int len;
+    int result;
+    
+    start = (startCountFromEnd ? (int)_tcslen(file1) - startIndex : startIndex);
+    len   = (stopCountFromEnd  ? (int)_tcslen(file1) - stopIndex  : stopIndex) - start;
+    file1_ = malloc(sizeof(TCHAR) * (len + 1));
+    if (!file1_) {
+        outOfMemoryQueued(TEXT("CFNI"), 1);
+        return 0;
+    }
+    _tcsncpy(file1_, file1 + start, len);
+    file1_[len] = 0;
+    
+    start = (startCountFromEnd ? (int)_tcslen(file2) - startIndex : startIndex);
+    len   = (stopCountFromEnd  ? (int)_tcslen(file2) - stopIndex  : stopIndex) - start;
+    file2_ = malloc(sizeof(TCHAR) * (len + 1));
+    if (!file2_) {
+        free(file1_);
+        outOfMemoryQueued(TEXT("CFNI"), 2);
+        return 0;
+    }
+    _tcsncpy(file2_, file2 + start, len);
+    file2_[len] = 0;
+    
+    result = compareFileNames(file1_, file2_);
+    
+    free(file1_);
+    free(file2_);
+    
+    return result;
+}
+
 int sortFilesNamesAsc(TCHAR **files, int cnt) {
     int i, j;
     TCHAR *temp;
@@ -225,6 +263,94 @@ int sortFilesNamesDec(TCHAR **files, int cnt) {
                 temp = files[j + 1];
                 files[j + 1] = files[j];
                 files[j] = temp;
+            }
+        }
+    }
+
+    return TRUE;
+}
+
+int sortFilesNamesDecIndex(TCHAR **files, int cnt, int startIndex, int stopIndex, int startCountFromEnd, int stopCountFromEnd) {
+    int i, j;
+    TCHAR *temp;
+    int cmp;
+
+    for (i = 0; i < cnt; i++) {
+        for (j = 0; j < cnt - 1; j++) {
+            cmp = compareFileNamesIndex(files[j], files[j+1], startIndex, stopIndex, startCountFromEnd, stopCountFromEnd);
+            if (cmp > 0) {
+                temp = files[j + 1];
+                files[j + 1] = files[j];
+                files[j] = temp;
+            }
+        }
+    }
+
+    return TRUE;
+}
+
+/**
+ * This function allows to sort filenames with the following logic:
+ *  - if the given pattern contains a ???????? (date) token, the files are first sorted by date descending.
+ *  - if the given pattern contains a * (num) token, the files are sorted by ascending numbers (for equivalent dates).
+ *     The first file being the one without number.
+ *  NOTE: The function assumes that there is at most one token of each!
+ *
+ * @param pattern pattern used to figure out how to sort the files.
+ * @param files list of files to sort.
+ * @param cnt number of files to sort.
+ */
+int sortFilesNamesSmart(const TCHAR* pattern, TCHAR **files, int cnt) {
+    int i, j;
+    TCHAR *temp;
+    int cmp;
+    TCHAR* numToken;
+    TCHAR* dateToken;
+    int numStartIndex, numStopIndex;
+    int dateStartIndex = 0;
+    int dateStopIndex = 0;
+    int startCountFromEnd = 0;
+    int stopCountFromEnd = 0;
+    
+    /* First sort by date. */
+    dateToken = _tcsstr(pattern, TEXT("?"));
+    numToken = _tcsstr(pattern, TEXT("*"));
+    
+    if (dateToken) {
+        if (!numToken || (dateToken < numToken)) {
+            dateStartIndex = (int)(dateToken - pattern);
+            dateStopIndex = dateStartIndex + 8;
+            startCountFromEnd = FALSE;
+            stopCountFromEnd = FALSE;
+        } else {
+            /* There is a num token before the date. So the length before the date is not fixed. Calculate the index from the end. */
+            dateStartIndex = (int)_tcslen(pattern) - (int)(dateToken - pattern);
+            dateStopIndex = dateStartIndex - 8;
+            startCountFromEnd = TRUE;
+            stopCountFromEnd = TRUE;
+        }
+        sortFilesNamesDecIndex(files, cnt, dateStartIndex, dateStopIndex, startCountFromEnd, stopCountFromEnd);
+    }
+    
+    if (numToken) {
+        numStartIndex = (int)(numToken - pattern);
+        numStopIndex = (int)_tcslen(pattern) - (numStartIndex + 1);
+        for (i = 0; i < cnt; i++) {
+            for (j = 0; j < cnt - 1; j++) {
+                if (dateToken) {
+                    /* Make sure that the dates are equals. */
+                    cmp = compareFileNamesIndex(files[j], files[j+1], dateStartIndex, dateStopIndex, startCountFromEnd, stopCountFromEnd);
+                    if (cmp != 0) {
+                        continue;
+                    }
+                }
+                /* Sort by ascending name. */
+                cmp = compareFileNamesIndex(files[j], files[j+1], numStartIndex, numStopIndex, FALSE, TRUE);
+                if (cmp < 0) {
+                    temp = files[j + 1];
+                    files[j + 1] = files[j];
+                    files[j] = temp;
+                }
             }
         }
     }
@@ -546,6 +672,13 @@ TCHAR** loggerFileGetFiles(const TCHAR* pattern, int sortMode) {
     
     if (sortMode == LOGGER_FILE_SORT_MODE_TIMES) {
         if (!sortFilesTimes(files, fileTimes, cnt)) {
+            /* Failed. Reported. */
+            free(fileTimes);
+            loggerFileFreeFiles(files);
+            return NULL;
+        }
+    } else if (sortMode == LOGGER_FILE_SORT_MODE_NAMES_SMART) {
+        if (!sortFilesNamesSmart(pattern, files, cnt)) {
             /* Failed. Reported. */
             free(fileTimes);
             loggerFileFreeFiles(files);

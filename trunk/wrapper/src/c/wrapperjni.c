@@ -478,7 +478,8 @@ static jobject outGlobalRef = NULL;
 static jmethodID printlnMethodId = NULL;
 
 int printMessageCallback(const TCHAR* message) {
-    JNIEnv *env;
+    JNIEnv** envPtr;
+    JNIEnv* env = NULL;
     jstring jMsg;
 
     /* Do not print directly to the standard output because the JVM will interpret it with its own encoding (file.encoding)
@@ -490,7 +491,9 @@ int printMessageCallback(const TCHAR* message) {
      *  need to either include wrapper_jvminfo.c to the native libary (but it would make it heavier), or pass the equivalent encoding
      *  in a system property (the conversion would be the opposite as when the Wrapper catches JVM outputs). */
     if (jvm && outGlobalRef && printlnMethodId) {
-        if ((*jvm)->AttachCurrentThread(jvm, (void **)&env, NULL) == 0) {
+        /* envPtr is to avoid a warning "dereferencing type-punned pointer will break strict-aliasing rules" happening on certain platforms. */
+        envPtr = &env;
+        if ((*jvm)->AttachCurrentThread(jvm, (void**)envPtr, NULL) == 0) {
             if ((jMsg = JNU_NewStringFromNativeW(env, message)) != NULL) {
                 (*env)->CallVoidMethod(env, outGlobalRef, printlnMethodId, jMsg);
                 return FALSE;
@@ -888,6 +891,8 @@ JNIEXPORT void JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_accessViolationInner(JNIEnv *env, jclass clazz) {
     TCHAR *ptr;
 
+    log_printf(TEXT("WrapperJNI Warn: Causing access violation..."));
+    
     /* Cause access violation */
     ptr = NULL;
     ptr[0] = L'\n';

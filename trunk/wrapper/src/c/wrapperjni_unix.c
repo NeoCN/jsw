@@ -176,6 +176,26 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jC
 
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeRaiseExceptionInner
+ * Signature: (I)V
+ */
+JNIEXPORT void JNICALL
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeRaiseExceptionInner(JNIEnv *env, jclass clazz, jint code) {
+    log_printf(TEXT("WrapperJNI: Not Windows.  RaiseException ignored."));
+}
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeRaiseFailFastExceptionInner
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeRaiseFailFastExceptionInner(JNIEnv *env, jclass clazz) {
+    log_printf(TEXT("WrapperJNI: Not Windows.  FailFastException ignored."));
+}
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeRedirectPipes
  * Signature: ()I
  */

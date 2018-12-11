@@ -122,11 +122,12 @@ TICKS timerTicks = WRAPPER_TICK_INITIAL;
 
 /** Flag which keeps track of whether or not the CTRL-C key has been pressed. */
 int ctrlCTrapped = FALSE;
+int ctrlCTrappedLastTick;
 
 /** Flag which keeps track of whether or not PID files should be deleted on shutdown. */
 int cleanUpPIDFilesOnExit = FALSE;
 
-TCHAR* getExceptionName(DWORD exCode);
+TCHAR* getExceptionName(DWORD exCode, int nullOnUnknown);
 
 /* Dynamically loadedfunction types. */
 typedef SERVICE_STATUS_HANDLE(*FTRegisterServiceCtrlHandlerEx)(LPCTSTR, LPHANDLER_FUNCTION_EX, LPVOID);
@@ -1778,49 +1779,6 @@ void wrapperDetachJava() {
     wrapperSetJavaState(WRAPPER_JSTATE_DOWN_CLEAN, 0, -1);
 }
 
-#ifndef WINIA
-/**
- * Update the preshutdown timeout of the service
- */
-int wrapperUpdatePreShutdownTimeout() {
-    SC_HANDLE   schSCManager;
-    SC_HANDLE   schService;
-    SERVICE_PRESHUTDOWN_INFO preShutdownInfo;
-    
-    if (wrapperData->ntPreshutdown) {
-        /* Get a handle to the service control manager */
-        schSCManager = OpenSCManager(NULL,
-                                     NULL,
-                                     SC_MANAGER_CONNECT);
-        if (schSCManager) {
-            /* Next get the handle to this service... */
-            schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_QUERY_CONFIG | SERVICE_CHANGE_CONFIG);
-            if (schService) {
-                preShutdownInfo.dwPreshutdownTimeout = wrapperData->ntPreshutdownTimeout * 1000;
-                /* Lets always update the preshutdown timeout as future versions of Windows might use a different default value. */
-                if (!ChangeServiceConfig2(schService, SERVICE_CONFIG_PRESHUTDOWN_INFO, &preShutdownInfo)) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to set the preshutdown timeout of the %s service - %s"),
-                            wrapperData->serviceDisplayName, getLastErrorText());
-                    return 1;
-                }
-                CloseServiceHandle(schService);
-            } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to set the preshutdown timeout of the %s service - %s"),
-                        wrapperData->serviceDisplayName, getLastErrorText());
-                return 1;
-            }
-            CloseServiceHandle(schSCManager);
-        } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to set the preshutdown timeout of the %s service - %s"),
-                    wrapperData->serviceDisplayName, getLastErrorText());
-            return 1;
-        }
-    }
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Set the preshutdown timeout of the %s service to %d secs."),
-            wrapperData->serviceDisplayName, wrapperData->ntPreshutdownTimeout);
-    return 0;
-}
-#endif
 
 /**
  * Reports the status of the wrapper to the service manager
@@ -1837,9 +1795,6 @@ void wrapperReportStatus(int useLoggerQueue, int status, int errorCode, int wait
     int natState;
     TCHAR *natStateName;
     static DWORD dwCheckPoint = 1;
-#ifndef WINIA
-    static BOOL preShutdownTimeoutUpdated = FALSE;
-#endif
     BOOL bResult = TRUE;
 
     if (!wrapperData->isConsole) {
@@ -1883,10 +1838,6 @@ void wrapperReportStatus(int useLoggerQueue, int status, int errorCode, int wait
 #ifndef WINIA
             if (wrapperData->ntPreshutdown) {
                 ssStatus.dwControlsAccepted |= SERVICE_ACCEPT_PRESHUTDOWN;
-                if (!preShutdownTimeoutUpdated) {
-                    wrapperUpdatePreShutdownTimeout();
-                    preShutdownTimeoutUpdated = TRUE;
-                }
             } else {
 #endif
                 ssStatus.dwControlsAccepted |= SERVICE_ACCEPT_SHUTDOWN;
@@ -2012,7 +1963,7 @@ int wrapperGetProcessStatus(TICKS nowTicks, int sigChild) {
         }
 
         /* If the JVM crashed then GetExitCodeProcess could have returned an uncaught exception. */
-        exName = getExceptionName(exitCode);
+        exName = getExceptionName(exitCode, TRUE);
         if (exName != NULL) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 TEXT("The JVM process terminated due to an uncaught exception: %s (0x%08x)"), exName, exitCode);
@@ -2141,6 +2092,9 @@ int wrapperLaunchJvm(TCHAR* command, PROCESS_INFORMATION *pprocess_info, int err
      *  threads do not reopen the log file as the new process is being created. */
     setLogfileAutoClose(TRUE);
     closeLogfile();
+
+    /* Reset the log duration so we get new counts from the time the JVM is launched. */
+    resetDuration();
 
     /* Set the umask of the JVM (it doesn't seem to work on Windows) */
     old_umask = _umask(wrapperData->javaUmask);
@@ -2347,9 +2301,6 @@ int wrapperLaunchJavaApp() {
         wrapperData->exitCode = 0;
         return TRUE;
     }
-
-    /* Reset the log duration so we get new counts from the time the JVM is launched. */
-    resetDuration();
     
     /* Now launch the JVM process. */
     if (wrapperLaunchJvm(wrapperData->jvmCommand, &process_info, LEVEL_FATAL)) {
@@ -2800,18 +2751,22 @@ void wrapperMaintainControlCodes() {
          *   an immediate shutdown. */
         if (ctrlCTrapped) {
             /* Pressed CTRL-C more than once. */
-            if (wrapperData->isForcedShutdownDisabled) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    TEXT("%s trapped.  Already shutting down."), TEXT("CTRL-C"));
-            } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    TEXT("%s trapped.  Forcing immediate shutdown."), TEXT("CTRL-C"));
-                halt = TRUE;
+            if (wrapperGetTickAgeTicks(ctrlCTrappedLastTick, wrapperGetTicks()) >= wrapperData->forcedShutdownDelay) {
+                /* We want to ignore double signals which can be sent both by the script and the systems at almost the same time. */
+                if (wrapperData->isForcedShutdownDisabled) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                        TEXT("%s trapped.  Already shutting down."), TEXT("CTRL-C"));
+                } else {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                        TEXT("%s trapped.  Forcing immediate shutdown."), TEXT("CTRL-C"));
+                    halt = TRUE;
+                }
             }
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                 TEXT("%s trapped.  Shutting down."), TEXT("CTRL-C"));
             ctrlCTrapped = TRUE;
+            ctrlCTrappedLastTick = wrapperGetTicks();
         }
         quit = TRUE;
     }
@@ -2824,18 +2779,22 @@ void wrapperMaintainControlCodes() {
          *   an immediate shutdown. */
         if (ctrlCTrapped) {
             /* Pressed Close or CTRL-C more than once. */
-            if (wrapperData->isForcedShutdownDisabled) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    TEXT("%s trapped.  Already shutting down."), TEXT("Close"));
-            } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    TEXT("%s trapped.  Forcing immediate shutdown."), TEXT("Close"));
-                halt = TRUE;
+            if (wrapperGetTickAgeTicks(ctrlCTrappedLastTick, wrapperGetTicks()) >= wrapperData->forcedShutdownDelay) {
+                /* We want to ignore double signals which can be sent both by the script and the systems at almost the same time. */
+                if (wrapperData->isForcedShutdownDisabled) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                        TEXT("%s trapped.  Already shutting down."), TEXT("Close"));
+                } else {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                        TEXT("%s trapped.  Forcing immediate shutdown."), TEXT("Close"));
+                    halt = TRUE;
+                }
             }
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                 TEXT("%s trapped.  Shutting down."), TEXT("Close"));
             ctrlCTrapped = TRUE;
+            ctrlCTrappedLastTick = wrapperGetTicks();
         }
         quit = TRUE;
     }
@@ -4188,6 +4147,9 @@ int wrapperInstall() {
     SC_HANDLE schSCManager;
     DWORD serviceType;
     DWORD startType;
+#ifndef WINIA
+    SERVICE_PRESHUTDOWN_INFO preShutdownInfo;
+#endif
     size_t binaryPathLen;
     TCHAR *binaryPath;
     int result = 0;
@@ -4311,6 +4273,11 @@ int wrapperInstall() {
         startType = wrapperData->ntServiceStartType;
 
         if (result != 1) {
+#ifndef WINIA
+            if (wrapperData->ntPreshutdown) {
+                dwDesiredAccess |= SERVICE_CHANGE_CONFIG;
+            }
+#endif
             schService = CreateService(schSCManager, /* SCManager database */
                     wrapperData->serviceName, /* name of service */
                     wrapperData->serviceDisplayName, /* name to display */
@@ -4337,6 +4304,20 @@ int wrapperInstall() {
                             (int)(sizeof(TCHAR) * (_tcslen(wrapperData->serviceDescription) + 1)));
                     RegCloseKey(hKey);
                 }
+#ifndef WINIA
+                if (result == 0 && wrapperData->ntPreshutdown) {
+                    preShutdownInfo.dwPreshutdownTimeout = wrapperData->ntPreshutdownTimeout * 1000;
+                    /* Lets always update the preshutdown timeout as future versions of Windows might use a different default value. */
+                    if (!ChangeServiceConfig2(schService, SERVICE_CONFIG_PRESHUTDOWN_INFO, &preShutdownInfo)) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to set the preshutdown timeout of the %s service. - %s"),
+                                wrapperData->serviceDisplayName, getLastErrorText());
+                        wrapperRemove();
+                        result = 1;
+                    }
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Set the preshutdown timeout of the %s service to %d secs."),
+                            wrapperData->serviceDisplayName, wrapperData->ntPreshutdownTimeout);
+                }
+#endif
 
                 if (result !=1) {
                     /* Service was installed. */
@@ -5904,7 +5885,7 @@ int setWorkingDir() {
  *****************************************************************************/
 
 /** Attempts to resolve the name of an exception.  Returns null if it is unknown. */
-TCHAR* getExceptionName(DWORD exCode) {
+TCHAR* getExceptionName(DWORD exCode, int nullOnUnknown) {
     TCHAR *exName;
 
     switch (exCode) {
@@ -5969,7 +5950,11 @@ TCHAR* getExceptionName(DWORD exCode) {
         exName = TEXT("EXCEPTION_STACK_OVERFLOW");
         break;
     default:
-        exName = NULL;
+        if (nullOnUnknown) {
+            exName = NULL;
+        } else {
+            exName = TEXT("EXCEPTION_UNKNOWN");
+        }
         break;
     }
 
@@ -5981,7 +5966,6 @@ TCHAR* getExceptionName(DWORD exCode) {
  */
 int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
     DWORD exCode;
-    TCHAR *exName;
     int i;
     size_t len;
     TCHAR curDir[MAX_PATH];
@@ -6003,28 +5987,32 @@ int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
             couldLoad = TRUE;
         }
     }
+    
+    /* Log any queued messages */
+    maintainLogger();
+    
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("--------------------------------------------------------------------") );
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("encountered a fatal error in Wrapper"));
     exCode = exceptionPointers->ExceptionRecord->ExceptionCode;
-    exName = getExceptionName(exCode);
-    if (exName == NULL) {
-        exName = malloc(sizeof(TCHAR) * 64); /* Let this leak.  It only happens once before shutdown. */
-        if (exName) {
-            _sntprintf(exName, 64, TEXT("Unknown Exception (%ld)"), exCode);
-        }
-    }
 
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  exceptionCode    = %s"), exName);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  exceptionCode    = %s (%d)"), getExceptionName(exCode, FALSE), exCode);
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  exceptionFlag    = %s"),
             (exceptionPointers->ExceptionRecord->ExceptionFlags == EXCEPTION_NONCONTINUABLE ? TEXT("EXCEPTION_NONCONTINUABLE") : TEXT("EXCEPTION_NONCONTINUABLE_EXCEPTION")));
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  exceptionAddress = %p"), exceptionPointers->ExceptionRecord->ExceptionAddress);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  exceptionAddress = 0x%p"), exceptionPointers->ExceptionRecord->ExceptionAddress);
     if (exCode == EXCEPTION_ACCESS_VIOLATION) {
-        if (exceptionPointers->ExceptionRecord->ExceptionInformation[0] == 0) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  Read access exception from %p"),
-                    exceptionPointers->ExceptionRecord->ExceptionInformation[1]);
-        } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  Write access exception to %p"),
-                    exceptionPointers->ExceptionRecord->ExceptionInformation[1]);
+        switch(exceptionPointers->ExceptionRecord->ExceptionInformation[0]) {
+        case 0:
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  Read access exception from 0x%p"), exceptionPointers->ExceptionRecord->ExceptionInformation[1]);
+            break;
+        case 1:
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  Write access exception to 0x%p"), exceptionPointers->ExceptionRecord->ExceptionInformation[1]);
+            break;
+        case 8:
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  DEP access exception to 0x%p"), exceptionPointers->ExceptionRecord->ExceptionInformation[1]);
+            break;
+        default:
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  Unexpected(%d) access exception to 0x%p"), exceptionPointers->ExceptionRecord->ExceptionInformation[0], exceptionPointers->ExceptionRecord->ExceptionInformation[1]);
+            break;
         }
     } else {
         for (i = 0; i < (int)exceptionPointers->ExceptionRecord->NumberParameters; i++) {
@@ -6992,11 +6980,14 @@ void _tmain(int argc, TCHAR **argv) {
             if (!wrapperInitChildPipe()) {
                 /* Generate the command used to get the Java version but don't stop on failure. */
                 if (!wrapperBuildJavaVersionCommand()) {
-                    /* Get the Java version before building the command line. */
                     wrapperLaunchJavaVersion();
                 }
             }
             appExit(wrapperData->jvmBits);
+            return; /* For compiler. */
+        } else if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("-request_delta_binary_bits"))) {
+            /* Otherwise return the binary bits */
+            appExit(_tcscmp(wrapperBits, TEXT("64")) == 0 ? 64 : 32);
             return; /* For compiler. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("su")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-setup"))) {
             /* Setup the Wrapper */

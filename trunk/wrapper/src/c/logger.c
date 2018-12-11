@@ -139,6 +139,7 @@ int logPauseTime = -1;
 int logBufferGrowth = FALSE;
 
 TCHAR *logFilePath;
+int logFilePathHasDateToken = FALSE;
 
 /* Keep track if the log file path has changed since we last opened the log file. */
 int logFilePathChanged;
@@ -498,6 +499,10 @@ int disposeLogging() {
         free(loginfoSourceName);
         loginfoSourceName = NULL;
     }
+    if (logFilePurgePattern) {
+        free(logFilePurgePattern);
+        logFilePurgePattern = NULL;
+    }
     if (logfileFP) {
         fclose(logfileFP);
         logfileFP = NULL;
@@ -707,6 +712,27 @@ int resolveDefaultLogFilePath() {
     return TRUE;
 }
 
+int hasDuplicateToken(const TCHAR *log_file_path, const TCHAR* token) {
+    TCHAR* ptr;
+    
+    ptr = _tcsstr(log_file_path, token);
+    if (ptr && _tcsstr(ptr + 1, token)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Only one '%s' token is allowed in the name of configured log file."), token);
+        return TRUE;
+    }
+    return FALSE;
+}
+
+int validateLogfilePath(const TCHAR *log_file_path) {
+    if (hasDuplicateToken(log_file_path, TEXT("ROLLNUM"))) {
+        return TRUE;
+    }
+    if (hasDuplicateToken(log_file_path, TEXT("YYYYMMDD"))) {
+        return TRUE;
+    }
+    return FALSE;
+}
+
 /**
  * Sets the log file to be used.  If the specified file is not absolute then
  *  it will be resolved into an absolute path.  If there are any problems with
@@ -718,12 +744,18 @@ int resolveDefaultLogFilePath() {
  *
  * @return TRUE if there were any problems.
  */
-int setLogfilePath(const TCHAR *log_file_path, int isConfigured) {
+int setLogfilePath(const TCHAR *log_file_path, int isConfigured, int preload) {
     size_t len;
     TCHAR* prevLogFilePath = NULL;
     TCHAR* fixed_log_file_path;
+#ifndef WIN32
+    int backslashesChanged = FALSE;
+#endif
 
     if (!log_file_path) {
+        return TRUE;
+    }
+    if (!preload && isConfigured && validateLogfilePath(logFilePath)) {
         return TRUE;
     }
     
@@ -753,7 +785,7 @@ int setLogfilePath(const TCHAR *log_file_path, int isConfigured) {
 #ifdef WIN32
         wrapperCorrectWindowsPath(fixed_log_file_path);
 #else
-        wrapperCorrectNixPath(fixed_log_file_path);
+        backslashesChanged = wrapperCorrectNixPath(fixed_log_file_path);
 #endif
 
         /* Convert the path to an absolute path.
@@ -811,10 +843,19 @@ int setLogfilePath(const TCHAR *log_file_path, int isConfigured) {
     }
     workLogFileName[0] = TEXT('\0');
 
+    if (_tcsstr(logFilePath, TEXT("YYYYMMDD"))) {
+        logFilePathHasDateToken = TRUE;
+    } else {
+        logFilePathHasDateToken = FALSE;
+    }
+
     if (isConfigured) {
         if ((confLogFileName == NULL) || (strcmpIgnoreCase(logFilePath, confLogFileName) != 0)) {
-            confLogFileNameSize = currentLogFileNameSize;
-            
+#ifndef WIN32
+            if (backslashesChanged) {
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Configured wrapper.logfile contained backslashes converted to forward slashes."));
+            }
+#endif
             if (confLogFileName) {
                 /* This message will be printed in the new configured log file because it is queued. */
                 log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Configured log file changed from '%s' to '%s'."), confLogFileName, logFilePath);
@@ -822,6 +863,7 @@ int setLogfilePath(const TCHAR *log_file_path, int isConfigured) {
             } else {
                 log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Configured log file set to '%s'."), logFilePath);
             }
+            confLogFileNameSize = currentLogFileNameSize;
             confLogFileName = malloc(sizeof(TCHAR) * confLogFileNameSize);
             if (!confLogFileName) {
                 outOfMemoryQueued(TEXT("SLP"), 5);
@@ -1152,23 +1194,46 @@ void setLogfileMaxLogFiles( int max_log_files ) {
     confLogFileMaxLogFiles = max_log_files;
 }
 
-void setLogfilePurgePattern(const TCHAR *pattern) {
+void generateLogFilePattern(TCHAR *buffer, size_t bufferSize);
+
+/** 
+ * Should always be called after setLogfilePurgeSortMode()
+ */
+void setLogfilePurgePattern(const TCHAR *pattern, int* outIsGenerated) {
     size_t len;
+    TCHAR* newPattern;
+    TCHAR* generatedPattern = NULL;
 
     if (logFilePurgePattern) {
         free(logFilePurgePattern);
         logFilePurgePattern = NULL;
     }
-
-    len = _tcslen(pattern);
-    if (len > 0) {
-        logFilePurgePattern = malloc(sizeof(TCHAR) * (len + 1));
-        if (!logFilePurgePattern) {
+    
+    if (logFilePurgeSortMode == LOGGER_FILE_SORT_MODE_NAMES_SMART) {
+        /* In this mode the pattern needs to be generated. */
+        generatedPattern = malloc(sizeof(TCHAR) * currentLogFileNameSize);
+        if (!generatedPattern) {
             outOfMemoryQueued(TEXT("SLPP"), 1);
             return;
         }
-        _tcsncpy(logFilePurgePattern, pattern, len + 1);
+        generateLogFilePattern(generatedPattern, currentLogFileNameSize);
+        newPattern = generatedPattern;
+        *outIsGenerated = TRUE;
+    } else {
+        newPattern = (TCHAR*)pattern;
     }
+
+    len = _tcslen(newPattern);
+    if (len > 0) {
+        logFilePurgePattern = malloc(sizeof(TCHAR) * (len + 1));
+        if (!logFilePurgePattern) {
+            free(generatedPattern);
+            outOfMemoryQueued(TEXT("SLPP"), 2);
+            return;
+        }
+        _tcsncpy(logFilePurgePattern, newPattern, len + 1);
+    }
+    free(generatedPattern);
 }
 
 void setLogfilePurgeSortMode(int sortMode) {
@@ -1773,16 +1838,8 @@ void generateLogFileName(TCHAR *buffer, size_t bufferSize, const TCHAR *template
 
     /* Handle the date token. */
     if (_tcsstr(buffer, TEXT("YYYYMMDD"))) {
-        if (nowDate == NULL) {
-            /* The token needs to be removed. */
-            replaceStringLongWithShort(buffer, TEXT("-YYYYMMDD"), NULL);
-            replaceStringLongWithShort(buffer, TEXT("_YYYYMMDD"), NULL);
-            replaceStringLongWithShort(buffer, TEXT(".YYYYMMDD"), NULL);
-            replaceStringLongWithShort(buffer, TEXT("YYYYMMDD"), NULL);
-        } else {
-            /* The token needs to be replaced. */
-            replaceStringLongWithShort(buffer, TEXT("YYYYMMDD"), nowDate);
-        }
+        /* The token needs to be replaced. */
+        replaceStringLongWithShort(buffer, TEXT("YYYYMMDD"), nowDate);
     }
 
     /* Handle the roll number token. */
@@ -1800,12 +1857,21 @@ void generateLogFileName(TCHAR *buffer, size_t bufferSize, const TCHAR *template
     } else {
         /* The name did not contain a ROLLNUM token. */
         if (rollNum != NULL ) {
-            /* Generate the name as if ".ROLLNUM" was appended to the template. */
             bufferLen = _tcslen(buffer);
-            _sntprintf(buffer + bufferLen, bufferSize - bufferLen, TEXT(".%s"), rollNum);
+            if (_tcscmp(rollNum, TEXT("*")) == 0) {
+                /* Append the '*' at the end. */
+                _sntprintf(buffer + bufferLen, bufferSize - bufferLen, TEXT("%s"), rollNum);
+            } else {
+                /* Generate the name as if ".ROLLNUM" was appended to the template. */
+                _sntprintf(buffer + bufferLen, bufferSize - bufferLen, TEXT(".%s"), rollNum);
+            }
             buffer[bufferSize - 1] = TEXT('\0');
         }
     }
+}
+
+void generateLogFilePattern(TCHAR *buffer, size_t bufferSize) {
+    generateLogFileName(buffer, bufferSize, logFilePath, TEXT("????????"), TEXT("*"));
 }
 
 /**
@@ -1902,11 +1968,7 @@ int openLogFile(struct tm *nowTM, TCHAR *message) {
     /* If the log file was set to a blank value then it will not be used. */
     if (logFilePath && (_tcslen(logFilePath) > 0)) {
         /* If this the roll mode is date then we need a nowDate for this log entry. */
-        if ((logFileRollMode & ROLL_MODE_DATE) || (confLogFileRollMode & ROLL_MODE_DATE)) {
-            _sntprintf(nowDate, 9, TEXT("%04d%02d%02d"), nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday );
-        } else {
-            nowDate[0] = TEXT('\0');
-        }
+        _sntprintf(nowDate, 9, TEXT("%04d%02d%02d"), nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday );
 
         /* If ftell() can't be used, we need the size of the logging message in order to calculate the size of the buffered data that is not flushed.  */
         if (doesFtellCauseMemoryLeak()) {
@@ -1943,11 +2005,7 @@ int openLogFile(struct tm *nowTM, TCHAR *message) {
                         /* We are moving from one configured log file to another. We need to reinit. */
                         reset = TRUE;
                     } else {
-                        if (confLogFileRollMode & ROLL_MODE_DATE) {
-                            generateLogFileName(workConfLogFileName, confLogFileNameSize, confLogFileName, nowDate, NULL);
-                        } else {
-                            generateLogFileName(workConfLogFileName, confLogFileNameSize, confLogFileName, NULL, NULL);
-                        }
+                        generateLogFileName(workConfLogFileName, confLogFileNameSize, confLogFileName, nowDate, NULL);
                         if ((tempLogfileFP = _tfopen(workConfLogFileName, TEXT("a"))) == NULL) {
                         /* The configured log file has changed but is not accessible. Reset the file opening
                          *  system in its original state to clearly show that the new file is not accessible. */
@@ -1972,7 +2030,7 @@ int openLogFile(struct tm *nowTM, TCHAR *message) {
                 
                 if (whichLogFile == LOG_FILE_DEFAULT) {
                     /* Continue with the default file. If the configured log file changed, we will resume logging in it just below. */
-                    setLogfilePath(defaultLogFile, FALSE);
+                    setLogfilePath(defaultLogFile, FALSE, FALSE);
                     _sntprintf(currentLogFileName, currentLogFileNameSize, defaultLogFile);
                     setDefaultRolling();
                 }
@@ -1984,11 +2042,7 @@ int openLogFile(struct tm *nowTM, TCHAR *message) {
                 old_umask = umask( logFileUmask );
                 /* Generate the log file name if it is not already set. */
                 if (workConfLogFileName[0] == TEXT('\0')) {
-                    if (confLogFileRollMode & ROLL_MODE_DATE) {
-                        generateLogFileName(workConfLogFileName, confLogFileNameSize, confLogFileName, nowDate, NULL);
-                    } else {
-                        generateLogFileName(workConfLogFileName, confLogFileNameSize, confLogFileName, NULL, NULL);
-                    }
+                    generateLogFileName(workConfLogFileName, confLogFileNameSize, confLogFileName, nowDate, NULL);
                 }
                 tempLogfileFP = _tfopen(workConfLogFileName, TEXT("a"));
                 if (!tempLogfileFP) {
@@ -2031,7 +2085,7 @@ int openLogFile(struct tm *nowTM, TCHAR *message) {
                     }
                     
                     /* Set the log file path */
-                    setLogfilePath(confLogFileName, FALSE);
+                    setLogfilePath(confLogFileName, FALSE, FALSE);
                     _sntprintf(currentLogFileName, currentLogFileNameSize, workConfLogFileName);
                     restoreConfiguredRolling();
                     logFileChanged = TRUE;
@@ -2048,11 +2102,7 @@ int openLogFile(struct tm *nowTM, TCHAR *message) {
             /* Generate the log file name if it is not already set. */
             if (whichLogFile != LOG_FILE_DISABLED) {
                 if (currentLogFileName[0] == TEXT('\0')) {
-                    if (logFileRollMode & ROLL_MODE_DATE) {
-                        generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, nowDate, NULL);
-                    } else {
-                        generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, NULL, NULL);
-                    }
+                    generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, nowDate, NULL);
                     logFileChanged = TRUE;
                 }
 
@@ -2073,11 +2123,7 @@ int openLogFile(struct tm *nowTM, TCHAR *message) {
                 } else if ((whichLogFile == LOG_FILE_DEFAULT) && (_tstat(logFilePath, &fileStat) == 0) && (fileStat.st_size == 0)) {
                     /* Generate the log file name if it is not already set. */
                     if (workConfLogFileName[0] == TEXT('\0')) {
-                        if (confLogFileRollMode & ROLL_MODE_DATE) {
-                            generateLogFileName(workConfLogFileName, confLogFileNameSize, confLogFileName, nowDate, NULL);
-                        } else {
-                            generateLogFileName(workConfLogFileName, confLogFileNameSize, confLogFileName, NULL, NULL);
-                        }
+                        generateLogFileName(workConfLogFileName, confLogFileNameSize, confLogFileName, nowDate, NULL);
                     }
                     /* This is a new default log file, so add a header. */
                     printFailoverFileHeader(workConfLogFileName);
@@ -2126,7 +2172,7 @@ int openLogFile(struct tm *nowTM, TCHAR *message) {
                         free(tempBuffer);
                     }
                     
-                    setLogfilePath(defaultLogFile, FALSE);
+                    setLogfilePath(defaultLogFile, FALSE, FALSE);
                     _sntprintf(currentLogFileName, currentLogFileNameSize, defaultLogFile);
                     setDefaultRolling();
                     logFileChanged = TRUE;
@@ -2136,11 +2182,7 @@ int openLogFile(struct tm *nowTM, TCHAR *message) {
                     if ((_tstat(logFilePath, &fileStat) == 0) && (fileStat.st_size == 0)) {
                         /* Generate the log file name if it is not already set. */
                         if (workConfLogFileName[0] == TEXT('\0')) {
-                            if (confLogFileRollMode & ROLL_MODE_DATE) {
-                                generateLogFileName(workConfLogFileName, confLogFileNameSize, confLogFileName, nowDate, NULL);
-                            } else {
-                                generateLogFileName(workConfLogFileName, confLogFileNameSize, confLogFileName, NULL, NULL);
-                            }
+                            generateLogFileName(workConfLogFileName, confLogFileNameSize, confLogFileName, nowDate, NULL);
                         }
                         /* This is a new default log file, so add a header. */
                         printFailoverFileHeader(workConfLogFileName);
@@ -2183,7 +2225,7 @@ int openLogFile(struct tm *nowTM, TCHAR *message) {
         if (logfileFP == NULL) {
             currentLogFileName[0] = TEXT('\0');
             /* Failure to write to logfile already reported. */
-        } else if ((whichLogFile == LOG_FILE_CONFIGURED) && (logFileRollMode & ROLL_MODE_DATE)) {
+        } else if (whichLogFile == LOG_FILE_CONFIGURED) {
             /* We need to store the date the file was opened for (only the configured log file is rolled by date). */
             _tcsncpy(logFileLastNowDate, nowDate, 9);
         }
@@ -2973,26 +3015,19 @@ int syslogMessageFileRegistered(int silent) {
             /* check that the path to the wrapper is correct. */
             if ((error = RegQueryValueEx( hKey, TEXT("EventMessageFile"), NULL, NULL, (LPBYTE) bufferKVal, &cbData)) == ERROR_SUCCESS ) {
                 if (strcmpIgnoreCase(bufferPath, bufferKVal) == 0) {
-                    RegCloseKey( hKey );
                     eventLogSourceInstalled = TRUE;
-                } else {
-                    if (!silent) {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
-                            TEXT("The path registered for the Event Log (%s) did not match the location of the Wrapper binary (%s)."), bufferKVal, bufferPath);
-                    }
-                }
-            } else {
-                if (!silent) {
+                } else if (!silent) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
-                        TEXT("The path registered for the Event Log could not be read (0x%x)."), error);
+                        TEXT("The path registered for the Event Log (%s) did not match the location of the Wrapper binary (%s)."), bufferKVal, bufferPath);
                 }
+            } else if (!silent) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
+                    TEXT("The path registered for the Event Log could not be read (0x%x)."), error);
             }
             RegCloseKey( hKey );
-        } else if (error != ERROR_FILE_NOT_FOUND) {
-            if (!silent) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
-                    TEXT("The Event Log source could not be found (0x%x)."), error);
-            }
+        } else if ((error != ERROR_FILE_NOT_FOUND) && !silent) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
+                TEXT("The Event Log source could not be found (0x%x)."), error);
         }
     }
     
@@ -3564,7 +3599,7 @@ int rollFailure = FALSE;
 /**
  * Rolls log files using the ROLLNUM system.
  */
-void rollLogs() {
+void rollLogs(const TCHAR *nowDate) {
     int i;
     TCHAR rollNum[11];
 #if defined(WIN32) && !defined(WIN64)
@@ -3601,7 +3636,7 @@ void rollLogs() {
     do {
         i++;
         _sntprintf(rollNum, 11, TEXT("%d"), i);
-        generateLogFileName(workLogFileName, currentLogFileNameSize, logFilePath, NULL, rollNum);
+        generateLogFileName(workLogFileName, currentLogFileNameSize, logFilePath, nowDate, rollNum);
         result = _tstat(workLogFileName, &fileStat);
 #ifdef _DEBUG
         if (result == 0) {
@@ -3614,7 +3649,7 @@ void rollLogs() {
     for (; i > 1; i--) {
         _tcsncpy(currentLogFileName, workLogFileName, _tcslen(logFilePath) + 11);
         _sntprintf(rollNum, 11, TEXT("%d"), i - 1);
-        generateLogFileName(workLogFileName, currentLogFileNameSize, logFilePath, NULL, rollNum);
+        generateLogFileName(workLogFileName, currentLogFileNameSize, logFilePath, nowDate, rollNum);
 
         if ((logFileMaxLogFiles > 0) && (i > logFileMaxLogFiles) && (!logFilePurgePattern)) {
             /* The file needs to be deleted rather than rolled.   If a purge pattern was not specified,
@@ -3636,7 +3671,7 @@ void rollLogs() {
                         log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to delete old log file: %s (%s)"), workLogFileName, getLastErrorText());
                     }
                     rollFailure = TRUE;
-                    generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, NULL, NULL); /* Set the name back so we don't cause a logfile name changed event. */
+                    generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, nowDate, NULL); /* Set the name back so we don't cause a logfile name changed event. */
                     return;
                 }
             } else {
@@ -3650,7 +3685,7 @@ void rollLogs() {
                         log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to delete old log file: %s"), workLogFileName);
                     }
                     rollFailure = TRUE;
-                    generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, NULL, NULL); /* Set the name back so we don't cause a logfile name changed event. */
+                    generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, nowDate, NULL); /* Set the name back so we don't cause a logfile name changed event. */
                     return;
                 }
 #ifdef _DEBUG
@@ -3678,7 +3713,7 @@ void rollLogs() {
 #endif
                 } 
                 rollFailure = TRUE;
-                generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, NULL, NULL); /* Set the name back so we don't cause a logfile name changed event. */
+                generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, nowDate, NULL); /* Set the name back so we don't cause a logfile name changed event. */
                 return;
             }
 #ifdef _DEBUG
@@ -3690,7 +3725,7 @@ void rollLogs() {
     }
 
     /* Rename the current file to the #1 index position */
-    generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, NULL, NULL);
+    generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, nowDate, NULL);
     if (_trename(currentLogFileName, workLogFileName) != 0) {
         if (rollFailure == FALSE) {
             if (getLastError() == 2) {
@@ -3709,7 +3744,7 @@ void rollLogs() {
             } 
         }
         rollFailure = TRUE;
-        generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, NULL, NULL); /* Set the name back so we don't cause a logfile name changed event. */
+        generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, nowDate, NULL); /* Set the name back so we don't cause a logfile name changed event. */
         return;
     }
 #ifdef _DEBUG
@@ -3934,39 +3969,41 @@ void checkAndRollLogs(const TCHAR *nowDate, size_t printBufferSize) {
 
         /* Does the log file need to rotated? */
         if ((int)position - 2 >= logFileMaxSize) { /* -2: no carriage return for the last message being logged. */
-            rollLogs();
+            rollLogs(nowDate);
         }
-    } else if (logFileRollMode & ROLL_MODE_DATE) {
-        /* Roll based on the date of the log entry. */
-        if (_tcscmp(nowDate, logFileLastNowDate) != 0) {
-            /* The date has changed.  Close the file. */
-            if (logfileFP != NULL) {
+    }
+    /* Roll based on the date of the log entry. */
+    if (logFilePathHasDateToken && _tcscmp(nowDate, logFileLastNowDate) != 0) {
+        /* The date has changed.  Close the file. */
+        if (logfileFP != NULL) {
 #ifdef _DEBUG
-                _tprintf(TEXT("Closing logfile because the date changed...\n"));
+            _tprintf(TEXT("Closing logfile because the date changed...\n"));
 #endif
 
-                fclose(logfileFP);
-                logfileFP = NULL;
+            fclose(logfileFP);
+            logfileFP = NULL;
+        }
+        /* Always reset the name so the the log file name will be regenerated correctly. */
+        currentLogFileName[0] = TEXT('\0');
+
+        /* This will happen just before a new log file is created.
+         *  Check the maximum file count. */
+        if (logFileMaxLogFiles > 0) {
+            /* We will check for too many files here and then clear the current log file name so it will be set later. */
+            generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, nowDate, NULL);
+
+            /* If logFilePurgeSortMode = NAMES_SMART, then logFilePurgePattern should not be NULL (see setLogfilePurgePattern()). */
+            if (logFilePurgePattern) {
+                limitLogFileCount(currentLogFileName, logFilePurgePattern, logFilePurgeSortMode, logFileMaxLogFiles + 1);
+            } else {
+                /* This case can happen if wrapper.logfile.purge.pattern was left empty and wrapper.logfile.purge.sort is not NAMES_SMART.
+                 *  We still need to remove old files, so generate a purge pattern and clean them using the default NAMES_SMART method. */
+                generateLogFilePattern(workLogFileName, currentLogFileNameSize);
+                limitLogFileCount(currentLogFileName, workLogFileName, LOGGER_FILE_SORT_MODE_NAMES_SMART, logFileMaxLogFiles + 1);
             }
-            /* Always reset the name so the the log file name will be regenerated correctly. */
+
             currentLogFileName[0] = TEXT('\0');
-
-            /* This will happen just before a new log file is created.
-             *  Check the maximum file count. */
-            if (logFileMaxLogFiles > 0) {
-                /* We will check for too many files here and then clear the current log file name so it will be set later. */
-                generateLogFileName(currentLogFileName, currentLogFileNameSize, logFilePath, nowDate, NULL);
-
-                if (logFilePurgePattern) {
-                    limitLogFileCount(currentLogFileName, logFilePurgePattern, logFilePurgeSortMode, logFileMaxLogFiles + 1);
-                } else {
-                    generateLogFileName(workLogFileName, currentLogFileNameSize, logFilePath, TEXT("????????"), NULL);
-                    limitLogFileCount(currentLogFileName, workLogFileName, LOGGER_FILE_SORT_MODE_NAMES_DEC, logFileMaxLogFiles + 1);
-                }
-
-                currentLogFileName[0] = TEXT('\0');
-                workLogFileName[0] = TEXT('\0');
-            }
+            workLogFileName[0] = TEXT('\0');
         }
     }
 }

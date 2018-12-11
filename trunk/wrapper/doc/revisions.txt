@@ -1,25 +1,99 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 3.5.37
+* Change the wrapper.ntservice.preshutdown.timeout property so that it only
+  takes effect when the service is installed, instead of setting the value on
+  startup. This allows a service to run with a user that doesn't require
+  permissions to update its configuration.
+* Make it possible to use system locales with an encoding notation that is not
+  directly supported by iconv, if the canonical alias for that encoding is
+  supported.
+* Fix a memory corruption happening when the configured locale encoding is not
+  supported by iconv.
+* No longer show a warning when the configured locale matches a system locale
+  with a default encoding.
+* Fix a locale issue when launching the Wrapper with RUN_AS_USER set in the
+  Unix shell script. Depending on the OS and how the Wrapper is launched,
+  either the 'runuser' or 'su' commands can be used, but until now, only 'su'
+  was using the system locale for the forked process. Now, the system locale is
+  explicitly passed to the forked process when using runuser to ensure the same
+  behavior with both commands.
+* Fix log duration not being reset when launching the JVM instance used to
+  prompt the Java version. This was affecting the first entry, which was
+  showing '99999999' for the 'R' column of the log format.
+* Fix heading and tailing tab characters not being trimmed when parsing the
+  lines of the configuration file and timezone file. This was causing
+  properties and directives preceded by a tab to be ignored.
+* Fix a problem where the configuration file could not be read if it contained
+  characters that were not supported by the encoding of the context in which
+  the Wrapper was launched. It is now possible to change the encoding by using
+  wrapper.lang.<platform>.encoding and thus give the Wrapper a second chance
+  to read the configuration file and convert it in the correct encoding.
+* Fix a problem where include configuration files containing corrupted
+  characters were skipped instead of causing a fatal error.
+* Add new environment variable: WRAPPER_JAVA_VENDOR. This variable is set after
+  the configuration is loaded, when parsing the 'java -version' output.
+* Improve handling of the customize command line and logging of errors in case
+  it is malformatted.
+* Make it possible to skip the configuration file by specifying '-' in the 
+  command line used to launch the Wrapper if the binary has been customized to
+  embed the configuration. This allows the user to append command lines
+  properties after the '-' and override the default configuration.
+* Add the ability to register a native exception handler in Windows versions of
+  the Java process by passing the -Dwrapper.register_native_handler=TRUE system
+  property to the JVM.  This can be useful in tracking down the cause of a JVM
+  crash.
+* Add new raiseExceptionNative() and raiseFailFastExceptionNative() methods in
+  the WrapperManager class which can be useful in testing JVM crash recovery.
+* Make it possible to combine log rolling by date with any other existing modes
+  (SIZE, WRAPPER, JVM, SIZE_OR_WRAPPER, SIZE_OR_JVM).
+* Change the default value of wrapper.logfile.purge.sort to 'NAME_SMART' for
+  all rolling modes. Before the default value was 'TIMES' except when rolling
+  by date. 'NAME_SMART' will purge the log files sorting them using the dates
+  and indexes included in their names. With this mode, the files will always be
+  purged in the correct order without being affected by manual edits which
+  cause their last modified dates to be changed.
+* Add a warning on startup when the Wrapper is running in a console with
+  QuickEdit mode enabled (Windows), and a property 
+  wrapper.console.quickedit.loglevel to control its log level. The QuickEdit
+  make it easier to select text in the console, but should be used with caution
+  as selecting text will freeze the Wrapper and block the Java application.
+* When running the delta pack on a 64-bit OS, the script launching the Wrapper
+  will first send a request to resolve whether the license is 32-bit or 64-bit,
+  then launch the appropriate Wrapper binaries. Before the binaries matching
+  the OS bits was used.
+* Add an optional source file which can contain the customized configuration of
+  the UNIX shell script. This file will be executed after setting the variables
+  on the top of the script, giving the user a chance to override any of them.
+  The file must have the same basename as the script and suffixed with a
+  '.shconf' extension. This should allow the user to keep the shell script in
+  its original state, and make it easier to upgrade it.
+* Set the default values of the APP_NAME and APP_LONG_NAME variables in the
+  UNIX shell script. APP_NAME will default to the name of the shell script,
+  and then APP_LONG_NAME will default to the value of APP_NAME.
+* Add a property wrapper.forced_shutdown.delay to control the minimum amount of
+  time required between two CTRL-C or TERM signals to initiate a forced
+  shutdown. The default value is 2 (200ms) to prevent double signals from
+  forcibly shutting down the application.
 
 3.5.36
 * Add new properties wrapper.java.additional.<n>.java_version.min and
   wrapper.java.additional.<n>.java_version.max to allow passing different
-  options to the JVM depending on the Java version currently used.
+  options to the JVM depending on the Java version.
 * Allow WRAPPER_JAVA_HOME to be updated on each JVM restart. This variable is
   set when the Java command is located using the Windows registry and cleared
   when using wrapper.java.command. Previously, this variable was final, meaning
   that once it was set it could not be changed, causing potential mismatch with
-  the location of the Java command currently used.
+  the location of the Java command being used.
 * Ensure that a variable cannot be set by the user if it is also used by the
   Wrapper internally. Before, this was only done for certain variables but not
   those set after the configuration is loaded (such as the WRAPPER_EVENT_* and
   the WRAPPER_JAVA_HOME variables). For any conflict, a warning message will be
-  logged and the value set by the user will be simply ignored.
+  logged and the value set by the user will be ignored.
 * Add new environment variables: WRAPPER_JAVA_VERSION,
   WRAPPER_JAVA_VERSION_MAJOR, WRAPPER_JAVA_VERSION_MINOR and
   WRAPPER_JAVA_VERSION_REVISION. These variables are set after the
-  configuration is loaded when prompting for the Java version to the JVM.
+  configuration is loaded, when parsing the 'java -version' output.
 * Add new environment variables WRAPPER_VERSION and WRAPPER_EDITION.
 * Deprecate wrapper.environment.dump in favor of
   wrapper.environment.dump.loglevel and generate a new dump each time the
@@ -32,18 +106,18 @@ Java Service Wrapper Revision History.
 * Fix insufficient buffer size causing the Wrapper to crash when printing large
   messages in UTF-8 on Windows.
 * Change the default value of the #properties.on_overwrite.loglevel directive
-  to 'AUTO', a new value which is resolved to 'WARN' whenever a property is
-  overridden within the same configuration file or in a file with a lower
-  include depth than the file of the earlier definition. It is also resolved to
-  'WARN' when a final property embedded during customization is overridden. In
-  all other cases, it is resolved to 'DEBUG'.
-* In some cases, the Wrapper appends its own system properties (e.g.
-  'file.encoding', 'user.language', etc.) to the Java command line. Normally,
-  any system property specified in the configuration file (with
-  wrapper.java.additional.<n>) has priority over those automatically added by
-  the Wrapper. However, this was not working when a configured value was
-  surrounded by double quotes, in which case the Wrapper was overriding it.
-  This problem was only happening on Windows and is now fixed.
+   to 'AUTO' which is resolved to:
+   - 'WARN':
+     - When a property is overridden within the same configuration file or in a
+       file with a lower include depth than the file of the previous
+       definition;
+     - When a final property embedded during customization is overridden.
+   - 'DEBUG': in all other cases.
+* Fix an issue where the Wrapper ignored systems properties surrounded by
+  double quotes and referenced in the wrapper.java.additional.<n> properties
+  (Windows only). Instead of giving priority to the properties of the
+  configuration file, the Wrapper was creating duplicates in the Java command
+  line when using the same system properties internally.
 * Fix an issue where environment variables were expanded too early while
   embedding configuration properties into the Wrapper binaries. Now they are
   left untouched and expanded at runtime. During customization, the properties
@@ -54,27 +128,27 @@ Java Service Wrapper Revision History.
   messages were inserted before the JVM output.
 * Fix a bug causing the Wrapper to sometimes freeze or crash when launching a
   child process on UNIX systems other than Linux (observed on AIX).
-* Enable the property wrapper.console.title to be reloaded when
+* Enable the wrapper.console.title property to be reloaded when
   wrapper.restart.reload_configuration is set to TRUE.
 * Use the '-K PIC' option instead of '-K pic' when compiling the Wrapper 64-bit
   binaries (but not for the native library) on Solaris SPARC. This was required
   as the size of the binaries increased, but should not affect the Wrapper
   behavior.
 * Add a new property wrapper.registry.java_version, which makes it possible to
-  target a specific version of Java when locating the command from the Windows
+  target a specific version of Java when locating the command using the Windows
   registry. If this property is not set, the Wrapper will use the
   CurrentVersion string of the registry. Note that Java 9 and above use a
   different location in the Windows registry, so by default the Wrapper will
   first search in this new location to prefer recent JVMs.
 * Fix a bug where a daemon installed with systemd would fail to start if the
   path to the shell script contained spaces.
-* Fix encoding issue of the messages logged by the native library if the system
-  encoding and the JVM encoding were different. This could especially be
-  noticed when using localization on Windows (on UNIX systems, this would only
-  occur if 'file.encoding' was manually added to the JVM options).
-* Add a check to make sure that the absolute path to the UNIX shell script is
-  accessible. If not, the permissions to each intermediate folder will be shown
-  and the script will stop.
+* Fix corrupted messages logged by the native library if the system encoding
+  and the JVM encoding were different. This was most noticeable when using
+  localization on Windows (on UNIX systems, this would only occur if
+  'file.encoding' was manually added to the JVM options).
+* Add a check to make sure that the UNIX shell script can be accessed using an
+  absolute path. If not, the permissions to each intermediate folder will be
+  listed and the script will stop.
 * Other small fixes, performance improvements and corrected log messages.
 
 3.5.35

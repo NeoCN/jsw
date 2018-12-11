@@ -210,7 +210,7 @@ extern int resolveDefaultLogFilePath();
  *
  * @return TRUE if there were any problems.
  */
-extern int setLogfilePath( const TCHAR *log_file_path, int isConfigured);
+extern int setLogfilePath( const TCHAR *log_file_path, int isConfigured, int preload);
 
 /**
  * Returns the default logfile.
@@ -248,7 +248,7 @@ extern int getLogfileLevelInt();
 extern void setLogfileLevel( const TCHAR *log_file_level );
 extern void setLogfileMaxFileSize( const TCHAR *max_file_size );
 extern void setLogfileMaxLogFiles(int max_log_files);
-extern void setLogfilePurgePattern(const TCHAR *pattern);
+extern void setLogfilePurgePattern(const TCHAR *pattern, int* outIsGenerated);
 extern void setLogfilePurgeSortMode(int sortMode);
 extern DWORD getLogfileActivity();
 

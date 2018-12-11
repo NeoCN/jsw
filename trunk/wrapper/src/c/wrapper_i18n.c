@@ -1297,6 +1297,92 @@ void clearNonAlphanumeric(TCHAR* bufferIn, TCHAR* bufferOut) {
 
 #ifndef WIN32
 /**
+ * Check if the encoding is specified with the canonical name.
+ *  Ex: 'UTF-8' is canonical, 'utf8' isn't.
+ *
+ * @param encoding
+ *
+ * @return TRUE if this is a canonical name, FALSE otherwise.
+ */
+int encodingIsCanonicalName(TCHAR* encoding) {
+    TCHAR c;
+    int i;
+
+    for (i = 0; i < _tcslen(encoding); i++) {
+        c = encoding[i];
+        if (c >= TEXT('A') && c <= TEXT('Z')) {
+            return TRUE;
+        }
+        if (c == TEXT('-')) {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+/**
+ * Compares two encodings.
+ *
+ * @param encoding1 When using systemMode, this should be the system encoding
+ * @param encoding2
+ * @param ignoreCase TRUE if the case should be ignored
+ *                   TRUE if dashes and punctuation should be ignored.
+ *
+ * @return TRUE if the encodings are identical, FALSE otherwise.
+ */
+int compareEncodings(TCHAR* encoding1, TCHAR* encoding2, int ignoreCase, int ignorePunctuation) {
+    TCHAR encoding1Buff[ENCODING_BUFFER_SIZE];
+    TCHAR encoding2Buff[ENCODING_BUFFER_SIZE];
+    TCHAR *enc1Ptr;
+    TCHAR *enc2Ptr;
+    
+    if (encoding1 && encoding2) {
+        if (ignorePunctuation) {
+            clearNonAlphanumeric(encoding1, encoding1Buff);
+            clearNonAlphanumeric(encoding2, encoding2Buff);
+            enc1Ptr = encoding1Buff;
+            enc2Ptr = encoding2Buff;
+        } else {
+            enc1Ptr = encoding1;
+            enc2Ptr = encoding2;
+        }
+        if (ignoreCase) {
+            return (strcmpIgnoreCase(enc1Ptr, enc2Ptr) == 0);
+        } else {
+            return (_tcscmp(enc1Ptr, enc2Ptr) == 0);
+        }
+    }
+    return (!encoding1 && !encoding2);
+}
+
+/**
+ * Compares two encodings with the rules of the OS.
+ *  On Linux the comparison ignores case, dashes and punctuation 
+ *   (except when the encoding of the system locale is displayed with a canonical name, e.g. C.UTF-8).
+ *  On HPUX, Solaris, AIX and FreeBSD, the comparison is strict.
+ *  On MAC and zOS, the comparison ignores case, but is strict regarding dashes and punctuation.
+ *
+ * @param encoding1 system encoding
+ * @param encoding2 other encoding
+ *
+ * @return TRUE if the encodings are identical, FALSE otherwise.
+ */
+int compareEncodingsSysMode(TCHAR* encoding1, TCHAR* encoding2) {
+    int ignoreCase = FALSE;
+    int ignorePunctuation = FALSE;
+
+ #ifdef LINUX
+    if (!encodingIsCanonicalName(encoding1)) {
+        ignoreCase = TRUE;
+        ignorePunctuation = TRUE;
+    }
+ #elif defined(MACOSX) || defined(ZOS)
+    ignoreCase = TRUE;
+ #endif
+    return compareEncodings(encoding1, encoding2, ignoreCase, ignorePunctuation);
+}
+
+/**
  * Get the encoding of the current locale.
  *
  * @param buffer output buffer
@@ -1936,13 +2022,16 @@ int wrapperGetLastError() {
 #endif
 }
 
-/*
+/**
  * Corrects a path in place by replacing all '/' characters with '\'
  *  on Windows platforms.  Does nothing on NIX platforms.
  *
  * filename - Filename to be modified.  Could be null.
+ *
+ * @return TRUE if the filename was changed, FALSE otherwise.
  */
-void wrapperCorrectWindowsPath(TCHAR *filename) {
+int wrapperCorrectWindowsPath(TCHAR *filename) {
+    int result = FALSE;
 #ifdef WIN32
     TCHAR *c;
 
@@ -1950,18 +2039,23 @@ void wrapperCorrectWindowsPath(TCHAR *filename) {
         c = (TCHAR *)filename;
         while((c = _tcschr(c, TEXT('/'))) != NULL) {
             c[0] = TEXT('\\');
+            result = TRUE;
         }
     }
 #endif
+    return result;
 }
 
-/*
+/**
  * Corrects a path in place by replacing all '\' characters with '/'
  *  on NIX platforms.  Does nothing on Windows platforms.
  *
  * filename - Filename to be modified.  Could be null.
+ *
+ * @return TRUE if the filename was changed, FALSE otherwise.
  */
-void wrapperCorrectNixPath(TCHAR *filename) {
+int wrapperCorrectNixPath(TCHAR *filename) {
+    int result = FALSE;
 #ifndef WIN32
     TCHAR *c;
 
@@ -1969,9 +2063,11 @@ void wrapperCorrectNixPath(TCHAR *filename) {
         c = (TCHAR *)filename;
         while((c = _tcschr(c, TEXT('\\'))) != NULL) {
             c[0] = TEXT('/');
+            result = TRUE;
         }
     }
 #endif
+    return result;
 }
 
 #ifndef WIN32
