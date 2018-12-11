@@ -1599,6 +1599,16 @@ int addPropertyPair(Properties *properties, const TCHAR* filename, int lineNum, 
     return 1;
 }
 
+/**
+ * Register an internal variable and add it to the properties structure in order to get correct warnings.
+ *
+ * @param properties The Properties structure.
+ * @param varName The variable name.
+ * @param varValue The value of the variable.
+ * @param finalValue TRUE if the variable can be changed after the configuration is loaded.
+ * @param ignore TRUE if the variable should be added to properties->ignoreVarMap
+ *               which means it should not be expanded until its value is turned to FALSE.
+ */
 void setInternalVarProperty(Properties *properties, const TCHAR *varName, const TCHAR *varValue, int finalValue, int ignore) {
     TCHAR* propertyName;
     

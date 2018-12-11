@@ -379,47 +379,47 @@ int compareJavaVersion(JavaVersion *version1, JavaVersion* version2) {
  * @param output   the output returned by 'java -version' (or only the line of the output containing the maker).
  *
  * @return an integer representing the JVM implementation:
- *              JVM_MAKER_UNKNOWN
- *              JVM_MAKER_ORACLE
- *              JVM_MAKER_OPENJDK
- *              JVM_MAKER_IBM
+ *              JVM_VENDOR_UNKNOWN
+ *              JVM_VENDOR_ORACLE
+ *              JVM_VENDOR_OPENJDK
+ *              JVM_VENDOR_IBM
  */
-int parseOutputJvmMaker(TCHAR* output) {
+int parseOutputJvmVendor(TCHAR* output) {
     if (output) {
         if (_tcsstr(output, TEXT("IBM"))) {
-            return JVM_MAKER_IBM;
+            return JVM_VENDOR_IBM;
         } else if (_tcsstr(output, TEXT("OpenJDK"))) {
-            return JVM_MAKER_OPENJDK;
+            return JVM_VENDOR_OPENJDK;
         } else if (_tcsstr(output, TEXT("Java HotSpot"))) {
-            return JVM_MAKER_ORACLE;
+            return JVM_VENDOR_ORACLE;
         }
     }
-    return JVM_MAKER_UNKNOWN;
+    return JVM_VENDOR_UNKNOWN;
 }
 
 /**
  * Get the name of a JVM maker.
  *
  * @param maker an integer representing the JVM implementation:
- *              JVM_MAKER_UNKNOWN
- *              JVM_MAKER_ORACLE
- *              JVM_MAKER_OPENJDK
- *              JVM_MAKER_IBM
+ *              JVM_VENDOR_UNKNOWN
+ *              JVM_VENDOR_ORACLE
+ *              JVM_VENDOR_OPENJDK
+ *              JVM_VENDOR_IBM
  *
  * @return the name of the JVM maker.
  */
-const TCHAR* getJvmMakerName(int jvmMaker) {
+const TCHAR* getJvmVendorName(int jvmVendor) {
     TCHAR *name;
-    switch (jvmMaker) {
-    case JVM_MAKER_ORACLE:
+    switch (jvmVendor) {
+    case JVM_VENDOR_ORACLE:
         name = TEXT("Oracle");
         break;
 
-    case JVM_MAKER_OPENJDK:
+    case JVM_VENDOR_OPENJDK:
         name = TEXT("OpenJDK");
         break;
 
-    case JVM_MAKER_IBM:
+    case JVM_VENDOR_IBM:
         name = TEXT("IBM");
         break;
 
@@ -450,6 +450,7 @@ int parseOutputJvmBits(TCHAR* output) {
             _tcsstr(output, TEXT("64-bit")) ||
             _tcsstr(output, TEXT("64 Bit")) ||
             _tcsstr(output, TEXT("64 bit")) ||
+            _tcsstr(output, TEXT("-64 ")) ||
             _tcsstr(output, TEXT("ppc64")) ||
             _tcsstr(output, TEXT("mixed mode"))) {
             return JVM_BITS_64;

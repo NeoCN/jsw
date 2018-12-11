@@ -297,6 +297,16 @@ public abstract class AbstractActionApp
             WrapperManager.accessViolationNative();
             
         }
+        else if ( action.equals( "exception_native" ) )
+        {
+            WrapperManager.raiseExceptionNative( 0x12345678 );
+            
+        }
+        else if ( action.equals( "ff_exception_native" ) )
+        {
+            WrapperManager.raiseFailFastExceptionNative();
+            
+        }
         else if ( action.equals( "appear_hung" ) )
         {
             WrapperManager.appearHung();
@@ -413,7 +423,25 @@ public abstract class AbstractActionApp
                             {
                                 do {
                                     System.out.println( Main.getRes().getString( "Input an action (''help'' for a list of actions):") );
-                                    line = r.readLine();
+                                    
+                                    int count = 0;
+                                    int maxTries = 10;
+                                    while( true ) {
+                                        /* On some old JVMs, we may get an "Interrupted system call" exception if a child process is writing some output while tying to read from here.
+                                         *  It would most likely work if we try again though. */
+                                        try
+                                        {
+                                            line = r.readLine();
+                                            break;
+                                        }
+                                        catch ( IOException e )
+                                        {
+                                            if ( ( e.toString().indexOf( "Interrupted system call" ) == -1 ) || ( ++count == maxTries ) )
+                                            {
+                                                throw e;
+                                            }
+                                        }
+                                    }
                                     if ((line != null) && (!line.equals(""))) {
                                         System.out.println(Main.getRes().getString( "Read action: {0}", line ) );
                                         if ( !doAction( line ) )
@@ -758,6 +786,11 @@ public abstract class AbstractActionApp
         System.err.println( Main.getRes().getString( "   stopimmediate1           : Calls WrapperManager.stopImmediate(1)" ) );
         System.err.println( Main.getRes().getString( "  Actions which should cause the Wrapper to restart the JVM:" ) );
         System.err.println( Main.getRes().getString( "   access_violation_native  : Calls WrapperManager.accessViolationNative()" ) );
+        if ( WrapperManager.isWindows() )
+        {
+            System.err.println( Main.getRes().getString( "   exception_native         : Calls WrapperManager.raiseExceptionNative()" ) );
+            System.err.println( Main.getRes().getString( "   ff_exception_native      : Calls WrapperManager.raiseFailFastExceptionNative()" ) );
+        }
         System.err.println( Main.getRes().getString( "   appear_hung              : Calls WrapperManager.appearHung()" ) );
         System.err.println( Main.getRes().getString( "   halt0                    : Calls Runtime.getRuntime().halt(0)" ) );
         System.err.println( Main.getRes().getString( "   halt1                    : Calls Runtime.getRuntime().halt(1)" ) );

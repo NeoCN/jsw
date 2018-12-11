@@ -192,6 +192,15 @@ public class Main
             buildCommand( panel, gridBag, c, getRes().getString( "Native Access Violation" ), "access_violation_native",
                     getRes().getString( "Causes an access violation using native code, the JVM will crash and be restarted." ) );
             
+            if ( WrapperManager.isWindows() )
+            {
+                buildCommand( panel, gridBag, c, getRes().getString( "Native Exception" ), "exception_native",
+                        getRes().getString( "Throw an exception using native code, on Windows, the JVM will crash and be restarted." ) );
+                
+                buildCommand( panel, gridBag, c, getRes().getString( "Native Fail Fast Exception" ), "ff_exception_native",
+                        getRes().getString( "Throw a fail fast exception using native code, on Windows, the JVM will crash and be restarted." ) );
+            }
+            
             buildCommand( panel, gridBag, c, getRes().getString( "Simulate JVM Hang" ), "appear_hung",
                     getRes().getString( "Makes the JVM appear to be hung as viewed from the Wrapper, it will be killed and restarted." ) );
             

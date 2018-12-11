@@ -65,6 +65,7 @@ FARPROC OptionalProcess32Next = NULL;
 FARPROC OptionalThread32First = NULL;
 FARPROC OptionalThread32Next = NULL;
 FARPROC OptionalCreateToolhelp32Snapshot = NULL;
+FARPROC OptionalRaiseFailFastException = NULL;
 
 int wrapperLockControlEventQueue() {
 #ifdef _DEBUG
@@ -568,9 +569,132 @@ void loadDLLProcs() {
             log_printf(TEXT("WrapperJNI Debug: The CreateToolhelp32Snapshot function is not available on this version of Windows."));
         }
     }
+    if ((OptionalRaiseFailFastException = GetProcAddress(kernel32Mod, "RaiseFailFastException")) == NULL) {
+        if (wrapperJNIDebugging) {
+            log_printf(TEXT("WrapperJNI Debug: The RaiseFailFastException function is not available on this version of Windows."));
+        }
+    }
 }
 
+const TCHAR* getExceptionName(DWORD exCode) {
+    TCHAR *exName;
 
+    switch (exCode) {
+    case EXCEPTION_ACCESS_VIOLATION:
+        exName = TEXT("EXCEPTION_ACCESS_VIOLATION");
+        break;
+    case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
+        exName = TEXT("EXCEPTION_ARRAY_BOUNDS_EXCEEDED");
+        break;
+    case EXCEPTION_BREAKPOINT:
+        exName = TEXT("EXCEPTION_BREAKPOINT");
+        break;
+    case EXCEPTION_DATATYPE_MISALIGNMENT:
+        exName = TEXT("EXCEPTION_DATATYPE_MISALIGNMENT");
+        break;
+    case EXCEPTION_FLT_DENORMAL_OPERAND:
+        exName = TEXT("EXCEPTION_FLT_DENORMAL_OPERAND");
+        break;
+    case EXCEPTION_FLT_DIVIDE_BY_ZERO:
+        exName = TEXT("EXCEPTION_FLT_DIVIDE_BY_ZERO");
+        break;
+    case EXCEPTION_FLT_INEXACT_RESULT:
+        exName = TEXT("EXCEPTION_FLT_INEXACT_RESULT");
+        break;
+    case EXCEPTION_FLT_INVALID_OPERATION:
+        exName = TEXT("EXCEPTION_FLT_INVALID_OPERATION");
+        break;
+    case EXCEPTION_FLT_OVERFLOW:
+        exName = TEXT("EXCEPTION_FLT_OVERFLOW");
+        break;
+    case EXCEPTION_FLT_STACK_CHECK:
+        exName = TEXT("EXCEPTION_FLT_STACK_CHECK");
+        break;
+    case EXCEPTION_FLT_UNDERFLOW:
+        exName = TEXT("EXCEPTION_FLT_UNDERFLOW");
+        break;
+    case EXCEPTION_ILLEGAL_INSTRUCTION:
+        exName = TEXT("EXCEPTION_ILLEGAL_INSTRUCTION");
+        break;
+    case EXCEPTION_IN_PAGE_ERROR:
+        exName = TEXT("EXCEPTION_IN_PAGE_ERROR");
+        break;
+    case EXCEPTION_INT_DIVIDE_BY_ZERO:
+        exName = TEXT("EXCEPTION_INT_DIVIDE_BY_ZERO");
+        break;
+    case EXCEPTION_INT_OVERFLOW:
+        exName = TEXT("EXCEPTION_INT_OVERFLOW");
+        break;
+    case EXCEPTION_INVALID_DISPOSITION:
+        exName = TEXT("EXCEPTION_INVALID_DISPOSITION");
+        break;
+    case EXCEPTION_NONCONTINUABLE_EXCEPTION:
+        exName = TEXT("EXCEPTION_NONCONTINUABLE_EXCEPTION");
+        break;
+    case EXCEPTION_PRIV_INSTRUCTION:
+        exName = TEXT("EXCEPTION_PRIV_INSTRUCTION");
+        break;
+    case EXCEPTION_SINGLE_STEP:
+        exName = TEXT("EXCEPTION_SINGLE_STEP");
+        break;
+    case EXCEPTION_STACK_OVERFLOW:
+        exName = TEXT("EXCEPTION_STACK_OVERFLOW");
+        break;
+    default:
+        exName = TEXT("EXCEPTION_UNKNOWN");
+        break;
+    }
+
+    return exName;
+}
+
+void commonExceptionInfo(PEXCEPTION_POINTERS pExceptionInfo) {
+    int i;
+    
+    log_printf(TEXT("WrapperJNI Error: ExceptionCode: %s (0x%x)"), getExceptionName(pExceptionInfo->ExceptionRecord->ExceptionCode), pExceptionInfo->ExceptionRecord->ExceptionCode);
+    
+    switch (pExceptionInfo->ExceptionRecord->ExceptionCode) {
+    case EXCEPTION_ACCESS_VIOLATION:
+    case EXCEPTION_IN_PAGE_ERROR:
+        if (pExceptionInfo->ExceptionRecord->NumberParameters >= 2) {
+            switch (pExceptionInfo->ExceptionRecord->ExceptionInformation[0]) {
+            case 0:
+                log_printf(TEXT("WrapperJNI Error:   Read access exception from 0x%p"), pExceptionInfo->ExceptionRecord->ExceptionInformation[1]);
+                break;
+            case 1:
+                log_printf(TEXT("WrapperJNI Error:   Write access exception to 0x%p"), pExceptionInfo->ExceptionRecord->ExceptionInformation[1]);
+                break;
+            case 8:
+                log_printf(TEXT("WrapperJNI Error:   DEP access exception to 0x%p"), pExceptionInfo->ExceptionRecord->ExceptionInformation[1]);
+                break;
+            default:
+                log_printf(TEXT("WrapperJNI Error:   Unexpected(%d) access exception to 0x%p"), pExceptionInfo->ExceptionRecord->ExceptionInformation[0], pExceptionInfo->ExceptionRecord->ExceptionInformation[1]);
+                break;
+            }
+        }
+        if ((pExceptionInfo->ExceptionRecord->ExceptionCode == EXCEPTION_IN_PAGE_ERROR) && (pExceptionInfo->ExceptionRecord->NumberParameters >= 3)) {
+            log_printf(TEXT("WrapperJNI Error:   Status Code: %d"), pExceptionInfo->ExceptionRecord->ExceptionInformation[2]);
+        }
+        break;
+        
+    default:
+        for (i = 0; i < (int)pExceptionInfo->ExceptionRecord->NumberParameters; i++) {
+            log_printf(TEXT("WrapperJNI Error:   ExceptionInformation[%d] = %ld"), i, pExceptionInfo->ExceptionRecord->ExceptionInformation[i]);
+        }
+        break;
+    }
+    
+    log_printf(TEXT("WrapperJNI Error: ExceptionFlags: %s (0x%x)"), (pExceptionInfo->ExceptionRecord->ExceptionFlags & EXCEPTION_NONCONTINUABLE_EXCEPTION ? TEXT("EXCEPTION_NONCONTINUABLE_EXCEPTION") : TEXT("")), pExceptionInfo->ExceptionRecord->ExceptionFlags);
+}
+LONG WINAPI wrapperVectoredExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
+    log_printf(TEXT("WrapperJNI Error: ============================================================"));
+    log_printf(TEXT("WrapperJNI Error: Detected an exception in the Java process."));
+    commonExceptionInfo(pExceptionInfo);
+    log_printf(TEXT("WrapperJNI Error: ============================================================"));
+    
+    return EXCEPTION_CONTINUE_SEARCH;
+}
+        
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeInit
@@ -581,6 +705,8 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jC
     TCHAR szPath[_MAX_PATH];
     DWORD usedLen;
     OSVERSIONINFO osVer;
+    TCHAR *registerNativeHandlerValue;
+    
     wrapperJNIDebugging = debugging;
 
     /* Set the locale so we can display MultiByte characters. */
@@ -617,6 +743,19 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jC
         /* Failed.  An exception will have been thrown. */
         return;
     }
+    
+    /* Register exception handlers. */
+    if (!getSystemProperty(env, TEXT("wrapper.register_native_handler"), &registerNativeHandlerValue, FALSE)) {
+        /* Default to no registered handlers. */
+        if ((registerNativeHandlerValue != NULL) && (strcmpIgnoreCase(registerNativeHandlerValue, TEXT("TRUE")) == 0)) {
+            /*  VectoredExceptionHander is called whenever any Exception is thrown, regardless of whether or not it is caught by its surounding code. */
+            AddVectoredExceptionHandler(1, wrapperVectoredExceptionHandler);
+        }
+        if (registerNativeHandlerValue != NULL) {
+            free(registerNativeHandlerValue);
+            registerNativeHandlerValue = NULL;
+        }
+    }
 
     osVer.dwOSVersionInfoSize = sizeof(osVer);
 #pragma warning(push)
@@ -651,6 +790,34 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jC
 
     /* Initialize the explorer.exe name. */
     initExplorerExeName();
+}
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeRaiseExceptionInner
+ * Signature: (I)V
+ */
+JNIEXPORT void JNICALL
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeRaiseExceptionInner(JNIEnv *env, jclass clazz, jint code) {
+    log_printf(TEXT("WrapperJNI Warn: Raising Exception 0x%08x..."), code);
+    
+    RaiseException(code, EXCEPTION_NONCONTINUABLE, 0, NULL);
+}
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeRaiseFailFastExceptionInner
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeRaiseFailFastExceptionInner(JNIEnv *env, jclass clazz) {
+    if (OptionalRaiseFailFastException != NULL) {
+        log_printf(TEXT("WrapperJNI Warn: Raising FailFastException..."));
+        
+        OptionalRaiseFailFastException(NULL, NULL, 0x1/*FAIL_FAST_GENERATE_EXCEPTION_ADDRESS*/);
+    } else {
+        log_printf(TEXT("WrapperJNI: FailFastException not available on this version of Windows."));
+    }
 }
 
 /*

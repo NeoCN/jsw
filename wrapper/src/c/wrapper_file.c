@@ -158,6 +158,9 @@ int configFileReader_Read(ConfigFileReader *reader,
 #else
     char* encoding;
     char* interumEncoding;
+    TCHAR* encodingW = NULL;
+    TCHAR* interumEncodingW = NULL;
+    size_t size;
 #endif
     int includeRequired;
     int readResult = CONFIG_FILE_READER_SUCCESS;
@@ -307,20 +310,43 @@ int configFileReader_Read(ConfigFileReader *reader,
                     /* bufferW contains an error message. */
                     if (!reader->preload) {
                         if (depth > 0) {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                                 TEXT("%sIncluded configuration file, %s, contains a problem on line #%d and could not be read. (%s)"),
                                 (reader->debugIncludes ? TEXT("  ") : TEXT("")), filename, lineNumber, bufferW);
                         } else {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                                 TEXT("Configuration file, %s, contains a problem on line #%d and could not be read. (%s)"), filename, lineNumber, bufferW);
                         }
+#ifndef WIN32
+                        /* On Windows there is no such problem because wide chars are always UTF-16 which should support most characters. */
+                        size = mbstowcs(NULL, encoding, 0);
+                        if (size > (size_t)0) {
+                            encodingW = malloc(sizeof(TCHAR) * size + 1);
+                            if (encodingW) {
+                                mbstowcs(encodingW, encoding, size + 1);
+                            }
+                        }
+                        size = mbstowcs(NULL, interumEncoding, 0);
+                        if (size > (size_t)0) {
+                            interumEncodingW = malloc(sizeof(TCHAR) * (size + 1));
+                            if (interumEncodingW) {
+                                mbstowcs(interumEncodingW, interumEncoding, size + 1);
+                            }
+                        }
+                        if (!compareEncodingsSysMode(encodingW, interumEncodingW)) {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                                TEXT("One possible cause of failure is when the encoding of the locale used by the\n  Wrapper doesn't support certain characters of the configuration file.\n  The encoding of the current locale is '%s'. It is advised to set it\n  identical to the encoding of the configuration file (%s),\n  either by changing the default system locale or by using the wrapper.lang and\n  wrapper.lang.<platform>.encoding properties."), interumEncodingW, encodingW);
+                        }
+                        free(encodingW);
+                        free(interumEncodingW);
+#endif
                     }
                     free(bufferW);
                 } else {
                     outOfMemory(TEXT("RCF"), 1);
                 }
                 fclose(stream);
-                return CONFIG_FILE_READER_FAIL;
+                return CONFIG_FILE_READER_HARD_FAIL;
             }
             
 #ifdef _DEBUG
@@ -346,12 +372,12 @@ int configFileReader_Read(ConfigFileReader *reader,
             }
             /* Strip any whitespace from the front of the line. */
             trimmedBuffer = bufferW;
-            while ((trimmedBuffer[0] == TEXT(' ')) || (trimmedBuffer[0] == 0x08)) {
+            while ((trimmedBuffer[0] == TEXT(' ')) || (trimmedBuffer[0] == TCHAR_TAB)) {
                 trimmedBuffer++;
             }
 
             /* If the line does not start with a comment, make sure that
-             *  any comment at the end of line are stripped.  If any any point, a
+             *  any comment at the end of line are stripped.  If at any point, a
              *  double hash, '##', is encountered it should be interpreted as a
              *  hash in the actual property rather than the beginning of a comment. */
             if (trimmedBuffer[0] != TEXT('#')) {
@@ -384,9 +410,7 @@ int configFileReader_Read(ConfigFileReader *reader,
 
             /* Strip any whitespace from the end of the line. */
             trimmedBufferLen = _tcslen(trimmedBuffer);
-            while ((trimmedBufferLen > 0) && ((trimmedBuffer[trimmedBufferLen - 1] == TEXT(' '))
-            || (trimmedBuffer[trimmedBufferLen - 1] == 0x08))) {
-
+            while ((trimmedBufferLen > 0) && ((trimmedBuffer[trimmedBufferLen - 1] == TEXT(' ')) || (trimmedBuffer[trimmedBufferLen - 1] == TCHAR_TAB))) {
                 trimmedBuffer[--trimmedBufferLen] = TEXT('\0');
             }
 

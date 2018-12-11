@@ -1340,7 +1340,7 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
             }
             
             /* Resolve the encoding to be used for reading the JVM output (this needs to be done before building the Java command line). */
-            if (resolveJvmEncoding(wrapperData->javaVersion->major, wrapperData->jvmMaker)) {
+            if (resolveJvmEncoding(wrapperData->javaVersion->major, wrapperData->jvmVendor)) {
                 /* Failed to get the encoding of the JVM output.
                  *  Stop here because won't be able to display output correctly. */
                 wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);

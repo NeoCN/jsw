@@ -1193,6 +1193,8 @@ public final class WrapperManager
     private static native int nativeRedirectPipes();
     private static native void nativeRequestThreadDump();
     private static native void accessViolationInner(); // Should start with native, but need to preserve for compatibility.
+    private static native void nativeRaiseExceptionInner( int code );
+    private static native void nativeRaiseFailFastExceptionInner();
     private static native void nativeSetConsoleTitle( String titleBytes );
     private static native WrapperUser nativeGetUser( boolean groups );
     private static native WrapperUser nativeGetInteractiveUser( boolean groups );
@@ -2814,6 +2816,8 @@ public final class WrapperManager
      *  JVM is not being controlled from the native Wrapper. Useful for testing the Wrapper 
      *  functions.
      *
+     * @throws IllegalStateException If testing methods have been disabled by setting
+     *                               the wrapper.disable_tests=true system property.
      * @throws SecurityException If a SecurityManager is present and the
      *                           calling thread does not have the
      *                           WrapperPermission("test.appearHung") permission.
@@ -2856,6 +2860,8 @@ public final class WrapperManager
      * @param slowSeconds The number of seconds to delay reponding to any incoming
      *                    commands from the wrapper.
      *
+     * @throws IllegalStateException If testing methods have been disabled by setting
+     *                               the wrapper.disable_tests=true system property.
      * @throws SecurityException If a SecurityManager is present and the
      *                           calling thread does not have the
      *                           WrapperPermission("test.appearSlow") permission.
@@ -2900,6 +2906,8 @@ public final class WrapperManager
      *  JVMs and takes advantage of Bug #4369043 which does not exist in newer
      *  JVMs.  Use of the accessViolationNative() method is preferred.
      *
+     * @throws IllegalStateException If testing methods have been disabled by setting
+     *                               the wrapper.disable_tests=true system property.
      * @throws SecurityException If a SecurityManager is present and the
      *                           calling thread does not have the
      *                           WrapperPermission("test.accessViolation")
@@ -2956,6 +2964,8 @@ public final class WrapperManager
      *  Useful for testing the Wrapper functions. This currently causes the
      *  access violation by attempting to write to a null pointer.
      *
+     * @throws IllegalStateException If testing methods have been disabled by setting
+     *                               the wrapper.disable_tests=true system property.
      * @throws SecurityException If a SecurityManager is present and the
      *                           calling thread does not have the
      *                           WrapperPermission("test.accessViolationNative")
@@ -2984,6 +2994,90 @@ public final class WrapperManager
         
             m_outInfo.println( getRes().getString(
                     "  Attempt to cause access violation failed.  JVM is still alive." ) );
+        }
+        else
+        {
+            m_outInfo.println( getRes().getString( "  wrapper library not loaded." ) );
+        }
+    }
+    
+    /**
+     * (Testing Method) raise an exception in native code.
+     *  Useful for testing the Wrapper functions.
+     *
+     * Ignored when not running on Windows.
+     *
+     * @param code Exception code to Raise.
+     *
+     * @throws IllegalStateException If testing methods have been disabled by setting
+     *                               the wrapper.disable_tests=true system property.
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the
+     *                           WrapperPermission("test.raiseExceptionNative")
+     *                           permission.
+     *
+     * @see WrapperPermission
+     */
+    public static void raiseExceptionNative( int code )
+    {
+        if ( m_disableTests )
+        {
+            throw new IllegalStateException( getRes().getString( "Test methods have been disabled." ) );
+        }
+        
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkPermission( new WrapperPermission( "test.raiseExceptionNative" ) );
+        }
+        
+        m_outInfo.println( getRes().getString( "WARNING: Attempting to raise an exception in native code..." ) );
+        if ( isNativeLibraryOk() )
+        {
+            nativeRaiseExceptionInner( code );
+        
+            m_outInfo.println( getRes().getString( "  Attempt to raise a native exception failed.  JVM is still alive." ) );
+        }
+        else
+        {
+            m_outInfo.println( getRes().getString( "  wrapper library not loaded." ) );
+        }
+    }
+    
+    /**
+     * (Testing Method) raise a fail fast exception in native code.
+     *  Useful for testing the Wrapper functions.
+     *
+     * Ignored when not running on Windows.
+     *
+     * @throws IllegalStateException If testing methods have been disabled by setting
+     *                               the wrapper.disable_tests=true system property.
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the
+     *                           WrapperPermission("test.raiseFailFastExceptionNative")
+     *                           permission.
+     *
+     * @see WrapperPermission
+     */
+    public static void raiseFailFastExceptionNative()
+    {
+        if ( m_disableTests )
+        {
+            throw new IllegalStateException( getRes().getString( "Test methods have been disabled." ) );
+        }
+        
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkPermission( new WrapperPermission( "test.raiseFailFastExceptionNative" ) );
+        }
+        
+        m_outInfo.println( getRes().getString( "WARNING: Attempting to raise a fail fast exception in native code..." ) );
+        if ( isNativeLibraryOk() )
+        {
+            nativeRaiseFailFastExceptionInner();
+        
+            m_outInfo.println( getRes().getString( "  Attempt to raise a native fail fast exception failed.  JVM is still alive." ) );
         }
         else
         {
@@ -5165,7 +5259,7 @@ public final class WrapperManager
     {
         String s;
 
-        if (WrapperManager.isWindows())
+        if ( WrapperManager.isWindows() )
         {
             s = "\\\\.\\pipe\\wrapper-" + WrapperManager.getWrapperPID() + "-" + WrapperManager.getJVMId();
         } else {

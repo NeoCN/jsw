@@ -111,6 +111,8 @@ int timerThreadStopped = FALSE;
 
 TICKS timerTicks = WRAPPER_TICK_INITIAL;
 
+TICKS stopSignalLastTick;
+
 /******************************************************************************
  * Platform specific methods
  *****************************************************************************/
@@ -241,23 +243,27 @@ void takeSignalAction(int sigNum, const TCHAR *sigName, int mode) {
                 (wrapperData->jState == WRAPPER_JSTATE_DOWN_FLUSH)) {
 
                 /* Signaled while we were already shutting down. */
-                if (wrapperData->isForcedShutdownDisabled) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        TEXT("%s trapped.  Already shutting down."), sigName);
-                } else {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        TEXT("%s trapped.  Forcing immediate shutdown."), sigName);
-    
-                    /* Disable the thread dump on exit feature if it is set because it
-                     *  should not be displayed when the user requested the immediate exit. */
-                    wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
-                    wrapperKillProcess(FALSE);
+                if (wrapperGetTickAgeTicks(stopSignalLastTick, wrapperGetTicks()) >= wrapperData->forcedShutdownDelay) {
+                    /* We want to ignore double signals which can be sent both by the script and the systems at almost the same time. */
+                    if (wrapperData->isForcedShutdownDisabled) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                            TEXT("%s trapped.  Already shutting down."), sigName);
+                    } else {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                            TEXT("%s trapped.  Forcing immediate shutdown."), sigName);
+
+                        /* Disable the thread dump on exit feature if it is set because it
+                         *  should not be displayed when the user requested the immediate exit. */
+                        wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
+                        wrapperKillProcess(FALSE);
+                    }
                 }
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     TEXT("%s trapped.  Shutting down."), sigName);
                 /* Always force the shutdown as this is an external event. */
                 wrapperStopProcess(0, TRUE);
+                stopSignalLastTick = wrapperGetTicks();
             }
             /* Don't actually kill the process here.  Let the application shut itself down */
 
@@ -1300,6 +1306,9 @@ int wrapperLaunchJvm(TCHAR** command, pid_t *ppid, int errorLevel) {
     /* Again make sure the log file is closed before forking. */
     setLogfileAutoClose(TRUE);
     closeLogfile();
+
+    /* Reset the log duration so we get new counts from the time the JVM is launched. */
+    resetDuration();
     
     /* Fork off the child. */
     proc = fork();
@@ -1532,9 +1541,6 @@ int wrapperLaunchJavaApp() {
         wrapperData->exitCode = 0;
         return TRUE;
     }
-
-    /* Reset the log duration so we get new counts from the time the JVM is launched. */
-    resetDuration();
     
     /* Now launch the JVM process. */
     if (wrapperLaunchJvm(wrapperData->jvmCommand, &pid, LEVEL_FATAL)) {
@@ -2122,10 +2128,13 @@ int main(int argc, char **argv) {
     } else if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("-jvm_bits"))) {
         /* Generate the command used to get the Java version but don't stop on failure. */
         if (!wrapperBuildJavaVersionCommand()) {
-            /* Get the Java version before building the command line. */
             wrapperLaunchJavaVersion();
         }
         appExit(wrapperData->jvmBits, argc, argv);
+        return 0; /* For compiler. */
+    } else if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("-request_delta_binary_bits"))) {
+        /* Otherwise return the binary bits */
+        appExit(_tcscmp(wrapperBits, TEXT("64")) == 0 ? 64 : 32, argc, argv);
         return 0; /* For compiler. */
     } else if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("c")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-console"))) {
         /* Run as a console application */

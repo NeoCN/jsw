@@ -41,7 +41,7 @@
 #define SUN_ENCODING_SUPPORT_UNKNOWN            0x0002                              /* support is unknown */
 #define SUN_ENCODING_UNSUPPORTED                0x0004                              /* not supported */
 #define SUN_ENCODING_UNSUPPORTED_JAVA_VERSION  (0x0008 | SUN_ENCODING_UNSUPPORTED)  /* not supported by this version of Java */
-#define SUN_ENCODING_UNSUPPORTED_JVM_MAKER     (0x0010 | SUN_ENCODING_UNSUPPORTED)  /* not supported by the JVM implementation */
+#define SUN_ENCODING_UNSUPPORTED_JVM_VENDOR    (0x0010 | SUN_ENCODING_UNSUPPORTED)  /* not supported by the JVM implementation */
 
 #ifdef WIN32
 /**
@@ -62,14 +62,14 @@ TCHAR* getJvmIoEncodingFromCodePage(int codePage, int javaVersion, TCHAR* buffer
  *
  * @buffer buffer in which the encoding should be copied
  * @javaVersion current java version
- * @jvmMaker    current java implementation (Oracle, IBM, etc.)
+ * @jvmVendor   current java implementation (Oracle, IBM, etc.)
  *
  * @return LOCALE_ENCODING if no encoding was specified in the JVM arguements
  *         FILE_ENCODING if the encoding was resolved to the value of file.encoding
  *         SUN_ENCODING if the encoding was resolved to the value of the sun.std*.encoding properties
  *         UNRESOLVED_ENCODING if there was any error. A FATAL message will be printed before returning
  */
-int getJvmArgumentsEncoding(TCHAR* buffer, int javaVersion, int jvmMaker);
+int getJvmArgumentsEncoding(TCHAR* buffer, int javaVersion, int jvmVendor);
 
 /**
  * Get the code page used to encode the current JVM outputs.
@@ -119,10 +119,10 @@ void resetJvmOutputEncoding(int debug);
  *  This function should be called prior to using getJvmOutputCodePage() and getJvmOutputEncodingMB()
  *
  * @javaVersion current java version
- * @jvmMaker    current java implementation (Oracle, IBM, etc.)
+ * @jvmVendor   current java implementation (Oracle, IBM, etc.)
  *
  * @return TRUE if there is any error (misconfiguration of system properties or unsuported encoding), FALSE otherwise.
  */
-int resolveJvmEncoding(int javaVersion, int jvmMaker);
+int resolveJvmEncoding(int javaVersion, int jvmVendor);
 
 #endif

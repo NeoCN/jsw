@@ -589,12 +589,12 @@ int checkEquivalentEncodings(TCHAR* encoding1, TCHAR* encoding2) {
     return result;
 }
 
-int getJvmSunEncodingSupport(int javaVersion, int jvmMaker) {
+int getJvmSunEncodingSupport(int javaVersion, int jvmVendor) {
     int result = 0;
     
-    if (jvmMaker == JVM_MAKER_IBM) {
-        result |= SUN_ENCODING_UNSUPPORTED_JVM_MAKER;
-    } else if ((jvmMaker != JVM_MAKER_ORACLE) || (jvmMaker != JVM_MAKER_OPENJDK)) {
+    if (jvmVendor == JVM_VENDOR_IBM) {
+        result |= SUN_ENCODING_UNSUPPORTED_JVM_VENDOR;
+    } else if ((jvmVendor != JVM_VENDOR_ORACLE) || (jvmVendor != JVM_VENDOR_OPENJDK)) {
         result |= SUN_ENCODING_SUPPORT_UNKNOWN;
     }
     if (javaVersion < 8) {
@@ -606,7 +606,7 @@ int getJvmSunEncodingSupport(int javaVersion, int jvmMaker) {
     return result;
 }
 
-void tryGetSunSystemProperty(const TCHAR* name, int javaVersion, int jvmMaker, TCHAR* propValue, TCHAR* buffer, int* result) {
+void tryGetSunSystemProperty(const TCHAR* name, int javaVersion, int jvmVendor, TCHAR* propValue, TCHAR* buffer, int* result) {
     static int warnedPropsNotSupported[] = { FALSE, FALSE }; /* Remember if we logged warnings for each property, in the order: stdout, stderr */
     int propIndex;
     TCHAR argBase[23];
@@ -621,8 +621,8 @@ void tryGetSunSystemProperty(const TCHAR* name, int javaVersion, int jvmMaker, T
 #endif
     _sntprintf(argBase, 23, TEXT("-D%s="), name);
     if (_tcsstr(propValue, argBase) == propValue) {
-        sunSupport = getJvmSunEncodingSupport(javaVersion, jvmMaker);
-        if ((sunSupport & SUN_ENCODING_UNSUPPORTED_JVM_MAKER) == SUN_ENCODING_UNSUPPORTED_JVM_MAKER) {
+        sunSupport = getJvmSunEncodingSupport(javaVersion, jvmVendor);
+        if ((sunSupport & SUN_ENCODING_UNSUPPORTED_JVM_VENDOR) == SUN_ENCODING_UNSUPPORTED_JVM_VENDOR) {
             propIndex = (_tcscmp(name, TEXT("sun.stdout.encoding")) == 0) ? 0 : 1;
             if (!warnedPropsNotSupported[propIndex]) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
@@ -664,14 +664,14 @@ void tryGetSunSystemProperty(const TCHAR* name, int javaVersion, int jvmMaker, T
  *
  * @buffer buffer in which the encoding should be copied
  * @javaVersion current java version
- * @jvmMaker    current java implementation (Oracle, IBM, etc.)
+ * @jvmVendor   current java implementation (Oracle, IBM, etc.)
  *
  * @return LOCALE_ENCODING if no encoding was specified in the JVM arguments
  *         FILE_ENCODING if the encoding was resolved to the value of file.encoding
  *         SUN_ENCODING if the encoding was resolved to the value of the sun.std*.encoding properties
  *         UNRESOLVED_ENCODING if there was any error. A FATAL message will be printed before returning
  */
-int getJvmArgumentsEncoding(TCHAR* buffer, int javaVersion, int jvmMaker) {
+int getJvmArgumentsEncoding(TCHAR* buffer, int javaVersion, int jvmVendor) {
     TCHAR** propNames;
     TCHAR** propValues;
     TCHAR bufferSunOut[ENCODING_BUFFER_SIZE];
@@ -692,11 +692,11 @@ int getJvmArgumentsEncoding(TCHAR* buffer, int javaVersion, int jvmMaker) {
     bufferSunErr[0] = 0;
     for (i = 0; propValues[i]; i++){
         propValue = propValues[i];
-        tryGetSunSystemProperty(TEXT("sun.stdout.encoding"), javaVersion, jvmMaker, propValue, bufferSunOut, &result);
+        tryGetSunSystemProperty(TEXT("sun.stdout.encoding"), javaVersion, jvmVendor, propValue, bufferSunOut, &result);
         if (result == UNRESOLVED_ENCODING) {
             break;
         }
-        tryGetSunSystemProperty(TEXT("sun.stderr.encoding"), javaVersion, jvmMaker, propValue, bufferSunErr, &result);
+        tryGetSunSystemProperty(TEXT("sun.stderr.encoding"), javaVersion, jvmVendor, propValue, bufferSunErr, &result);
         if (result == UNRESOLVED_ENCODING) {
             break;
         }
@@ -815,11 +815,11 @@ void resetJvmOutputEncoding(int debug) {
  *  This function should be called prior to using getJvmOutputCodePage() and getJvmOutputEncodingMB()
  *
  * @javaVersion current java version
- * @jvmMaker    current java implementation (Oracle, IBM, etc.)
+ * @jvmVendor   current java implementation (Oracle, IBM, etc.)
  *
  * @return TRUE if there is any error (misconfiguration of system properties or unsuported encoding), FALSE otherwise.
  */
-int resolveJvmEncoding(int javaVersion, int jvmMaker) {
+int resolveJvmEncoding(int javaVersion, int jvmVendor) {
     TCHAR buffer[ENCODING_BUFFER_SIZE];
     int jvmEncodingOrigin;
 #ifndef WIN32
@@ -832,7 +832,7 @@ int resolveJvmEncoding(int javaVersion, int jvmMaker) {
     /* Initiate use_sun_encoding to FALSE. We will use this flag when building the Java command line. */
     wrapperData->use_sun_encoding = FALSE;
     
-    jvmEncodingOrigin = getJvmArgumentsEncoding(buffer, javaVersion, jvmMaker);
+    jvmEncodingOrigin = getJvmArgumentsEncoding(buffer, javaVersion, jvmVendor);
     if (jvmEncodingOrigin == UNRESOLVED_ENCODING) {
         /* Unresolved encoding - any error has already been logged */
         return TRUE;
