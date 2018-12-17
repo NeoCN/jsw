@@ -307,7 +307,7 @@ extern int isLogInitialized();
 extern int initLogging(void (*logFileChanged)(const TCHAR *logFile));
 extern int disposeLogging();
 extern void setUptime(int uptime, int flipped);
-extern void rollLogs();
+extern void rollLogs(const TCHAR *nowDate);
 extern int getLogLevelForName( const TCHAR *logLevelName );
 #ifndef WIN32
 extern int getLogFacilityForName( const TCHAR *logFacilityName );

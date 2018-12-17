@@ -437,10 +437,11 @@ then
 fi
 
 # Give default values to $APP_NAME and $APP_LONG_NAME
-if [ "X$APP_NAME" = "X" -o "$APP_NAME" = "@app.name@" ] ; then
+DELIMITER="@"
+if [ "X$APP_NAME" = "X" -o "$APP_NAME" = "${DELIMITER}app.name${DELIMITER}" ] ; then
     APP_NAME=`basename -- "$0"`
 fi
-if [ "X$APP_LONG_NAME" = "X" -o "$APP_LONG_NAME" = "@app.long.name@" ] ; then
+if [ "X$APP_LONG_NAME" = "X" -o "$APP_LONG_NAME" = "${DELIMITER}app.long.name${DELIMITER}" ] ; then
     APP_LONG_NAME=$APP_NAME
 fi
 

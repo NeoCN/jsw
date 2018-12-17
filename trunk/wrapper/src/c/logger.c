@@ -3599,7 +3599,7 @@ int rollFailure = FALSE;
 /**
  * Rolls log files using the ROLLNUM system.
  */
-void rollLogs(const TCHAR *nowDate) {
+void rollLogs(const TCHAR *nowDatePara) {
     int i;
     TCHAR rollNum[11];
 #if defined(WIN32) && !defined(WIN64)
@@ -3608,12 +3608,36 @@ void rollLogs(const TCHAR *nowDate) {
     struct stat fileStat;
 #endif
     int result;
+    struct tm *nowTM;
+    TCHAR nowDateBuff[9];
+    const TCHAR* nowDate;
+    time_t now;
+#ifdef WIN32
+    struct _timeb timebNow;
+#else
+    struct timeval timevalNow;
+#endif
 
 #ifdef _DEBUG
     _tprintf(TEXT("rollLogs()\n"));
 #endif
     if (!logFilePath) {
         return;
+    }
+    
+    if (!nowDatePara) {
+#ifdef WIN32
+        _ftime(&timebNow);
+        now = (time_t)timebNow.time;
+#else
+        gettimeofday(&timevalNow, NULL);
+        now = (time_t)timevalNow.tv_sec;
+#endif
+        nowTM = localtime(&now);
+        _sntprintf(nowDateBuff, 9, TEXT("%04d%02d%02d"), nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday);
+        nowDate = (const TCHAR*)nowDateBuff;
+    } else {
+        nowDate = nowDatePara;
     }
 
     /* If the log file is currently open, it needs to be closed. */

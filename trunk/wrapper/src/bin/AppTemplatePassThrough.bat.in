@@ -100,6 +100,7 @@ set _WRAPPER_EXE="%_WRAPPER_L_EXE:"=%"
 if exist %_WRAPPER_EXE% goto check_lic_bits
 set _WRAPPER_EXE="%_REALPATH:"=%%_WRAPPER_BASE%.exe"
 if exist %_WRAPPER_EXE% goto conf
+if %_BIN_BITS%=="64" goto x86_32
 echo Unable to locate a Wrapper executable using any of the following names:
 echo %_WRAPPER_L_EXE%
 echo %_WRAPPER_EXE%
@@ -126,7 +127,7 @@ set _WRAPPER_CONF="%_WRAPPER_CONF_DEFAULT:"=%"
 
 rem The command should not be called inside a IF, else errorlevel would be 0
 if not [%_CHECK_LIC_BITS%]==[true] goto startup
-%_WRAPPER_EXE% --license_bits %_WRAPPER_CONF% > nul 2>&1
+%_WRAPPER_EXE% --request_delta_binary_bits %_WRAPPER_CONF% > nul 2>&1
 if %errorlevel% equ 32 (
     set _LIC32_OS64=true
     set _CHECK_LIC_BITS=false

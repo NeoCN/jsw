@@ -122,7 +122,7 @@ TICKS timerTicks = WRAPPER_TICK_INITIAL;
 
 /** Flag which keeps track of whether or not the CTRL-C key has been pressed. */
 int ctrlCTrapped = FALSE;
-int ctrlCTrappedLastTick;
+TICKS ctrlCTrappedLastTick = WRAPPER_TICK_INITIAL;
 
 /** Flag which keeps track of whether or not PID files should be deleted on shutdown. */
 int cleanUpPIDFilesOnExit = FALSE;
@@ -3260,7 +3260,7 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
         /* See if the logs should be rolled on Wrapper startup. */
         if ((getLogfileRollMode() & ROLL_MODE_WRAPPER) ||
             (getLogfileRollMode() & ROLL_MODE_JVM)) {
-            rollLogs();
+            rollLogs(NULL);
         }
 
         /* Write pid and anchor files as requested.  If they are the same file the file is
@@ -7224,7 +7224,7 @@ void _tmain(int argc, TCHAR **argv) {
             /* See if the logs should be rolled on Wrapper startup. */
             if ((getLogfileRollMode() & ROLL_MODE_WRAPPER) ||
                 (getLogfileRollMode() & ROLL_MODE_JVM)) {
-                rollLogs();
+                rollLogs(NULL);
             }
 
             cleanUpPIDFilesOnExit = TRUE;

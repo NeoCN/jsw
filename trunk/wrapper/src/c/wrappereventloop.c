@@ -1215,7 +1215,7 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
             if (wrapperData->jvmRestarts > 0) {
                 /* See if the logs should be rolled on Wrapper startup. */
                 if (getLogfileRollMode() & ROLL_MODE_JVM) {
-                    rollLogs();
+                    rollLogs(NULL);
                 }
 
                 /* Unless this is the first JVM invocation, make it possible to reload the
