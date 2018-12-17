@@ -111,7 +111,7 @@ int timerThreadStopped = FALSE;
 
 TICKS timerTicks = WRAPPER_TICK_INITIAL;
 
-TICKS stopSignalLastTick;
+TICKS stopSignalLastTick = WRAPPER_TICK_INITIAL;
 
 /******************************************************************************
  * Platform specific methods
@@ -243,7 +243,7 @@ void takeSignalAction(int sigNum, const TCHAR *sigName, int mode) {
                 (wrapperData->jState == WRAPPER_JSTATE_DOWN_FLUSH)) {
 
                 /* Signaled while we were already shutting down. */
-                if (wrapperGetTickAgeTicks(stopSignalLastTick, wrapperGetTicks()) >= wrapperData->forcedShutdownDelay) {
+                if ((stopSignalLastTick == WRAPPER_TICK_INITIAL) || (wrapperGetTickAgeTicks(stopSignalLastTick, wrapperGetTicks()) >= wrapperData->forcedShutdownDelay)) {
                     /* We want to ignore double signals which can be sent both by the script and the systems at almost the same time. */
                     if (wrapperData->isForcedShutdownDisabled) {
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
@@ -2191,7 +2191,7 @@ int main(int argc, char **argv) {
         /* See if the logs should be rolled on Wrapper startup. */
         if ((getLogfileRollMode() & ROLL_MODE_WRAPPER) ||
             (getLogfileRollMode() & ROLL_MODE_JVM)) {
-            rollLogs();
+            rollLogs(NULL);
         }
 
         if (wrapperData->pidFilename) {

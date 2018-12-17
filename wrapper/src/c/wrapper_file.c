@@ -345,6 +345,11 @@ int configFileReader_Read(ConfigFileReader *reader,
                 } else {
                     outOfMemory(TEXT("RCF"), 1);
                 }
+                if (reader->preload) {
+                    /* On preload, ignore the line and continue. We want to load as much as possible and hopefully load the appropriate locale to read the file on the second load. */
+                    lineNumber++;
+                    continue;
+                }
                 fclose(stream);
                 return CONFIG_FILE_READER_HARD_FAIL;
             }

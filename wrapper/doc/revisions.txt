@@ -1,10 +1,11 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 3.5.37
-* Change the wrapper.ntservice.preshutdown.timeout property so that it only
-  takes effect when the service is installed, instead of setting the value on
-  startup. This allows a service to run with a user that doesn't require
-  permissions to update its configuration.
+* Load the wrapper.ntservice.preshutdown.timeout property during the
+  installation of a Windows service and no longer when starting the service.
+  The preshutdown timeout value is stored in the service configuration, which
+  can only be changed by a user with sufficient permissions, and not all users
+  who start Windows Services have these permissions.
 * Make it possible to use system locales with an encoding notation that is not
   directly supported by iconv, if the canonical alias for that encoding is
   supported.
@@ -18,9 +19,10 @@ Java Service Wrapper Revision History.
   was using the system locale for the forked process. Now, the system locale is
   explicitly passed to the forked process when using runuser to ensure the same
   behavior with both commands.
-* Fix log duration not being reset when launching the JVM instance used to
-  prompt the Java version. This was affecting the first entry, which was
-  showing '99999999' for the 'R' column of the log format.
+* Fix the initial value of the time passed since the last JVM output (displayed
+  with the 'R' column of the log format), which was '99999999' when launching
+  the JVM instance used to get the Java version. It now displays the time since
+  the JVM has started.
 * Fix heading and tailing tab characters not being trimmed when parsing the
   lines of the configuration file and timezone file. This was causing
   properties and directives preceded by a tab to be ignored.

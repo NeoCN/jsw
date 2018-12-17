@@ -1141,9 +1141,7 @@ int wrapperLoadConfigurationProperties(int preload) {
                 if ((!preload) && (!wrapperData->argConfFileDefault)) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Failed to load configuration: %s"), wrapperData->configFile);
                 }
-                if ((!preload) || (loadResult == CONFIG_FILE_READER_OPEN_FAIL)) {
-                    return TRUE;
-                }
+                return TRUE;
             }
         } else {
             /* Config file found. */
@@ -5146,6 +5144,10 @@ BOOL GetOSDisplayString(TCHAR** pszOS) {
         return FALSE;
     }
 }
+#endif
+
+#ifndef ENABLE_QUICK_EDIT_MODE
+ #define ENABLE_QUICK_EDIT_MODE  0x0040
 #endif
 
 /**
