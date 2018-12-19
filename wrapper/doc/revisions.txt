@@ -1,5 +1,7 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.5.38
+
 3.5.37
 * Load the wrapper.ntservice.preshutdown.timeout property during the
   installation of a Windows service and no longer when starting the service.
